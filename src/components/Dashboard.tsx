@@ -113,7 +113,11 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
                   Low Stock Alerts
                 </h3>
                 
-                {metrics.lowStockItems.length === 0 ? (
+                {metrics.totalStock === 0 ? (
+                  <div className="empty-state empty-state--sm" style={{ padding: 'var(--space-md)' }}>
+                    <h4 style={{ color: 'var(--color-text-secondary)' }}>Your inventory is completely empty.</h4>
+                  </div>
+                ) : metrics.lowStockItems.length === 0 ? (
                   <div className="empty-state empty-state--sm" style={{ padding: 'var(--space-md)' }}>
                     <h4 style={{ color: 'var(--color-success)' }}>All stock levels are healthy.</h4>
                   </div>
