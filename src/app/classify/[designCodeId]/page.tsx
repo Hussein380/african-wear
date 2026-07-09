@@ -113,6 +113,7 @@ export default function DesignCodeDetailPage({
     fullCode: string
     photos: { url: string; publicId: string }[]
     quantityAvailable: number
+    breakdown?: { id: string; label: string; quantity: number }[]
   }) => {
     if (!editingColorway) return
     const res = await fetch(`/api/colorways/${editingColorway._id}`, {
@@ -159,6 +160,31 @@ export default function DesignCodeDetailPage({
       }
     } catch (error) {
       console.error('Failed to update quantity:', error)
+    }
+  }
+
+  const handleBreakdownQuantityChange = async (colorway: Colorway, breakdownId: string, newQuantity: number) => {
+    if (newQuantity < 0 || !colorway.breakdown) return
+    try {
+      const newBreakdown = colorway.breakdown.map(item => 
+        item.id === breakdownId ? { ...item, quantity: newQuantity } : item
+      )
+      const newTotalQuantity = newBreakdown.reduce((sum, item) => sum + item.quantity, 0)
+
+      const res = await fetch(`/api/colorways/${colorway._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantityAvailable: newTotalQuantity, breakdown: newBreakdown }),
+      })
+      if (res.ok) {
+        setColorways(prev =>
+          prev.map(cw =>
+            cw._id === colorway._id ? { ...cw, quantityAvailable: newTotalQuantity, breakdown: newBreakdown } : cw
+          )
+        )
+      }
+    } catch (error) {
+      console.error('Failed to update breakdown quantity:', error)
     }
   }
 
@@ -253,29 +279,61 @@ export default function DesignCodeDetailPage({
                 <div className="colorway-card__body">
                   <h3 className="colorway-card__code">{cw.fullCode}</h3>
 
-                  {/* Quantity Controls */}
-                  <div className="colorway-card__quantity">
-                    <span className="colorway-card__quantity-label">In Stock:</span>
-                    <div className="colorway-card__quantity-controls">
-                      <button
-                        className="colorway-card__qty-btn"
-                        onClick={() => handleQuantityChange(cw._id, cw.quantityAvailable - 1)}
-                        type="button"
-                      >
-                        −
-                      </button>
-                      <span className="colorway-card__quantity-value">
-                        {cw.quantityAvailable}
-                      </span>
-                      <button
-                        className="colorway-card__qty-btn"
-                        onClick={() => handleQuantityChange(cw._id, cw.quantityAvailable + 1)}
-                        type="button"
-                      >
-                        +
-                      </button>
+                  {cw.breakdown && cw.breakdown.length > 0 ? (
+                    <div className="colorway-card__breakdowns">
+                      {cw.breakdown.map(item => (
+                        <div key={item.id} className="colorway-card__quantity" style={{ marginTop: '8px' }}>
+                          <span className="colorway-card__quantity-label">{item.label}:</span>
+                          <div className="colorway-card__quantity-controls">
+                            <button
+                              className="colorway-card__qty-btn"
+                              onClick={() => handleBreakdownQuantityChange(cw, item.id, item.quantity - 1)}
+                              type="button"
+                            >
+                              −
+                            </button>
+                            <span className="colorway-card__quantity-value">
+                              {item.quantity}
+                            </span>
+                            <button
+                              className="colorway-card__qty-btn"
+                              onClick={() => handleBreakdownQuantityChange(cw, item.id, item.quantity + 1)}
+                              type="button"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="colorway-card__quantity" style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--color-border)', opacity: 0.8 }}>
+                        <span className="colorway-card__quantity-label">Total in Stock:</span>
+                        <span className="colorway-card__quantity-value">{cw.quantityAvailable}</span>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="colorway-card__quantity">
+                      <span className="colorway-card__quantity-label">In Stock:</span>
+                      <div className="colorway-card__quantity-controls">
+                        <button
+                          className="colorway-card__qty-btn"
+                          onClick={() => handleQuantityChange(cw._id, cw.quantityAvailable - 1)}
+                          type="button"
+                        >
+                          −
+                        </button>
+                        <span className="colorway-card__quantity-value">
+                          {cw.quantityAvailable}
+                        </span>
+                        <button
+                          className="colorway-card__qty-btn"
+                          onClick={() => handleQuantityChange(cw._id, cw.quantityAvailable + 1)}
+                          type="button"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Photo Thumbnails */}
                   {cw.photos && cw.photos.length > 1 && (
@@ -343,6 +401,7 @@ export default function DesignCodeDetailPage({
             fullCode: editingColorway.fullCode,
             photos: editingColorway.photos,
             quantityAvailable: editingColorway.quantityAvailable,
+            breakdown: editingColorway.breakdown,
           }}
         />
       )}
