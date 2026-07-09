@@ -12,7 +12,14 @@ export default function InventoryPage() {
   useEffect(() => {
     async function fetchInventory() {
       try {
-        const res = await fetch('/api/inventory')
+        const res = await fetch('/api/inventory?t=' + new Date().getTime(), {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        })
         if (res.ok) {
           const json = await res.json()
           setData(json)

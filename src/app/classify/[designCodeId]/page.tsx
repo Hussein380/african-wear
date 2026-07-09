@@ -33,7 +33,14 @@ export default function DesignCodeDetailPage({
   const fetchColorways = useCallback(async () => {
     setIsLoading(true)
     try {
-      const res = await fetch(`/api/colorways?designCodeId=${designCodeId}`)
+      const res = await fetch(`/api/colorways?designCodeId=${designCodeId}&t=${new Date().getTime()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
       if (res.ok) {
         const data = await res.json()
         setColorways(data)
@@ -49,7 +56,14 @@ export default function DesignCodeDetailPage({
   useEffect(() => {
     async function fetchDesignCode() {
       try {
-        const res = await fetch(`/api/design-codes/${designCodeId}`)
+        const res = await fetch(`/api/design-codes/${designCodeId}?t=${new Date().getTime()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        })
         if (res.ok) {
           const data = await res.json()
           setDesignCode(data.code)

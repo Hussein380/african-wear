@@ -33,7 +33,8 @@ export default function InventoryTable({ data }: Props) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   const categories = useMemo(() => {
-    return ['All', ...Array.from(new Set(data.map(d => d.category)))]
+    const existingCats = data.map(d => d.category)
+    return ['All', ...Array.from(new Set(['PrintedC', 'PrintedP', ...existingCats]))]
   }, [data])
 
   const filteredAndSortedData = useMemo(() => {
