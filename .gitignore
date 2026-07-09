@@ -44,3 +44,8 @@ next-env.d.ts
 WhatsApp*
 *.jpeg
 *.mp4
+mandera-logo.png
+
+# Agent config
+AGENTS.md
+CLAUDE.md
