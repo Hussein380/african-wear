@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ImageUploader from './ImageUploader'
 
 interface DesignCodeModalProps {
@@ -37,6 +37,17 @@ export default function DesignCodeModal({
   )
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      setCode(initialData?.code || '')
+      setCategory(initialData?.category || currentCategory)
+      setImages(initialData?.thumbnailUrl 
+        ? [{ url: initialData.thumbnailUrl, publicId: initialData.thumbnailPublicId }] 
+        : [])
+      setError('')
+    }
+  }, [isOpen, initialData, currentCategory])
 
   if (!isOpen) return null
 

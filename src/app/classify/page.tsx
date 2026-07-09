@@ -23,7 +23,14 @@ export default function ClassifyPage() {
     if (activeCategory === 'Dashboard') return
     setIsLoading(true)
     try {
-      const res = await fetch(`/api/design-codes?category=${activeCategory}`)
+      const res = await fetch(`/api/design-codes?category=${activeCategory}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
       if (res.ok) {
         const data = await res.json()
         setDesignCodes(data)
