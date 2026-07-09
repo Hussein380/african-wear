@@ -16,6 +16,7 @@ export default function ClassifyPage() {
   const [editingCode, setEditingCode] = useState<DesignCode | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DesignCode | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const router = useRouter()
 
   const fetchDesignCodes = useCallback(async () => {
@@ -103,6 +104,13 @@ export default function ClassifyPage() {
       {/* App Bar */}
       <header className="appbar">
         <div className="appbar__left">
+          <button 
+            className="mobile-menu-btn" 
+            onClick={() => setIsSidebarOpen(prev => !prev)}
+            aria-label="Toggle menu"
+          >
+            ☰
+          </button>
           <div>
             <h1 className="appbar__title">Classify</h1>
             <p className="appbar__subtitle">Mandera African Wear</p>
@@ -122,6 +130,8 @@ export default function ClassifyPage() {
       <Sidebar
         activeCategory={activeCategory}
         onCategoryChange={setActiveCategory}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
 
       <main className="main-content">
