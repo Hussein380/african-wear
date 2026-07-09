@@ -1540,6 +1540,8 @@ ul, ol {
   }
 
   .sidebar {
+    width: 250px;
+    max-width: 80vw;
     transform: translateX(-100%);
     transition: transform var(--transition-base);
   }
@@ -1602,8 +1604,8 @@ ul, ol {
   }
 
   .sidebar__item {
-    padding: var(--space-sm) var(--space-sm);
-    font-size: var(--font-size-xs);
+    padding: var(--space-md) var(--space-md);
+    font-size: var(--font-size-base);
   }
 
   .main-content {
