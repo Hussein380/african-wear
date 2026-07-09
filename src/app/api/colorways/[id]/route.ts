@@ -11,7 +11,7 @@ export async function PUT(
   try {
     const { id } = await ctx.params
     const body = await request.json()
-    const { fullCode, photos, quantityAvailable } = body
+    const { fullCode, photos, quantityAvailable, breakdown } = body
 
     const db = await getDb()
     const objectId = new ObjectId(id)
@@ -25,6 +25,7 @@ export async function PUT(
     if (fullCode !== undefined) updateData.fullCode = fullCode
     if (photos !== undefined) updateData.photos = photos
     if (quantityAvailable !== undefined) updateData.quantityAvailable = quantityAvailable
+    if (breakdown !== undefined) updateData.breakdown = breakdown
 
     // If photos are being replaced, delete old photos from Cloudinary that aren't in the new set
     if (photos !== undefined && existing.photos) {
@@ -41,7 +42,52 @@ export async function PUT(
     }
 
     // Log activity if quantity changed
-    if (quantityAvailable !== undefined && quantityAvailable !== existing.quantityAvailable) {
+    let loggedBreakdown = false;
+    
+    if (breakdown !== undefined && (breakdown.length > 0 || (existing.breakdown && existing.breakdown.length > 0))) {
+      loggedBreakdown = true;
+      const oldBreakdown = existing.breakdown || [];
+      const newBreakdown = breakdown;
+
+      for (const newItem of newBreakdown) {
+        const oldItem = oldBreakdown.find((i: any) => i.id === newItem.id);
+        const oldQty = oldItem ? oldItem.quantity : 0;
+        if (newItem.quantity !== oldQty) {
+          const quantityChange = newItem.quantity - oldQty;
+          await db.collection('activities').insertOne({
+            type: quantityChange > 0 ? 'IN' : 'OUT',
+            quantityChange: Math.abs(quantityChange),
+            colorwayId: existing._id.toString(),
+            designCodeId: existing.designCodeId,
+            fullCode: existing.fullCode,
+            previousQuantity: oldQty,
+            newQuantity: newItem.quantity,
+            subVariantLabel: newItem.label,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+
+      for (const oldItem of oldBreakdown) {
+        if (!newBreakdown.find((i: any) => i.id === oldItem.id)) {
+          if (oldItem.quantity > 0) {
+            await db.collection('activities').insertOne({
+              type: 'OUT',
+              quantityChange: oldItem.quantity,
+              colorwayId: existing._id.toString(),
+              designCodeId: existing.designCodeId,
+              fullCode: existing.fullCode,
+              previousQuantity: oldItem.quantity,
+              newQuantity: 0,
+              subVariantLabel: oldItem.label,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+      }
+    }
+
+    if (!loggedBreakdown && quantityAvailable !== undefined && quantityAvailable !== existing.quantityAvailable) {
       const quantityChange = quantityAvailable - existing.quantityAvailable
       await db.collection('activities').insertOne({
         type: quantityChange > 0 ? 'IN' : 'OUT',

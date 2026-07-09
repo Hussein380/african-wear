@@ -22,6 +22,7 @@ export interface Colorway {
   fullCode: string;
   photos: Photo[];
   quantityAvailable: number;
+  breakdown?: { id: string; label: string; quantity: number }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -35,6 +36,7 @@ export interface ActivityLog {
   fullCode: string;
   previousQuantity: number;
   newQuantity: number;
+  subVariantLabel?: string;
   timestamp: string;
 }
 

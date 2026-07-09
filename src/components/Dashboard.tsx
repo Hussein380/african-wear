@@ -214,6 +214,11 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
                           </span>
                           <span className="activity-item__context">
                             <strong>{activity.quantityChange}</strong> items for <strong>{activity.fullCode}</strong>
+                            {activity.subVariantLabel && (
+                              <span style={{ color: 'var(--color-primary)', marginLeft: '4px' }}>
+                                ({activity.subVariantLabel})
+                              </span>
+                            )}
                           </span>
                         </div>
                         <div className="activity-item__meta">

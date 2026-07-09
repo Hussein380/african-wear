@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { designCodeId, fullCode, photos, quantityAvailable } = body
+    const { designCodeId, fullCode, photos, quantityAvailable, breakdown } = body
 
     if (!designCodeId || !fullCode) {
       return NextResponse.json({ error: 'designCodeId and fullCode are required' }, { status: 400 })
@@ -47,21 +47,40 @@ export async function POST(request: Request) {
       fullCode,
       photos: photos || [],
       quantityAvailable: quantityAvailable || 0,
+      breakdown: breakdown || [],
       createdAt: now,
       updatedAt: now,
     })
 
     if (quantityAvailable > 0) {
-      await db.collection('activities').insertOne({
-        type: 'NEW',
-        quantityChange: quantityAvailable,
-        colorwayId: result.insertedId.toString(),
-        designCodeId,
-        fullCode,
-        previousQuantity: 0,
-        newQuantity: quantityAvailable,
-        timestamp: now.toISOString()
-      })
+      if (breakdown && breakdown.length > 0) {
+        for (const item of breakdown) {
+          if (item.quantity > 0) {
+            await db.collection('activities').insertOne({
+              type: 'NEW',
+              quantityChange: item.quantity,
+              colorwayId: result.insertedId.toString(),
+              designCodeId,
+              fullCode,
+              previousQuantity: 0,
+              newQuantity: item.quantity,
+              subVariantLabel: item.label,
+              timestamp: now.toISOString()
+            })
+          }
+        }
+      } else {
+        await db.collection('activities').insertOne({
+          type: 'NEW',
+          quantityChange: quantityAvailable,
+          colorwayId: result.insertedId.toString(),
+          designCodeId,
+          fullCode,
+          previousQuantity: 0,
+          newQuantity: quantityAvailable,
+          timestamp: now.toISOString()
+        })
+      }
     }
 
     return NextResponse.json({
@@ -70,6 +89,7 @@ export async function POST(request: Request) {
       fullCode,
       photos: photos || [],
       quantityAvailable: quantityAvailable || 0,
+      breakdown: breakdown || [],
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     }, { status: 201 })
