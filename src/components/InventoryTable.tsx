@@ -117,91 +117,105 @@ export default function InventoryTable({ data }: Props) {
         />
       </div>
 
-      {/* Table */}
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-              <th style={{ padding: '12px 16px', color: 'var(--color-text-secondary)' }}>Item</th>
-              <th style={{ padding: '12px 16px', color: 'var(--color-text-secondary)' }}>Category</th>
-              <th 
-                style={{ padding: '12px 16px', cursor: 'pointer', color: 'var(--color-text-secondary)' }}
-                onClick={() => handleSort('fullCode')}
-              >
-                Colorway {sortField === 'fullCode' && (sortOrder === 'asc' ? '↑' : '↓')}
-              </th>
-              <th style={{ padding: '12px 16px', color: 'var(--color-text-secondary)' }}>Breakdown</th>
-              <th 
-                style={{ padding: '12px 16px', cursor: 'pointer', color: 'var(--color-text-secondary)' }}
-                onClick={() => handleSort('quantityAvailable')}
-              >
-                Total Stock {sortField === 'quantityAvailable' && (sortOrder === 'asc' ? '↑' : '↓')}
-              </th>
-              <th style={{ padding: '12px 16px', color: 'var(--color-text-secondary)' }}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredAndSortedData.map(item => (
-              <tr key={item._id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <td style={{ padding: '12px 16px' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '4px', overflow: 'hidden', background: 'var(--color-bg)' }}>
-                    {item.photos?.[0]?.url ? (
-                      <img src={item.photos[0].url} alt={item.fullCode} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : item.thumbnailUrl ? (
-                      <img src={item.thumbnailUrl} alt={item.designCodeName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : null}
-                  </div>
-                </td>
-                <td style={{ padding: '12px 16px' }}>
+      {/* Responsive List / Table */}
+      <div className="inventory-list">
+        {/* Desktop Header */}
+        <div className="inventory-header">
+          <div className="inventory-col inventory-col--image">Item</div>
+          <div className="inventory-col inventory-col--category">Category</div>
+          <div 
+            className="inventory-col inventory-col--code" 
+            onClick={() => handleSort('fullCode')}
+            style={{ cursor: 'pointer' }}
+          >
+            Colorway {sortField === 'fullCode' && (sortOrder === 'asc' ? '↑' : '↓')}
+          </div>
+          <div className="inventory-col inventory-col--breakdown">Breakdown</div>
+          <div 
+            className="inventory-col inventory-col--stock"
+            onClick={() => handleSort('quantityAvailable')}
+            style={{ cursor: 'pointer' }}
+          >
+            Stock {sortField === 'quantityAvailable' && (sortOrder === 'asc' ? '↑' : '↓')}
+          </div>
+          <div className="inventory-col inventory-col--action">Action</div>
+        </div>
+
+        {/* Rows */}
+        <div className="inventory-body">
+          {filteredAndSortedData.map(item => (
+            <div key={item._id} className="inventory-row">
+              <div className="inventory-col inventory-col--image">
+                <div style={{ width: '48px', height: '48px', borderRadius: '8px', overflow: 'hidden', background: 'var(--color-bg)', flexShrink: 0 }}>
+                  {item.photos?.[0]?.url ? (
+                    <img src={item.photos[0].url} alt={item.fullCode} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : item.thumbnailUrl ? (
+                    <img src={item.thumbnailUrl} alt={item.designCodeName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : null}
+                </div>
+              </div>
+              
+              <div className="inventory-col inventory-col--category">
+                <span className="inventory-mobile-label">Category:</span>
+                <div>
                   <div style={{ fontWeight: 500 }}>{item.category}</div>
                   <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{item.designCodeName}</div>
-                </td>
-                <td style={{ padding: '12px 16px', fontWeight: 600 }}>{item.fullCode}</td>
-                <td style={{ padding: '12px 16px' }}>
-                  {item.breakdown && item.breakdown.length > 0 ? (
-                    <div style={{ fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      {item.breakdown.map(b => (
-                        <div key={b.id}>
-                          <span style={{ color: 'var(--color-text-secondary)' }}>{b.label}: </span>
-                          <strong>{b.quantity}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <span style={{ color: 'var(--color-text-secondary)', fontSize: '13px' }}>-</span>
-                  )}
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <span style={{ 
-                    fontWeight: 600, 
-                    color: item.quantityAvailable <= 5 ? 'var(--color-danger)' : 'inherit',
-                    background: item.quantityAvailable <= 5 ? 'var(--color-danger-bg)' : 'var(--color-bg)',
-                    padding: '4px 8px',
-                    borderRadius: '4px'
-                  }}>
-                    {item.quantityAvailable}
-                  </span>
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <button 
-                    onClick={() => router.push(`/classify/${item.designCodeId}`)}
-                    className="btn btn--secondary btn--sm"
-                    style={{ padding: '6px 12px' }}
-                  >
-                    View / Edit
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filteredAndSortedData.length === 0 && (
-              <tr>
-                <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                  No items match your search.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                </div>
+              </div>
+              
+              <div className="inventory-col inventory-col--code">
+                <span className="inventory-mobile-label">Colorway:</span>
+                <span style={{ fontWeight: 600 }}>{item.fullCode}</span>
+              </div>
+              
+              <div className="inventory-col inventory-col--breakdown">
+                <span className="inventory-mobile-label">Breakdown:</span>
+                {item.breakdown && item.breakdown.length > 0 ? (
+                  <div style={{ fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {item.breakdown.map(b => (
+                      <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', maxWidth: '120px' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>{b.label}: </span>
+                        <strong>{b.quantity}</strong>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span style={{ color: 'var(--color-text-secondary)', fontSize: '13px' }}>-</span>
+                )}
+              </div>
+              
+              <div className="inventory-col inventory-col--stock">
+                <span className="inventory-mobile-label">Total Stock:</span>
+                <span style={{ 
+                  fontWeight: 600, 
+                  color: item.quantityAvailable <= 5 ? 'var(--color-danger)' : 'inherit',
+                  background: item.quantityAvailable <= 5 ? 'var(--color-danger-bg)' : 'var(--color-bg)',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  display: 'inline-block'
+                }}>
+                  {item.quantityAvailable}
+                </span>
+              </div>
+              
+              <div className="inventory-col inventory-col--action">
+                <button 
+                  onClick={() => router.push(`/classify/${item.designCodeId}`)}
+                  className="btn btn--secondary btn--sm"
+                  style={{ width: '100%' }}
+                >
+                  Edit Item
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {filteredAndSortedData.length === 0 && (
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+              No items match your search.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
