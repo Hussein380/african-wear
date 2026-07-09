@@ -1593,6 +1593,16 @@ ul, ol {
     grid-template-columns: 1fr;
   }
 
+  .design-tile__actions {
+    opacity: 1;
+  }
+
+  .design-tile__action-btn {
+    width: 32px;
+    height: 32px;
+    font-size: var(--font-size-sm);
+  }
+
   .modal {
     max-width: 100%;
     margin: var(--space-md);
