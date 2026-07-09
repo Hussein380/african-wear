@@ -115,19 +115,13 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
               </div>
             </div>
 
-            <div 
-              className="dashboard-card"
-              onClick={() => onCategoryChange('PrintedC')}
-              style={{ cursor: 'pointer' }}
-              title="View Design Codes"
-            >
+            <div className="dashboard-card">
               <div className="dashboard-card__icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
               </div>
               <div className="dashboard-card__content">
                 <span className="dashboard-card__label">Total Design Codes</span>
                 <span className="dashboard-card__value">{metrics?.totalDesigns || 0}</span>
-                <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 500, marginTop: 'auto' }}>Browse Categories →</span>
               </div>
             </div>
           </div>
