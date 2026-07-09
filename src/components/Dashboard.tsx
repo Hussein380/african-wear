@@ -111,26 +111,23 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
               <div className="dashboard-card__content">
                 <span className="dashboard-card__label">Total Stock Volume</span>
                 <span className="dashboard-card__value">{metrics?.totalStock || 0}</span>
+                <span style={{ fontSize: '12px', color: 'var(--color-primary-light)', fontWeight: 600, marginTop: 'auto' }}>View Master Ledger →</span>
               </div>
             </div>
 
-            <div className="dashboard-card">
+            <div 
+              className="dashboard-card"
+              onClick={() => onCategoryChange('PrintedC')}
+              style={{ cursor: 'pointer' }}
+              title="View Design Codes"
+            >
               <div className="dashboard-card__icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
               </div>
               <div className="dashboard-card__content">
                 <span className="dashboard-card__label">Total Design Codes</span>
                 <span className="dashboard-card__value">{metrics?.totalDesigns || 0}</span>
-              </div>
-            </div>
-
-            <div className="dashboard-card">
-              <div className="dashboard-card__icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-              </div>
-              <div className="dashboard-card__content">
-                <span className="dashboard-card__label">Active Categories</span>
-                <span className="dashboard-card__value">{metrics?.activeCategoriesCount || 0}</span>
+                <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 500, marginTop: 'auto' }}>Browse Categories →</span>
               </div>
             </div>
           </div>
@@ -138,53 +135,7 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
           {/* Phase 2: Actionable Sections */}
           {metrics && (
             <>
-              <div className="dashboard__sections">
-              {/* Low Stock Alerts */}
-              <section className="dashboard-section">
-                <h3 className="dashboard-section__title" style={{ display: 'flex', alignItems: 'center' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                  Low Stock Alerts
-                </h3>
-                
-                {metrics.totalStock === 0 ? (
-                  <div className="empty-state empty-state--sm" style={{ padding: 'var(--space-md)' }}>
-                    <h4 style={{ color: 'var(--color-text-secondary)' }}>Your inventory is completely empty.</h4>
-                  </div>
-                ) : metrics.lowStockItems.length === 0 ? (
-                  <div className="empty-state empty-state--sm" style={{ padding: 'var(--space-md)' }}>
-                    <h4 style={{ color: 'var(--color-success)' }}>All stock levels are healthy.</h4>
-                  </div>
-                ) : (
-                  <div className="low-stock-list">
-                    {metrics.lowStockItems.map(item => (
-                      <div 
-                        key={item._id} 
-                        className="low-stock-item"
-                        onClick={() => router.push(`/classify/${item.designCodeId}`)}
-                      >
-                        <div className="low-stock-item__image">
-                          {item.photos?.[0]?.url ? (
-                            <img src={item.photos[0].url} alt={item.fullCode} />
-                          ) : item.designCodeThumbnail ? (
-                            <img src={item.designCodeThumbnail} alt={item.fullCode} />
-                          ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                          )}
-                        </div>
-                        <div className="low-stock-item__info">
-                          <span className="low-stock-item__code">{item.fullCode}</span>
-                          <span className="low-stock-item__design">{item.designCodeName}</span>
-                        </div>
-                        <div className="low-stock-item__qty">
-                          {item.quantityAvailable} left
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* Stock Distribution */}
+              <div className="dashboard__sections">              {/* Stock Distribution */}
               <section className="dashboard-section">
                 <h3 className="dashboard-section__title" style={{ display: 'flex', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
@@ -192,22 +143,25 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
                 </h3>
                 
                 <div className="distribution-list">
-                  {metrics.stockDistribution.map(dist => (
-                    <div 
-                      key={dist.category} 
-                      className="distribution-item"
-                      onClick={() => onCategoryChange(dist.category as ViewState)}
-                    >
-                      <div className="distribution-item__label">{dist.category}</div>
-                      <div className="distribution-item__bar-container">
-                        <div 
-                          className="distribution-item__bar" 
-                          style={{ width: `${Math.max(2, (dist.totalQuantity / metrics.totalStock) * 100)}%` }} 
-                        />
+                  {['PrintedC', 'PrintedP'].map(cat => {
+                    const dist = metrics.stockDistribution.find(d => d.category === cat) || { category: cat, totalQuantity: 0 }
+                    return (
+                      <div 
+                        key={cat} 
+                        className="distribution-item"
+                        onClick={() => onCategoryChange(cat as ViewState)}
+                      >
+                        <div className="distribution-item__label">{cat}</div>
+                        <div className="distribution-item__bar-container">
+                          <div 
+                            className="distribution-item__bar" 
+                            style={{ width: metrics.totalStock === 0 ? '0%' : `${Math.max(2, (dist.totalQuantity / metrics.totalStock) * 100)}%` }} 
+                          />
+                        </div>
+                        <div className="distribution-item__value">{dist.totalQuantity} items</div>
                       </div>
-                      <div className="distribution-item__value">{dist.totalQuantity} items</div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </section>
             </div>
