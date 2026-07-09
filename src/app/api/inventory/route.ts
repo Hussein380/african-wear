@@ -16,7 +16,7 @@ export async function GET() {
       },
       {
         $lookup: {
-          from: "design-codes",
+          from: "designCodes",
           localField: "designCodeIdObj",
           foreignField: "_id",
           as: "design"
