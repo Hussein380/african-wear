@@ -37,6 +37,9 @@ interface DashboardProps {
 export default function Dashboard({ onCategoryChange }: DashboardProps) {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -55,6 +58,31 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
     }
     fetchMetrics()
   }, [])
+
+  const handleLoadMore = async () => {
+    setIsLoadingMore(true)
+    try {
+      const nextPage = page + 1
+      const res = await fetch(`/api/activities?page=${nextPage}&limit=15`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.activities.length < 15) {
+          setHasMore(false)
+        }
+        if (metrics) {
+          setMetrics({
+            ...metrics,
+            recentActivities: [...metrics.recentActivities, ...data.activities]
+          })
+        }
+        setPage(nextPage)
+      }
+    } catch (error) {
+      console.error('Failed to load more activities:', error)
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
 
   return (
     <div className="dashboard">
@@ -233,6 +261,17 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
                         </div>
                       </div>
                     ))}
+                    
+                    {hasMore && metrics.recentActivities.length >= 15 && (
+                      <button 
+                        onClick={handleLoadMore} 
+                        disabled={isLoadingMore}
+                        className="btn btn--secondary"
+                        style={{ width: '100%', marginTop: '16px' }}
+                      >
+                        {isLoadingMore ? 'Loading...' : 'Load More Transactions'}
+                      </button>
+                    )}
                   </div>
                 )}
               </section>
