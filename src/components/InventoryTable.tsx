@@ -28,11 +28,21 @@ interface Props {
 export default function InventoryTable({ data }: Props) {
   const router = useRouter()
   const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('All')
   const [sortField, setSortField] = useState<'quantityAvailable' | 'fullCode'>('quantityAvailable')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
+  const categories = useMemo(() => {
+    return ['All', ...Array.from(new Set(data.map(d => d.category)))]
+  }, [data])
+
   const filteredAndSortedData = useMemo(() => {
     let result = data
+
+    // Category Filter
+    if (categoryFilter !== 'All') {
+      result = result.filter(item => item.category === categoryFilter)
+    }
 
     // Search
     if (search.trim()) {
@@ -60,7 +70,7 @@ export default function InventoryTable({ data }: Props) {
     })
 
     return result
-  }, [data, search, sortField, sortOrder])
+  }, [data, search, categoryFilter, sortField, sortOrder])
 
   const handleSort = (field: 'quantityAvailable' | 'fullCode') => {
     if (sortField === field) {
@@ -73,6 +83,28 @@ export default function InventoryTable({ data }: Props) {
 
   return (
     <div style={{ background: 'var(--color-bg-card)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-lg)' }}>
+      {/* Category Tabs */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-md)', overflowX: 'auto', paddingBottom: '4px' }}>
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setCategoryFilter(cat)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '20px',
+              border: 'none',
+              background: categoryFilter === cat ? 'var(--color-primary)' : 'var(--color-bg)',
+              color: categoryFilter === cat ? 'white' : 'var(--color-text)',
+              cursor: 'pointer',
+              fontWeight: categoryFilter === cat ? 600 : 400,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       {/* Search Bar */}
       <div style={{ marginBottom: 'var(--space-md)' }}>
         <input 
