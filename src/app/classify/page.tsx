@@ -11,8 +11,17 @@ import { Category, DesignCode } from '@/types'
 
 export default function ClassifyPage() {
   const searchParams = useSearchParams()
-  const initialCategory = (searchParams.get('category') as ViewState) || 'Dashboard'
-  const [activeCategory, setActiveCategory] = useState<ViewState>(initialCategory)
+  // Priority: URL ?category= param > sessionStorage > Dashboard
+  const getInitialCategory = (): ViewState => {
+    const urlCat = searchParams.get('category') as ViewState
+    if (urlCat) return urlCat
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('classify_last_category') as ViewState
+      if (saved && saved !== 'Dashboard') return saved
+    }
+    return 'Dashboard'
+  }
+  const [activeCategory, setActiveCategory] = useState<ViewState>(getInitialCategory)
   const [designCodes, setDesignCodes] = useState<DesignCode[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -23,6 +32,14 @@ export default function ClassifyPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [globalSearchTerm, setGlobalSearchTerm] = useState('')
   const router = useRouter()
+
+  // Persist category so Back button restores it
+  const handleCategoryChange = (cat: ViewState) => {
+    setActiveCategory(cat)
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('classify_last_category', cat)
+    }
+  }
 
   const fetchDesignCodes = useCallback(async () => {
     if (activeCategory === 'Dashboard') return
@@ -149,14 +166,14 @@ export default function ClassifyPage() {
       {/* Sidebar */}
       <Sidebar
         activeCategory={activeCategory}
-        onCategoryChange={setActiveCategory}
+        onCategoryChange={handleCategoryChange}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
 
       <main className="main-content">
         {activeCategory === 'Dashboard' ? (
-          <Dashboard onCategoryChange={setActiveCategory} />
+          <Dashboard onCategoryChange={handleCategoryChange} />
         ) : (
           <>
             <div className="main-content__header">
