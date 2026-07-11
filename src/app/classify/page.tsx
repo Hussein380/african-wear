@@ -109,6 +109,11 @@ export default function ClassifyPage() {
     router.push('/')
   }
 
+  const filteredDesignCodes = designCodes.filter(dc => {
+    if (!globalSearchTerm.trim()) return true
+    return dc.code.toLowerCase().includes(globalSearchTerm.toLowerCase())
+  })
+
   return (
     <>
       {/* App Bar */}
@@ -180,9 +185,9 @@ export default function ClassifyPage() {
         )}
 
         {/* Design Code Grid */}
-        {!isLoading && designCodes.length > 0 && (
+        {!isLoading && filteredDesignCodes.length > 0 && (
           <div className="design-grid">
-            {designCodes.map(dc => (
+            {filteredDesignCodes.map(dc => (
               <div
                 key={dc._id}
                 className="design-tile"

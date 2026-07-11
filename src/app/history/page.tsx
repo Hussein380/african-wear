@@ -177,7 +177,9 @@ export default function HistoryPage() {
     const term = globalSearchTerm.toLowerCase()
     return (
       (activity.fullCode && activity.fullCode.toLowerCase().includes(term)) ||
-      (activity.subVariantLabel && activity.subVariantLabel.toLowerCase().includes(term))
+      (activity.subVariantLabel && activity.subVariantLabel.toLowerCase().includes(term)) ||
+      (activity.type && activity.type.toLowerCase().includes(term)) ||
+      (new Date(activity.timestamp).toLocaleDateString().toLowerCase().includes(term))
     )
   })
 
@@ -307,7 +309,7 @@ export default function HistoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {activities.map(activity => (
+                {filteredActivities.map(activity => (
                   <tr 
                     key={activity._id} 
                     onClick={() => router.push(`/classify/${activity.designCodeId}`)} 
