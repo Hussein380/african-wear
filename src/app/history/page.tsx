@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 import { ActivityLog } from '@/types'
 import Sidebar from '@/components/Sidebar'
+import SearchOverlay from '@/components/SearchOverlay'
 
 export default function HistoryPage() {
   const router = useRouter()
   const [activities, setActivities] = useState<ActivityLog[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   
   // Date Filters
   const [datePreset, setDatePreset] = useState<'7days' | '30days' | 'all' | 'custom'>('7days')
@@ -185,6 +187,11 @@ export default function HistoryPage() {
             <p className="appbar__subtitle">Mandera African Wear</p>
           </div>
         </div>
+        <div className="appbar__right">
+          <button className="appbar__action-btn" onClick={() => setIsSearchOpen(true)} type="button" aria-label="Search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </button>
+        </div>
       </header>
 
       <Sidebar
@@ -350,6 +357,8 @@ export default function HistoryPage() {
       </div>
       </div>
       </main>
+
+      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   )
 }

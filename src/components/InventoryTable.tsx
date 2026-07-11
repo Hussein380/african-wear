@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 interface BreakdownItem {
   id: string
@@ -27,7 +27,8 @@ interface Props {
 
 export default function InventoryTable({ data }: Props) {
   const router = useRouter()
-  const [search, setSearch] = useState('')
+  const searchParams = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('search') || '')
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [sortField, setSortField] = useState<'quantityAvailable' | 'fullCode'>('quantityAvailable')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')

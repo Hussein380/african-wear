@@ -6,6 +6,7 @@ import { use } from 'react'
 import ColorwayModal from '@/components/ColorwayModal'
 import DesignCodeModal from '@/components/DesignCodeModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import SearchOverlay from '@/components/SearchOverlay'
 import { Colorway, DesignCode } from '@/types'
 
 export default function DesignCodeDetailPage({
@@ -27,6 +28,8 @@ export default function DesignCodeDetailPage({
   const [designCodeObj, setDesignCodeObj] = useState<DesignCode | null>(null)
   const [showEditDesignModal, setShowEditDesignModal] = useState(false)
   const [showDeleteDesignConfirm, setShowDeleteDesignConfirm] = useState(false)
+  
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   
   const router = useRouter()
 
@@ -228,6 +231,9 @@ export default function DesignCodeDetailPage({
           </button>
           <button className="appbar__action-btn" onClick={fetchColorways} type="button" title="Refresh">
             ↻
+          </button>
+          <button className="appbar__action-btn" onClick={() => setIsSearchOpen(true)} type="button" aria-label="Search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           </button>
         </div>
       </header>
@@ -476,6 +482,7 @@ export default function DesignCodeDetailPage({
         message={`Are you sure you want to delete "${designCode}"? This will also delete ALL colorways under it.`}
         isLoading={isDeleting}
       />
+      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   )
 }

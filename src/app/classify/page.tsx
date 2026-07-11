@@ -6,6 +6,7 @@ import Sidebar, { ViewState } from '@/components/Sidebar'
 import Dashboard from '@/components/Dashboard'
 import DesignCodeModal from '@/components/DesignCodeModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import SearchOverlay from '@/components/SearchOverlay'
 import { Category, DesignCode } from '@/types'
 
 export default function ClassifyPage() {
@@ -17,6 +18,7 @@ export default function ClassifyPage() {
   const [deleteTarget, setDeleteTarget] = useState<DesignCode | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const router = useRouter()
 
   const fetchDesignCodes = useCallback(async () => {
@@ -124,6 +126,9 @@ export default function ClassifyPage() {
           </div>
         </div>
         <div className="appbar__right">
+          <button className="appbar__action-btn" onClick={() => setIsSearchOpen(true)} type="button" aria-label="Search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </button>
           <button className="appbar__action-btn" onClick={fetchDesignCodes} type="button">
             ↻ Refresh
           </button>
@@ -277,6 +282,7 @@ export default function ClassifyPage() {
         message={`Are you sure you want to delete "${deleteTarget?.code}"? This will also delete all colorways under it.`}
         isLoading={isDeleting}
       />
+      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   )
 }
