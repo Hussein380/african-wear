@@ -34,7 +34,7 @@ export default function InventoryTable({ data }: Props) {
 
   const categories = useMemo(() => {
     const existingCats = data.map(d => d.category)
-    return ['All', ...Array.from(new Set(['PrintedC', 'PrintedP', ...existingCats]))]
+    return ['All', ...Array.from(new Set(['PrintedC', 'PrintedP', 'PrintTC', ...existingCats]))]
   }, [data])
 
   const filteredAndSortedData = useMemo(() => {

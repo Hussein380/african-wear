@@ -109,18 +109,21 @@ export default function DesignCodeModal({
             >
               <option value="PrintedC">PrintedC</option>
               <option value="PrintedP">PrintedP</option>
+              <option value="PrintTC">PrintTC</option>
             </select>
           </div>
 
-          <div className="form-group">
-            <label className="form-group__label">Thumbnail Photo</label>
-            <ImageUploader
-              images={images}
-              onImagesChange={setImages}
-              multiple={false}
-              folder="mandera/design-codes"
-            />
-          </div>
+          {category !== 'PrintTC' && (
+            <div className="form-group">
+              <label className="form-group__label">Thumbnail Photo</label>
+              <ImageUploader
+                images={images}
+                onImagesChange={setImages}
+                multiple={false}
+                folder="mandera/design-codes"
+              />
+            </div>
+          )}
         </div>
 
         <div className="modal__footer">

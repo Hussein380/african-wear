@@ -2,7 +2,7 @@
 
 export interface DesignCode {
   _id: string;
-  category: 'PrintedC' | 'PrintedP';
+  category: 'PrintedC' | 'PrintedP' | 'PrintTC';
   code: string;
   thumbnailUrl: string;
   thumbnailPublicId: string;
@@ -46,4 +46,4 @@ export interface AppSettings {
   shopName: string;
 }
 
-export type Category = 'PrintedC' | 'PrintedP';
+export type Category = 'PrintedC' | 'PrintedP' | 'PrintTC';

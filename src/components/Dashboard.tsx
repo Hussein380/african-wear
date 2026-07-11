@@ -151,7 +151,7 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
                 </h3>
                 
                 <div className="distribution-list">
-                  {['PrintedC', 'PrintedP'].map(cat => {
+                  {['PrintedC', 'PrintedP', 'PrintTC'].map(cat => {
                     const dist = metrics.stockDistribution.find(d => d.category === cat) || { category: cat, totalQuantity: 0 }
                     return (
                       <div 

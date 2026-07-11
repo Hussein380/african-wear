@@ -15,6 +15,7 @@ interface SidebarProps {
 const categories: { key: ViewState; label: string; isSpecial?: boolean; route?: string }[] = [
   { key: 'PrintedC', label: 'PrintedC' },
   { key: 'PrintedP', label: 'PrintedP' },
+  { key: 'PrintTC', label: 'PrintTC' },
   { key: 'Dashboard', label: 'Dashboard', isSpecial: true, route: '/classify' },
   { key: 'History', label: 'Transaction History', isSpecial: true, route: '/history' },
 ]
