@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Sidebar, { ViewState } from '@/components/Sidebar'
 import Dashboard from '@/components/Dashboard'
 import DesignCodeModal from '@/components/DesignCodeModal'
@@ -10,7 +10,9 @@ import SearchOverlay from '@/components/SearchOverlay'
 import { Category, DesignCode } from '@/types'
 
 export default function ClassifyPage() {
-  const [activeCategory, setActiveCategory] = useState<ViewState>('Dashboard')
+  const searchParams = useSearchParams()
+  const initialCategory = (searchParams.get('category') as ViewState) || 'Dashboard'
+  const [activeCategory, setActiveCategory] = useState<ViewState>(initialCategory)
   const [designCodes, setDesignCodes] = useState<DesignCode[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)

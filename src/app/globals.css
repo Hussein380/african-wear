@@ -208,15 +208,27 @@ ul, ol {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px;
   color: var(--color-text-on-primary);
   border-radius: var(--radius-full);
-  transition: background var(--transition-fast);
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 16px;
+  font-weight: 600;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  transition: background var(--transition-fast), transform var(--transition-fast);
+  white-space: nowrap;
+  min-width: 44px;
 }
 
 .appbar__back-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateX(-2px);
+}
+
+.appbar__back-btn:active {
+  transform: translateX(-4px);
 }
 
 .appbar__action-btn {

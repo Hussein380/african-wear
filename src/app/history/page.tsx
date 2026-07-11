@@ -208,7 +208,7 @@ export default function HistoryPage() {
 
       <Sidebar
         activeCategory="History"
-        onCategoryChange={() => {}}
+        onCategoryChange={(category) => router.push(`/classify?category=${category}`)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
