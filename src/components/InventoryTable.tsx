@@ -114,17 +114,19 @@ export default function InventoryTable({ data, externalSearchTerm }: Props) {
         ))}
       </div>
 
-      {/* Search Bar */}
-      <div style={{ marginBottom: 'var(--space-md)' }}>
-        <input 
-          type="text" 
-          placeholder="Search by Code, Category, or Design..." 
-          className="form-group__input"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ maxWidth: '400px' }}
-        />
-      </div>
+      {/* Search Bar - only show when not using external overlay search */}
+      {externalSearchTerm === undefined && (
+        <div style={{ marginBottom: 'var(--space-md)' }}>
+          <input 
+            type="text" 
+            placeholder="Search by Code, Category, or Design..." 
+            className="form-group__input"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ maxWidth: '400px' }}
+          />
+        </div>
+      )}
 
       {/* Responsive List / Table */}
       {/* Responsive List / Table */}

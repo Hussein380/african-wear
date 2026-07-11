@@ -272,10 +272,19 @@ export default function DesignCodeDetailPage({
           </div>
         )}
 
+        {/* No search results */}
+        {!isLoading && colorways.length > 0 && filteredColorways.length === 0 && (
+          <div className="empty-state">
+            <div className="empty-state__icon">🔍</div>
+            <h3 className="empty-state__title">No Results</h3>
+            <p className="empty-state__text">No colorways match &quot;{globalSearchTerm}&quot;</p>
+          </div>
+        )}
+
         {/* Colorway Cards */}
-        {!isLoading && colorways.length > 0 && (
+        {!isLoading && filteredColorways.length > 0 && (
           <div className="colorway-list">
-            {colorways.map(cw => (
+            {filteredColorways.map(cw => (
               <div key={cw._id} className="colorway-card">
                 {/* Hero Image */}
                 <div
@@ -490,7 +499,7 @@ export default function DesignCodeDetailPage({
       />
       <SearchOverlay 
         isOpen={isSearchOpen} 
-        onClose={() => setIsSearchOpen(false)} 
+        onClose={() => { setIsSearchOpen(false); setGlobalSearchTerm('') }} 
         onSearch={(term) => setGlobalSearchTerm(term)}
       />
     </>

@@ -353,7 +353,8 @@ export default function HistoryPage() {
               </tbody>
             </table>
             
-            {hasMore && (
+            {/* Bug 6 fix: hide Load More when search is active to avoid mixing filtered/unfiltered data */}
+            {hasMore && !globalSearchTerm.trim() && (
               <div style={{ padding: 'var(--space-md)', textAlign: 'center', borderTop: '1px solid var(--color-border)' }}>
                 <button 
                   onClick={handleLoadMore} 
@@ -372,7 +373,7 @@ export default function HistoryPage() {
 
       <SearchOverlay 
         isOpen={isSearchOpen} 
-        onClose={() => setIsSearchOpen(false)} 
+        onClose={() => { setIsSearchOpen(false); setGlobalSearchTerm('') }} 
         onSearch={(term) => setGlobalSearchTerm(term)}
       />
     </>

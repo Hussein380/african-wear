@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 
 interface SearchOverlayProps {
   isOpen: boolean
@@ -16,6 +15,8 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
 
   useEffect(() => {
     if (isOpen) {
+      // Reset query every time overlay opens so it's always fresh
+      setQuery('')
       // Load history
       const saved = localStorage.getItem('search_history')
       if (saved) {
@@ -30,7 +31,7 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
     if (!term.trim()) return
     const current = [...history]
     const filtered = current.filter(t => t.toLowerCase() !== term.toLowerCase())
-    const next = [term, ...filtered].slice(0, 10) // Keep top 10
+    const next = [term, ...filtered].slice(0, 10)
     setHistory(next)
     localStorage.setItem('search_history', JSON.stringify(next))
   }
@@ -42,9 +43,20 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
     onSearch(term)
   }
 
+  const handleClose = () => {
+    // Save to history if there's a meaningful query when the user closes
+    if (query.trim()) {
+      saveHistory(query.trim())
+    }
+    onClose()
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSearch(query)
+    }
+    if (e.key === 'Escape') {
+      handleClose()
     }
   }
 
@@ -65,7 +77,7 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
   return (
     <div className="search-overlay">
       <div className="search-overlay__header">
-        <button className="search-overlay__back" onClick={onClose}>
+        <button className="search-overlay__back" onClick={handleClose}>
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
         </button>
         <div 

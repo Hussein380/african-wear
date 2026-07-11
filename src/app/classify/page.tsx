@@ -290,7 +290,7 @@ export default function ClassifyPage() {
       />
       <SearchOverlay 
         isOpen={isSearchOpen} 
-        onClose={() => setIsSearchOpen(false)} 
+        onClose={() => { setIsSearchOpen(false); setGlobalSearchTerm('') }} 
         onSearch={(term) => setGlobalSearchTerm(term)}
       />
     </>

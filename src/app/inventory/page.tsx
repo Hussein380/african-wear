@@ -73,7 +73,7 @@ export default function InventoryPage() {
 
       <SearchOverlay 
         isOpen={isSearchOpen} 
-        onClose={() => setIsSearchOpen(false)} 
+        onClose={() => { setIsSearchOpen(false); setGlobalSearchTerm('') }} 
         onSearch={(term) => setGlobalSearchTerm(term)}
       />
     </>
