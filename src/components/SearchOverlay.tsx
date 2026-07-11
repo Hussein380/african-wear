@@ -35,9 +35,30 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     localStorage.setItem('search_history', JSON.stringify(next))
   }
 
-  const handleSearch = (term: string) => {
+  const handleSearch = async (term: string) => {
     if (!term.trim()) return
     saveHistory(term)
+    
+    // Attempt to route directly to the item's edit page
+    try {
+      const res = await fetch('/api/inventory?t=' + new Date().getTime())
+      if (res.ok) {
+        const data = await res.json()
+        const exactMatch = data.find((item: any) => 
+          item.fullCode.toLowerCase() === term.toLowerCase() || 
+          item.designCodeName.toLowerCase() === term.toLowerCase()
+        )
+        if (exactMatch && exactMatch.designCodeId) {
+          onClose()
+          router.push(`/classify/${exactMatch.designCodeId}`)
+          return
+        }
+      }
+    } catch (error) {
+      console.error('Search routing error:', error)
+    }
+
+    // Fallback: just go to inventory table and filter
     onClose()
     router.push(`/inventory?search=${encodeURIComponent(term)}`)
   }

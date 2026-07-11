@@ -1682,6 +1682,77 @@ ul, ol {
   }
 }
 
+/* ---------- Modern Native Tables ---------- */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #64748b;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+/* Action Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge--in {
+  background: #dcfce7;
+  color: #166534;
+}
+.badge--out {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.text-muted {
+  color: #64748b;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
 /* ---------- Search Overlay ---------- */
 .search-overlay {
   position: fixed;
