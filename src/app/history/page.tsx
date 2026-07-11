@@ -278,70 +278,61 @@ export default function HistoryPage() {
             <p>There is no activity for the selected date range.</p>
           </div>
         ) : (
-          <div className="inventory-list">
-            <div className="inventory-header">
-              <div className="inventory-col" style={{ flex: '1.5' }}>Date & Time</div>
-              <div className="inventory-col">Action</div>
-              <div className="inventory-col" style={{ flex: '2' }}>Item</div>
-              <div className="inventory-col">Qty Change</div>
-              <div className="inventory-col">Final Stock</div>
-            </div>
-            
-            <div className="inventory-body">
-              {activities.map(activity => (
-                <div key={activity._id} className="inventory-row" onClick={() => router.push(`/classify/${activity.designCodeId}`)} style={{ cursor: 'pointer' }}>
-                  <div className="inventory-col" style={{ flex: '1.5' }}>
-                    <span className="inventory-mobile-label">Date:</span>
-                    <div>
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Act</th>
+                  <th>Item</th>
+                  <th>Change</th>
+                  <th>Stock</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activities.map(activity => (
+                  <tr 
+                    key={activity._id} 
+                    onClick={() => router.push(`/classify/${activity.designCodeId}`)} 
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td>
                       <div style={{ fontWeight: 500 }}>{new Date(activity.timestamp).toLocaleDateString()}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                      <div className="text-muted">
                         {new Date(activity.timestamp).toLocaleTimeString()}
                       </div>
-                    </div>
-                  </div>
-                  
-                  <div className="inventory-col">
-                    <span className="inventory-mobile-label">Action:</span>
-                    <span style={{ 
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      gap: '4px',
-                      color: activity.type === 'IN' ? 'var(--color-success)' : 'var(--color-danger)',
-                      fontWeight: 600,
-                      fontSize: '13px'
-                    }}>
-                      {activity.type === 'IN' ? '↓ IN' : '↑ OUT'}
-                    </span>
-                  </div>
-                  
-                  <div className="inventory-col" style={{ flex: '2' }}>
-                    <span className="inventory-mobile-label">Item:</span>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{activity.fullCode}</div>
+                    </td>
+                    
+                    <td>
+                      <span className={`badge ${activity.type === 'IN' ? 'badge--in' : 'badge--out'}`}>
+                        {activity.type === 'IN' ? '↓ IN' : '↑ OUT'}
+                      </span>
+                    </td>
+                    
+                    <td>
+                      <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{activity.fullCode}</div>
                       {activity.subVariantLabel && (
-                        <div style={{ fontSize: '12px', color: 'var(--color-primary)' }}>
+                        <div className="text-muted">
                           Variant: {activity.subVariantLabel}
                         </div>
                       )}
-                    </div>
-                  </div>
-                  
-                  <div className="inventory-col">
-                    <span className="inventory-mobile-label">Change:</span>
-                    <strong style={{ fontSize: '16px', color: activity.type === 'IN' ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                      {activity.type === 'IN' ? '+' : '-'}{activity.quantityChange}
-                    </strong>
-                  </div>
-                  
-                  <div className="inventory-col">
-                    <span className="inventory-mobile-label">Final Stock:</span>
-                    <span style={{ color: 'var(--color-text-secondary)', fontSize: '13px' }}>
-                      {activity.previousQuantity} → <strong style={{ color: 'var(--color-text)', fontSize: '15px' }}>{activity.newQuantity}</strong>
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </td>
+                    
+                    <td>
+                      <strong style={{ fontSize: '15px', color: activity.type === 'IN' ? '#166534' : '#991b1b' }}>
+                        {activity.type === 'IN' ? '+' : '-'}{activity.quantityChange}
+                      </strong>
+                    </td>
+                    
+                    <td>
+                      <span className="text-muted">
+                        {activity.previousQuantity} → <strong style={{ color: 'var(--color-text-primary)', fontSize: '14px' }}>{activity.newQuantity}</strong>
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             
             {hasMore && (
               <div style={{ padding: 'var(--space-md)', textAlign: 'center', borderTop: '1px solid var(--color-border)' }}>
