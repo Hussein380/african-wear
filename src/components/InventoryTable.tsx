@@ -154,7 +154,7 @@ export default function InventoryTable({ data, externalSearchTerm }: Props) {
             {filteredAndSortedData.map(item => (
               <tr key={item._id}>
                 <td>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '8px', overflow: 'hidden', background: '#f1f5f9', flexShrink: 0 }}>
+                  <div className="table-image" style={{ borderRadius: '8px', overflow: 'hidden', background: '#f1f5f9', flexShrink: 0 }}>
                     {item.photos?.[0]?.url ? (
                       <img src={item.photos[0].url} alt={item.fullCode} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : item.thumbnailUrl ? (
@@ -176,7 +176,7 @@ export default function InventoryTable({ data, externalSearchTerm }: Props) {
                   {item.breakdown && item.breakdown.length > 0 ? (
                     <div style={{ fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {item.breakdown.map(b => (
-                        <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', width: '100px' }}>
+                        <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', width: '100%', minWidth: '50px' }}>
                           <span style={{ color: '#64748b' }}>{b.label}: </span>
                           <strong style={{ color: 'var(--color-text-primary)' }}>{b.quantity}</strong>
                         </div>
@@ -204,9 +204,11 @@ export default function InventoryTable({ data, externalSearchTerm }: Props) {
                   <button 
                     onClick={() => router.push(`/classify/${item.designCodeId}`)}
                     className="btn btn--secondary btn--sm"
-                    style={{ whiteSpace: 'nowrap' }}
+                    style={{ whiteSpace: 'normal', padding: '4px' }}
+                    title="Edit Item"
                   >
-                    Edit Item
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    <span className="desktop-only" style={{ marginLeft: '4px' }}>Edit</span>
                   </button>
                 </td>
               </tr>
