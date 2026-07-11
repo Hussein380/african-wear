@@ -10,6 +10,7 @@ export default function InventoryPage() {
   const [data, setData] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('')
 
   useEffect(() => {
     async function fetchInventory() {
@@ -65,12 +66,16 @@ export default function InventoryPage() {
           </div>
         ) : (
           <Suspense fallback={<div>Loading Search...</div>}>
-            <InventoryTable data={data} />
+            <InventoryTable data={data} externalSearchTerm={globalSearchTerm} />
           </Suspense>
         )}
       </main>
 
-      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <SearchOverlay 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+        onSearch={(term) => setGlobalSearchTerm(term)}
+      />
     </>
   )
 }

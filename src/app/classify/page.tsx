@@ -19,6 +19,7 @@ export default function ClassifyPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('')
   const router = useRouter()
 
   const fetchDesignCodes = useCallback(async () => {
@@ -282,7 +283,11 @@ export default function ClassifyPage() {
         message={`Are you sure you want to delete "${deleteTarget?.code}"? This will also delete all colorways under it.`}
         isLoading={isDeleting}
       />
-      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <SearchOverlay 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+        onSearch={(term) => setGlobalSearchTerm(term)}
+      />
     </>
   )
 }

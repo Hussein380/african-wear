@@ -30,6 +30,7 @@ export default function DesignCodeDetailPage({
   const [showDeleteDesignConfirm, setShowDeleteDesignConfirm] = useState(false)
   
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('')
   
   const router = useRouter()
 
@@ -204,6 +205,11 @@ export default function DesignCodeDetailPage({
       console.error('Failed to update breakdown quantity:', error)
     }
   }
+
+  const filteredColorways = colorways.filter(cw => {
+    if (!globalSearchTerm.trim()) return true
+    return cw.fullCode.toLowerCase().includes(globalSearchTerm.toLowerCase())
+  })
 
   return (
     <>
@@ -482,7 +488,11 @@ export default function DesignCodeDetailPage({
         message={`Are you sure you want to delete "${designCode}"? This will also delete ALL colorways under it.`}
         isLoading={isDeleting}
       />
-      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <SearchOverlay 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+        onSearch={(term) => setGlobalSearchTerm(term)}
+      />
     </>
   )
 }

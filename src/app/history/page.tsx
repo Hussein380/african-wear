@@ -13,6 +13,7 @@ export default function HistoryPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('')
   
   // Date Filters
   const [datePreset, setDatePreset] = useState<'7days' | '30days' | 'all' | 'custom'>('7days')
@@ -170,6 +171,15 @@ export default function HistoryPage() {
   }
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  const filteredActivities = activities.filter(activity => {
+    if (!globalSearchTerm.trim()) return true
+    const term = globalSearchTerm.toLowerCase()
+    return (
+      (activity.fullCode && activity.fullCode.toLowerCase().includes(term)) ||
+      (activity.subVariantLabel && activity.subVariantLabel.toLowerCase().includes(term))
+    )
+  })
 
   return (
     <>
@@ -358,7 +368,11 @@ export default function HistoryPage() {
       </div>
       </main>
 
-      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <SearchOverlay 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+        onSearch={(term) => setGlobalSearchTerm(term)}
+      />
     </>
   )
 }
