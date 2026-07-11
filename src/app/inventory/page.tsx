@@ -45,7 +45,7 @@ export default function InventoryPage() {
             ←
           </button>
           <div>
-            <h1 className="appbar__title">Full Inventory Ledger</h1>
+            <h1 className="appbar__title">Current Inventory</h1>
             <p className="appbar__subtitle">Complete breakdown of all stock</p>
           </div>
         </div>

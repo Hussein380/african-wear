@@ -8,6 +8,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1', 10)
     const limit = parseInt(searchParams.get('limit') || '15', 10)
+    const startDate = searchParams.get('startDate')
+    const endDate = searchParams.get('endDate')
     
     if (page < 1 || limit < 1) {
       return NextResponse.json({ error: 'Invalid pagination parameters' }, { status: 400 })
@@ -17,14 +19,28 @@ export async function GET(request: Request) {
 
     const db = await getDb()
     
+    const query: any = {}
+    
+    if (startDate || endDate) {
+      query.timestamp = {}
+      if (startDate) {
+        query.timestamp.$gte = new Date(startDate).toISOString()
+      }
+      if (endDate) {
+        const end = new Date(endDate)
+        end.setHours(23, 59, 59, 999)
+        query.timestamp.$lte = end.toISOString()
+      }
+    }
+    
     const activities = await db.collection('activities')
-      .find({})
+      .find(query)
       .sort({ timestamp: -1 })
       .skip(skip)
       .limit(limit)
       .toArray()
 
-    const totalCount = await db.collection('activities').countDocuments()
+    const totalCount = await db.collection('activities').countDocuments(query)
 
     return NextResponse.json({
       activities,
