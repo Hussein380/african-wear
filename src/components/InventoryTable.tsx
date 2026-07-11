@@ -219,8 +219,10 @@ export default function InventoryTable({ data, externalSearchTerm }: Props) {
         </table>
 
         {filteredAndSortedData.length === 0 && (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-            No items match your search.
+          <div className="empty-state" style={{ border: 'none', boxShadow: 'none' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
+            <h3 className="empty-state__title">No Results Found</h3>
+            <p className="empty-state__text">No inventory items match your search. Try a different code or category.</p>
           </div>
         )}
       </div>

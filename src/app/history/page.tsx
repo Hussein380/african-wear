@@ -296,6 +296,12 @@ export default function HistoryPage() {
             <h3>No Transactions Found</h3>
             <p>There is no activity for the selected date range.</p>
           </div>
+        ) : filteredActivities.length === 0 ? (
+          <div className="empty-state">
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
+            <h3>No Results Found</h3>
+            <p>No transactions match <strong>&quot;{globalSearchTerm}&quot;</strong>. Try a different code or date.</p>
+          </div>
         ) : (
           <div className="table-wrapper">
             <table className="table">

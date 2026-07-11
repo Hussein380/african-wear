@@ -184,6 +184,15 @@ export default function ClassifyPage() {
           </div>
         )}
 
+        {/* Search No Results */}
+        {!isLoading && designCodes.length > 0 && filteredDesignCodes.length === 0 && (
+          <div className="empty-state">
+            <div className="empty-state__icon">🔍</div>
+            <h3 className="empty-state__title">No Results Found</h3>
+            <p className="empty-state__text">No design codes match your search. Try a different keyword.</p>
+          </div>
+        )}
+
         {/* Design Code Grid */}
         {!isLoading && filteredDesignCodes.length > 0 && (
           <div className="design-grid">
