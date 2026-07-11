@@ -68,12 +68,8 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
         <button className="search-overlay__back" onClick={onClose}>
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
         </button>
-        <form 
+        <div 
           className="search-overlay__input-container"
-          onSubmit={(e) => {
-            e.preventDefault()
-            handleSearch(query)
-          }}
           style={{ display: 'flex', width: '100%' }}
         >
           <svg className="search-overlay__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -83,22 +79,30 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
             className="search-overlay__input"
             placeholder="Search"
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => {
+              const val = e.target.value
+              setQuery(val)
+              onSearch(val)
+            }}
             onKeyDown={handleKeyDown}
           />
           {query && (
-            <button type="button" className="search-overlay__clear" onClick={() => setQuery('')}>
+            <button type="button" className="search-overlay__clear" onClick={() => {
+              setQuery('')
+              onSearch('')
+            }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
           )}
           <button 
-            type="submit" 
+            type="button" 
             className="btn btn--primary btn--sm" 
             style={{ marginLeft: '8px', padding: '0 16px', borderRadius: 'var(--radius-full)' }}
+            onClick={() => handleSearch(query)}
           >
             Search
           </button>
-        </form>
+        </div>
       </div>
 
       <div className="search-overlay__content">
