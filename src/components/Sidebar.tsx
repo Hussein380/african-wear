@@ -24,6 +24,29 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
   const router = useRouter()
   const pathname = usePathname()
 
+  // Prefetch history data on hover so it's cached by the time user clicks
+  const handleHistoryHover = () => {
+    router.prefetch('/history')
+    // Pre-warm the API data into sessionStorage
+    const cacheKey = 'history_cache_7days'
+    const cached = sessionStorage.getItem(cacheKey)
+    if (cached) {
+      const { ts } = JSON.parse(cached)
+      // Don't re-fetch if cached within last 30 seconds
+      if (Date.now() - ts < 30_000) return
+    }
+    const today = new Date()
+    const start = new Date()
+    start.setDate(today.getDate() - 7)
+    const url = `/api/activities?page=1&limit=20&startDate=${start.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`
+    fetch(url, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) sessionStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }))
+      })
+      .catch(() => {})
+  }
+
   return (
     <>
       {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
@@ -52,6 +75,7 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
                   }
                   if (onClose) onClose()
                 }}
+                onMouseEnter={cat.key === 'History' ? handleHistoryHover : undefined}
                 role="button"
                 tabIndex={0}
               >

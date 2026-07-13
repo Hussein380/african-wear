@@ -60,8 +60,8 @@ export default function HistoryPage() {
   useEffect(() => {
     if (datePreset === 'custom' && (!startDate || !endDate)) return;
     
-    async function fetchHistory() {
-      setIsLoading(true)
+    async function fetchHistory(isBackgroundRefresh = false) {
+      if (!isBackgroundRefresh) setIsLoading(true)
       try {
         let url = `/api/activities?page=1&limit=20&t=${new Date().getTime()}`
         if (startDate) url += `&startDate=${startDate}`
@@ -73,14 +73,38 @@ export default function HistoryPage() {
           setActivities(data.activities)
           setHasMore(data.pagination.page < data.pagination.totalPages)
           setPage(1)
+          // Update cache after fresh fetch
+          if (datePreset === '7days') {
+            sessionStorage.setItem('history_cache_7days', JSON.stringify({ data, ts: Date.now() }))
+          }
         }
       } catch (error) {
         console.error('Failed to fetch history:', error)
       } finally {
-        setIsLoading(false)
+        if (!isBackgroundRefresh) setIsLoading(false)
       }
     }
-    
+
+    // Stale-while-revalidate: show cached data instantly, refresh in background
+    if (datePreset === '7days') {
+      const cached = sessionStorage.getItem('history_cache_7days')
+      if (cached) {
+        try {
+          const { data, ts } = JSON.parse(cached)
+          const age = Date.now() - ts
+          if (age < 60_000) { // Cache valid for 60 seconds
+            setActivities(data.activities)
+            setHasMore(data.pagination.page < data.pagination.totalPages)
+            setPage(1)
+            setIsLoading(false)
+            // Still refresh in background if older than 15s
+            if (age > 15_000) fetchHistory(true)
+            return
+          }
+        } catch { /* ignore bad cache */ }
+      }
+    }
+
     fetchHistory()
   }, [datePreset, startDate, endDate])
 
