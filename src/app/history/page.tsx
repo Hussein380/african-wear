@@ -75,7 +75,7 @@ export default function HistoryPage() {
           setPage(1)
           // Update cache after fresh fetch
           if (datePreset === '7days') {
-            sessionStorage.setItem('history_cache_7days', JSON.stringify({ data, ts: Date.now() }))
+            sessionStorage.setItem('prefetch_History', JSON.stringify({ data, ts: Date.now() }))
           }
         }
       } catch (error) {
@@ -87,7 +87,7 @@ export default function HistoryPage() {
 
     // Stale-while-revalidate: show cached data instantly, refresh in background
     if (datePreset === '7days') {
-      const cached = sessionStorage.getItem('history_cache_7days')
+      const cached = sessionStorage.getItem('prefetch_History')
       if (cached) {
         try {
           const { data, ts } = JSON.parse(cached)

@@ -43,7 +43,7 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
   const router = useRouter()
 
   useEffect(() => {
-    async function fetchMetrics() {
+    async function fetchMetrics(isBackgroundRefresh = false) {
       try {
         const res = await fetch('/api/dashboard?t=' + new Date().getTime(), {
           cache: 'no-store',
@@ -56,13 +56,31 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
         if (res.ok) {
           const data = await res.json()
           setMetrics(data)
+          // Update cache
+          sessionStorage.setItem('prefetch_Dashboard', JSON.stringify({ data, ts: Date.now() }))
         }
       } catch (error) {
         console.error('Failed to fetch dashboard metrics:', error)
       } finally {
-        setIsLoading(false)
+        if (!isBackgroundRefresh) setIsLoading(false)
       }
     }
+
+    // Stale-while-revalidate: show cached data instantly
+    const cached = sessionStorage.getItem('prefetch_Dashboard')
+    if (cached) {
+      try {
+        const { data, ts } = JSON.parse(cached)
+        const age = Date.now() - ts
+        if (age < 60_000) {
+          setMetrics(data)
+          setIsLoading(false)
+          if (age > 15_000) fetchMetrics(true)
+          return
+        }
+      } catch { /* ignore */ }
+    }
+
     fetchMetrics()
   }, [])
 

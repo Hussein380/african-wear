@@ -24,21 +24,32 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
   const router = useRouter()
   const pathname = usePathname()
 
-  // Prefetch history data on hover so it's cached by the time user clicks
-  const handleHistoryHover = () => {
-    router.prefetch('/history')
-    // Pre-warm the API data into sessionStorage
-    const cacheKey = 'history_cache_7days'
+  // Prefetch data on hover so pages feel instant when clicked
+  const handleHover = (cat: typeof categories[0]) => {
+    if (cat.route) router.prefetch(cat.route)
+
+    const cacheKey = `prefetch_${cat.key}`
     const cached = sessionStorage.getItem(cacheKey)
     if (cached) {
-      const { ts } = JSON.parse(cached)
-      // Don't re-fetch if cached within last 30 seconds
-      if (Date.now() - ts < 30_000) return
+      try {
+        const { ts } = JSON.parse(cached)
+        if (Date.now() - ts < 30_000) return // skip if fresh
+      } catch { /* ignore */ }
     }
-    const today = new Date()
-    const start = new Date()
-    start.setDate(today.getDate() - 7)
-    const url = `/api/activities?page=1&limit=20&startDate=${start.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`
+
+    let url = ''
+    if (cat.key === 'History') {
+      const today = new Date()
+      const start = new Date()
+      start.setDate(today.getDate() - 7)
+      url = `/api/activities?page=1&limit=20&startDate=${start.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`
+    } else if (cat.key === 'Dashboard') {
+      url = '/api/dashboard'
+    } else {
+      // PrintedC, PrintedP, PrintTC
+      url = `/api/design-codes?category=${cat.key}`
+    }
+
     fetch(url, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
@@ -75,7 +86,7 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
                   }
                   if (onClose) onClose()
                 }}
-                onMouseEnter={cat.key === 'History' ? handleHistoryHover : undefined}
+                onMouseEnter={() => handleHover(cat)}
                 role="button"
                 tabIndex={0}
               >
