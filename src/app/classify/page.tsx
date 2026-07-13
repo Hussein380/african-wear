@@ -11,17 +11,8 @@ import { Category, DesignCode } from '@/types'
 
 export default function ClassifyPage() {
   const searchParams = useSearchParams()
-  // Priority: URL ?category= param > sessionStorage > Dashboard
-  const getInitialCategory = (): ViewState => {
-    const urlCat = searchParams.get('category') as ViewState
-    if (urlCat) return urlCat
-    if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('classify_last_category') as ViewState
-      if (saved && saved !== 'Dashboard') return saved
-    }
-    return 'Dashboard'
-  }
-  const [activeCategory, setActiveCategory] = useState<ViewState>(getInitialCategory)
+  // Always start with Dashboard to match server render, then hydrate from sessionStorage/URL
+  const [activeCategory, setActiveCategory] = useState<ViewState>('Dashboard')
   const [designCodes, setDesignCodes] = useState<DesignCode[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -33,12 +24,23 @@ export default function ClassifyPage() {
   const [globalSearchTerm, setGlobalSearchTerm] = useState('')
   const router = useRouter()
 
+  // After mount: restore last category from URL param or sessionStorage (client-only, avoids hydration mismatch)
+  useEffect(() => {
+    const urlCat = searchParams.get('category') as ViewState
+    if (urlCat) {
+      setActiveCategory(urlCat)
+      return
+    }
+    const saved = sessionStorage.getItem('classify_last_category') as ViewState
+    if (saved && saved !== 'Dashboard') {
+      setActiveCategory(saved)
+    }
+  }, [searchParams])
+
   // Persist category so Back button restores it
   const handleCategoryChange = (cat: ViewState) => {
     setActiveCategory(cat)
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('classify_last_category', cat)
-    }
+    sessionStorage.setItem('classify_last_category', cat)
   }
 
   const fetchDesignCodes = useCallback(async () => {
