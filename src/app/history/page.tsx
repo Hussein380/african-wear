@@ -25,6 +25,12 @@ export default function HistoryPage() {
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
 
+  // Delete history
+  const [showClearModal, setShowClearModal] = useState(false)
+  const [clearMode, setClearMode] = useState<'all' | 'older30' | null>(null)
+  const [isClearing, setIsClearing] = useState(false)
+  const [clearResult, setClearResult] = useState<string | null>(null)
+
   // Helper to set dates based on preset
   const applyPreset = (preset: '7days' | '30days' | 'all') => {
     setDatePreset(preset)
@@ -183,6 +189,36 @@ export default function HistoryPage() {
     )
   })
 
+  const handleClearHistory = async () => {
+    if (!clearMode) return
+    setIsClearing(true)
+    try {
+      const url = clearMode === 'all'
+        ? '/api/activities?mode=all'
+        : '/api/activities?mode=older&days=30'
+      const res = await fetch(url, { method: 'DELETE' })
+      const data = await res.json()
+      if (res.ok) {
+        setClearResult(`✅ ${data.message}`)
+        setActivities([])
+        setHasMore(false)
+        // Reload fresh data
+        setTimeout(() => {
+          setShowClearModal(false)
+          setClearResult(null)
+          setClearMode(null)
+          applyPreset('7days')
+        }, 1500)
+      } else {
+        setClearResult(`❌ Error: ${data.error}`)
+      }
+    } catch {
+      setClearResult('❌ Failed to clear history. Try again.')
+    } finally {
+      setIsClearing(false)
+    }
+  }
+
   return (
     <>
       <header className="appbar">
@@ -200,8 +236,23 @@ export default function HistoryPage() {
           </div>
         </div>
         <div className="appbar__right">
-          <button className="appbar__action-btn" onClick={() => setIsSearchOpen(true)} type="button" aria-label="Search">
+          <button 
+            className="appbar__action-btn" 
+            onClick={() => setIsSearchOpen(true)} 
+            type="button" 
+            aria-label="Search"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </button>
+          <button 
+            className="appbar__action-btn" 
+            onClick={() => { setShowClearModal(true); setClearResult(null) }} 
+            type="button"
+            style={{ color: '#fca5a5' }}
+            title="Clear History"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="m19 6-.867 12.142A2 2 0 0 1 16.138 20H7.862a2 2 0 0 1-1.995-1.858L5 6"/><path d="m10 11 0 6"/><path d="m14 11 0 6"/><path d="m9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            <span className="desktop-only">Clear History</span>
           </button>
         </div>
       </header>
@@ -382,6 +433,97 @@ export default function HistoryPage() {
         onClose={() => { setIsSearchOpen(false); setGlobalSearchTerm('') }} 
         onSearch={(term) => setGlobalSearchTerm(term)}
       />
+
+      {/* Clear History Modal */}
+      {showClearModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--color-bg-card)', borderRadius: 'var(--radius-xl)',
+            padding: 'var(--space-xl)', maxWidth: '420px', width: '100%',
+            boxShadow: 'var(--shadow-xl)', border: '1px solid var(--color-border)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>🗑️</div>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>Clear Transaction History</h2>
+              <p style={{ margin: '8px 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+                This action cannot be undone. Choose what to delete:
+              </p>
+            </div>
+
+            {clearResult ? (
+              <div style={{
+                padding: '16px', borderRadius: 'var(--radius-md)',
+                background: clearResult.startsWith('✅') ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                textAlign: 'center', fontWeight: 600
+              }}>
+                {clearResult}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Option 1: Older than 30 days */}
+                <button
+                  onClick={() => setClearMode(clearMode === 'older30' ? null : 'older30')}
+                  style={{
+                    padding: '14px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer',
+                    border: `2px solid ${clearMode === 'older30' ? 'var(--color-warning)' : 'var(--color-border)'}`,
+                    background: clearMode === 'older30' ? 'rgba(251,191,36,0.1)' : 'var(--color-bg)',
+                    textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.15s'
+                  }}
+                >
+                  <span style={{ fontSize: '24px' }}>📅</span>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '14px' }}>Clear records older than 30 days</div>
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Keeps recent history intact</div>
+                  </div>
+                </button>
+
+                {/* Option 2: Clear All */}
+                <button
+                  onClick={() => setClearMode(clearMode === 'all' ? null : 'all')}
+                  style={{
+                    padding: '14px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer',
+                    border: `2px solid ${clearMode === 'all' ? '#ef4444' : 'var(--color-border)'}`,
+                    background: clearMode === 'all' ? 'rgba(239,68,68,0.1)' : 'var(--color-bg)',
+                    textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.15s'
+                  }}
+                >
+                  <span style={{ fontSize: '24px' }}>⚠️</span>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '14px', color: '#ef4444' }}>Clear ALL history</div>
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Permanently deletes every transaction record</div>
+                  </div>
+                </button>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                  <button
+                    onClick={() => { setShowClearModal(false); setClearMode(null) }}
+                    className="btn btn--secondary"
+                    style={{ flex: 1 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleClearHistory}
+                    disabled={!clearMode || isClearing}
+                    className="btn"
+                    style={{
+                      flex: 1,
+                      background: clearMode === 'all' ? '#ef4444' : 'var(--color-warning)',
+                      color: 'white', opacity: !clearMode ? 0.4 : 1
+                    }}
+                  >
+                    {isClearing ? 'Clearing...' : 'Confirm Delete'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }

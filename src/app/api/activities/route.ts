@@ -56,3 +56,35 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to fetch activities' }, { status: 500 })
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const mode = searchParams.get('mode') // 'all' | 'older'
+    const days = parseInt(searchParams.get('days') || '30', 10)
+
+    const db = await getDb()
+    let query: any = {}
+
+    if (mode === 'older') {
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - days)
+      query = { timestamp: { $lt: cutoff.toISOString() } }
+    } else if (mode !== 'all') {
+      return NextResponse.json({ error: 'Invalid mode. Use mode=all or mode=older&days=N' }, { status: 400 })
+    }
+
+    const result = await db.collection('activities').deleteMany(query)
+
+    return NextResponse.json({ 
+      success: true, 
+      deletedCount: result.deletedCount,
+      message: mode === 'all' 
+        ? `Deleted all ${result.deletedCount} records`
+        : `Deleted ${result.deletedCount} records older than ${days} days`
+    })
+  } catch (error) {
+    console.error('Error deleting activities:', error)
+    return NextResponse.json({ error: 'Failed to delete history' }, { status: 500 })
+  }
+}
