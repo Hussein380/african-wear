@@ -11,8 +11,15 @@ export async function GET(request: Request) {
     }
 
     const term = q.trim()
+    
+    // Escape special characters to prevent RegExp injection/crashes
+    const escapeRegExp = (string: string) => {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // $& means the whole matched string
+    }
+    
     // Create a flexible regex: replace spaces/hyphens with optional space/hyphen matching
-    const flexibleTerm = term.replace(/[\s-]/g, '').split('').join('[\\s-]*')
+    const escapedTerm = escapeRegExp(term)
+    const flexibleTerm = escapedTerm.replace(/[\s-]/g, '').split('').join('[\\s-]*')
     const regex = new RegExp(flexibleTerm, 'i')
 
     const db = await getDb()
