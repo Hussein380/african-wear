@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Sidebar, { ViewState } from '@/components/Sidebar'
 import Dashboard from '@/components/Dashboard'
@@ -9,7 +9,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import SearchOverlay from '@/components/SearchOverlay'
 import { Category, DesignCode } from '@/types'
 
-export default function ClassifyPage() {
+function ClassifyPageInner() {
   const searchParams = useSearchParams()
   // Always start with Dashboard to match server render, then hydrate from sessionStorage/URL
   const [activeCategory, setActiveCategory] = useState<ViewState>('Dashboard')
@@ -343,5 +343,13 @@ export default function ClassifyPage() {
         onSearch={(term) => setGlobalSearchTerm(term)}
       />
     </>
+  )
+}
+
+export default function ClassifyPage() {
+  return (
+    <Suspense fallback={null}>
+      <ClassifyPageInner />
+    </Suspense>
   )
 }
