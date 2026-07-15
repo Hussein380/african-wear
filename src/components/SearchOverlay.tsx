@@ -13,6 +13,7 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
   const [query, setQuery] = useState('')
   const [history, setHistory] = useState<string[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -43,6 +44,7 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
     if (!term.trim()) return
     
     setIsSearching(true)
+    setSearchError(null)
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(term.trim())}`)
       if (res.ok) {
@@ -52,19 +54,17 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
           onClose()
           onSearch(term)
           router.push(data.url)
-          setIsSearching(false)
           return
+        } else {
+          setSearchError(`No exact match found for "${term}"`)
         }
       }
     } catch (e) {
       console.error('Search API error:', e)
+      setSearchError("An error occurred during search.")
     } finally {
       setIsSearching(false)
     }
-
-    saveHistory(term)
-    onClose()
-    onSearch(term)
   }
 
   const handleClose = () => {
@@ -72,6 +72,7 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
     if (query.trim()) {
       saveHistory(query.trim())
     }
+    setSearchError(null)
     onClose()
   }
 
@@ -131,6 +132,11 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
             </button>
           )}
         </div>
+        {searchError && (
+          <div style={{ color: 'var(--color-danger)', fontSize: '14px', marginTop: '12px', textAlign: 'center' }}>
+            {searchError}
+          </div>
+        )}
       </div>
 
       <div className="search-overlay__content">
