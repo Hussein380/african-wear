@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import InstallPrompt from '@/components/InstallPrompt'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -29,7 +30,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <InstallPrompt />
+      </body>
     </html>
   )
 }
