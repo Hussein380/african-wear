@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface SearchOverlayProps {
   isOpen: boolean
@@ -11,7 +12,9 @@ interface SearchOverlayProps {
 export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverlayProps) {
   const [query, setQuery] = useState('')
   const [history, setHistory] = useState<string[]>([])
+  const [isSearching, setIsSearching] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
 
   useEffect(() => {
     if (isOpen) {
@@ -36,8 +39,29 @@ export default function SearchOverlay({ isOpen, onClose, onSearch }: SearchOverl
     localStorage.setItem('search_history', JSON.stringify(next))
   }
 
-  const handleSearch = (term: string) => {
+  const handleSearch = async (term: string) => {
     if (!term.trim()) return
+    
+    setIsSearching(true)
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(term.trim())}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.found && data.url) {
+          saveHistory(term)
+          onClose()
+          onSearch(term)
+          router.push(data.url)
+          setIsSearching(false)
+          return
+        }
+      }
+    } catch (e) {
+      console.error('Search API error:', e)
+    } finally {
+      setIsSearching(false)
+    }
+
     saveHistory(term)
     onClose()
     onSearch(term)

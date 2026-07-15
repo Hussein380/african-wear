@@ -74,15 +74,20 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
                 key={cat.key}
                 className={`sidebar__item ${isActive ? 'sidebar__item--active' : ''} ${cat.isSpecial ? 'sidebar__item--special' : ''}`}
                 onClick={() => {
-                  if (cat.route && cat.key === 'History') {
-                    router.push(cat.route)
+                  if (cat.key === 'History') {
+                    router.push('/history')
                   } else if (cat.key === 'Dashboard') {
-                    router.push('/classify')
-                  } else if (!pathname.startsWith('/classify')) {
-                    // If we're on History, Inventory, etc., navigate to classify with category
-                    router.push(`/classify?category=${cat.key}`)
+                    if (pathname === '/classify') {
+                      onCategoryChange('Dashboard')
+                    } else {
+                      router.push('/classify?category=Dashboard')
+                    }
                   } else {
-                    onCategoryChange(cat.key)
+                    if (pathname === '/classify') {
+                      onCategoryChange(cat.key)
+                    } else {
+                      router.push(`/classify?category=${cat.key}`)
+                    }
                   }
                   if (onClose) onClose()
                 }}

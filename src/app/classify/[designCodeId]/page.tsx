@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { use } from 'react'
 import ColorwayModal from '@/components/ColorwayModal'
 import DesignCodeModal from '@/components/DesignCodeModal'
@@ -29,10 +29,18 @@ export default function DesignCodeDetailPage({
   const [showEditDesignModal, setShowEditDesignModal] = useState(false)
   const [showDeleteDesignConfirm, setShowDeleteDesignConfirm] = useState(false)
   
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [globalSearchTerm, setGlobalSearchTerm] = useState('')
-  
   const router = useRouter()
+  const searchParams = useSearchParams()
+  
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [globalSearchTerm, setGlobalSearchTerm] = useState(searchParams.get('search') || '')
+
+  useEffect(() => {
+    const term = searchParams.get('search')
+    if (term !== null) {
+      setGlobalSearchTerm(term)
+    }
+  }, [searchParams])
 
   const fetchColorways = useCallback(async () => {
     setIsLoading(true)
