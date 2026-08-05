@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { use } from 'react'
 import ColorwayModal from '@/components/ColorwayModal'
@@ -35,6 +35,14 @@ export default function DesignCodeDetailPage({
   
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [globalSearchTerm, setGlobalSearchTerm] = useState(searchParams.get('search') || '')
+
+  // Undo toast state
+  const [undoToast, setUndoToast] = useState<{
+    visible: boolean
+    message: string
+    onUndo: () => void
+  }>({ visible: false, message: '', onUndo: () => {} })
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const term = searchParams.get('search')

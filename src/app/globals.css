@@ -1598,6 +1598,10 @@ ul, ol {
   box-shadow: var(--shadow-lg);
   z-index: 300;
   transition: transform var(--transition-base);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  white-space: nowrap;
 }
 
 .toast--visible {
@@ -1610,6 +1614,23 @@ ul, ol {
 
 .toast--error {
   background: var(--color-danger);
+}
+
+.toast__undo-btn {
+  background: rgba(255, 255, 255, 0.25);
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  color: white;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  padding: 4px 14px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.toast__undo-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
 }
 
 /* ---------- Animations ---------- */
@@ -1724,6 +1745,19 @@ ul, ol {
     bottom: var(--space-lg);
     right: var(--space-lg);
   }
+
+  /* Back button — smaller on tablet */
+  .appbar__back-btn {
+    height: 44px;
+    padding: 0 16px;
+    font-size: 16px;
+    min-width: 80px;
+  }
+
+  /* Subtitle always visible */
+  .appbar__subtitle {
+    font-size: 11px;
+  }
 }
 
 /* Mobile */
@@ -1747,6 +1781,31 @@ ul, ol {
     padding: var(--space-sm);
   }
 
+  /* Back button — compact on small phones */
+  .appbar__back-btn {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 14px;
+    min-width: 64px;
+    gap: 4px;
+  }
+
+  /* Keep the Back label but hide it if very narrow — show only arrow */
+  .appbar__title {
+    font-size: var(--font-size-base);
+  }
+
+  .appbar__subtitle {
+    font-size: 11px;
+    opacity: 0.9;
+  }
+
+  /* Action buttons smaller */
+  .appbar__action-btn {
+    padding: 4px 6px;
+    font-size: 13px;
+  }
+
   .landing__title {
     font-size: var(--font-size-2xl);
   }
@@ -1764,6 +1823,36 @@ ul, ol {
 
   .bottom-nav {
     display: none;
+  }
+}
+
+/* Very small phones (≤360px — e.g. Moto E, older Samsungs) */
+@media (max-width: 360px) {
+  .appbar__back-btn {
+    min-width: 40px;
+    padding: 0 10px;
+    font-size: 0; /* Hide "Back" text */
+    gap: 0;
+  }
+
+  /* Keep the arrow icon visible */
+  .appbar__back-btn svg {
+    font-size: 18px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .appbar__title {
+    font-size: 15px;
+  }
+
+  .appbar__subtitle {
+    font-size: 10px;
+  }
+
+  .appbar__action-btn {
+    padding: 4px 4px;
   }
 }
 
