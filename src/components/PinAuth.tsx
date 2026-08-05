@@ -52,6 +52,20 @@ export default function PinAuth() {
     setError('')
   }, [])
 
+  // Allow typing the PIN directly from a keyboard
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isLoading) return
+      if (e.key >= '0' && e.key <= '9') {
+        handleKeyPress(e.key)
+      } else if (e.key === 'Backspace') {
+        handleBackspace()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isLoading, handleKeyPress, handleBackspace])
+
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫']
 
   return (

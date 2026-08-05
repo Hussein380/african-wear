@@ -8,6 +8,7 @@ import DesignCodeModal from '@/components/DesignCodeModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import SearchOverlay from '@/components/SearchOverlay'
 import { Category, DesignCode } from '@/types'
+import { CacheKeys, getCached, getCacheAge, setCached, bustCache } from '@/lib/cache'
 
 function ClassifyPageInner() {
   const searchParams = useSearchParams()
@@ -50,37 +51,27 @@ function ClassifyPageInner() {
   const fetchDesignCodes = useCallback(async (isBackgroundRefresh = false) => {
     if (activeCategory === 'Dashboard') return
     if (!isBackgroundRefresh) setIsLoading(true)
+    const cacheKey = CacheKeys.designCodes(activeCategory)
     try {
-      // Check sessionStorage cache first (set by sidebar hover prefetch)
-      const cacheKey = `prefetch_${activeCategory}`
-      const cached = sessionStorage.getItem(cacheKey)
-      if (cached && !isBackgroundRefresh) {
-        try {
-          const { data, ts } = JSON.parse(cached)
-          const age = Date.now() - ts
-          if (age < 60_000) {
-            setDesignCodes(data)
-            setIsLoading(false)
-            // Refresh in background if older than 15s
-            if (age > 15_000) fetchDesignCodes(true)
-            return
-          }
-        } catch { /* ignore bad cache */ }
+      // SWR: serve from cache instantly, then refresh in background
+      if (!isBackgroundRefresh) {
+        const cached = getCached<DesignCode[]>(cacheKey)
+        if (cached) {
+          setDesignCodes(cached)
+          setIsLoading(false)
+          // If older than 15s, also trigger a background refresh
+          if (getCacheAge(cacheKey) > 15_000) fetchDesignCodes(true)
+          return
+        }
       }
 
       const res = await fetch(`/api/design-codes?category=${activeCategory}`, {
         cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
       })
       if (res.ok) {
         const data = await res.json()
         setDesignCodes(data)
-        // Update cache after fresh fetch
-        sessionStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }))
+        setCached(cacheKey, data)
       }
     } catch (error) {
       console.error('Failed to fetch design codes:', error)
@@ -105,6 +96,7 @@ function ClassifyPageInner() {
       body: JSON.stringify(data),
     })
     if (res.ok) {
+      bustCache(CacheKeys.designCodes(activeCategory))
       fetchDesignCodes()
     } else {
       const err = await res.json()
@@ -126,6 +118,7 @@ function ClassifyPageInner() {
     })
     if (res.ok) {
       setEditingCode(null)
+      bustCache(CacheKeys.designCodes(activeCategory))
       fetchDesignCodes()
     }
   }
@@ -139,6 +132,7 @@ function ClassifyPageInner() {
       })
       if (res.ok) {
         setDeleteTarget(null)
+        bustCache(CacheKeys.designCodes(activeCategory))
         fetchDesignCodes()
       }
     } catch (error) {
@@ -280,6 +274,8 @@ function ClassifyPageInner() {
                           className="design-tile__image"
                           src={dc.thumbnailUrl}
                           alt={dc.code}
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         <div className="design-tile__placeholder">

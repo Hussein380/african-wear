@@ -158,9 +158,9 @@ export default function InventoryTable({ data, externalSearchTerm }: Props) {
                 <td>
                   <div className="table-image" style={{ borderRadius: '8px', overflow: 'hidden', background: '#f1f5f9', flexShrink: 0 }}>
                     {item.photos?.[0]?.url ? (
-                      <img src={item.photos[0].url} alt={item.fullCode} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={item.photos[0].url} alt={item.fullCode} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : item.thumbnailUrl ? (
-                      <img src={item.thumbnailUrl} alt={item.designCodeName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={item.thumbnailUrl} alt={item.designCodeName} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : null}
                   </div>
                 </td>

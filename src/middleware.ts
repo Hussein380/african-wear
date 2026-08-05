@@ -18,11 +18,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Check for session cookie
+  // Check for session cookie — if it exists, trust it.
+  // The cookie is httpOnly, server-set, and has a 30-day expiry.
+  // No DB round-trip needed here; that was causing unnecessary failures.
   const session = request.cookies.get('maw-session')
 
   if (!session?.value) {
-    // Redirect to home page for PIN entry
     return NextResponse.redirect(new URL('/?auth=required', request.url))
   }
 

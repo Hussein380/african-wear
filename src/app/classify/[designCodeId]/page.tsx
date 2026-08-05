@@ -8,6 +8,7 @@ import DesignCodeModal from '@/components/DesignCodeModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import SearchOverlay from '@/components/SearchOverlay'
 import { Colorway, DesignCode } from '@/types'
+import { CacheKeys, getCached, getCacheAge, setCached, bustCache } from '@/lib/cache'
 
 export default function DesignCodeDetailPage({
   params,
@@ -42,25 +43,33 @@ export default function DesignCodeDetailPage({
     }
   }, [searchParams])
 
-  const fetchColorways = useCallback(async () => {
-    setIsLoading(true)
+  const fetchColorways = useCallback(async (isBackgroundRefresh = false) => {
+    if (!isBackgroundRefresh) setIsLoading(true)
+    const cacheKey = CacheKeys.colorways(designCodeId)
     try {
-      const res = await fetch(`/api/colorways?designCodeId=${designCodeId}&t=${new Date().getTime()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+      // SWR: serve cached data instantly, then refresh in background
+      if (!isBackgroundRefresh) {
+        const cached = getCached<Colorway[]>(cacheKey)
+        if (cached) {
+          setColorways(cached)
+          setIsLoading(false)
+          if (getCacheAge(cacheKey) > 15_000) fetchColorways(true)
+          return
         }
+      }
+
+      const res = await fetch(`/api/colorways?designCodeId=${designCodeId}`, {
+        cache: 'no-store',
       })
       if (res.ok) {
         const data = await res.json()
         setColorways(data)
+        setCached(cacheKey, data)
       }
     } catch (error) {
       console.error('Failed to fetch colorways:', error)
     } finally {
-      setIsLoading(false)
+      if (!isBackgroundRefresh) setIsLoading(false)
     }
   }, [designCodeId])
 
@@ -131,6 +140,7 @@ export default function DesignCodeDetailPage({
       body: JSON.stringify({ ...data, designCodeId }),
     })
     if (res.ok) {
+      bustCache(CacheKeys.colorways(designCodeId))
       fetchColorways()
     }
   }
@@ -149,6 +159,7 @@ export default function DesignCodeDetailPage({
     })
     if (res.ok) {
       setEditingColorway(null)
+      bustCache(CacheKeys.colorways(designCodeId))
       fetchColorways()
     }
   }
@@ -160,6 +171,7 @@ export default function DesignCodeDetailPage({
       const res = await fetch(`/api/colorways/${deleteTarget._id}`, { method: 'DELETE' })
       if (res.ok) {
         setDeleteTarget(null)
+        bustCache(CacheKeys.colorways(designCodeId))
         fetchColorways()
       }
     } catch (error) {
@@ -178,11 +190,14 @@ export default function DesignCodeDetailPage({
         body: JSON.stringify({ quantityAvailable: newQuantity }),
       })
       if (res.ok) {
-        setColorways(prev =>
-          prev.map(cw =>
+        // Optimistic update — also write back to cache so revisits see fresh data
+        setColorways(prev => {
+          const updated = prev.map(cw =>
             cw._id === colorwayId ? { ...cw, quantityAvailable: newQuantity } : cw
           )
-        )
+          setCached(CacheKeys.colorways(designCodeId), updated)
+          return updated
+        })
       }
     } catch (error) {
       console.error('Failed to update quantity:', error)
@@ -203,11 +218,14 @@ export default function DesignCodeDetailPage({
         body: JSON.stringify({ quantityAvailable: newTotalQuantity, breakdown: newBreakdown }),
       })
       if (res.ok) {
-        setColorways(prev =>
-          prev.map(cw =>
+        // Optimistic update — write back to cache too
+        setColorways(prev => {
+          const updated = prev.map(cw =>
             cw._id === colorway._id ? { ...cw, quantityAvailable: newTotalQuantity, breakdown: newBreakdown } : cw
           )
-        )
+          setCached(CacheKeys.colorways(designCodeId), updated)
+          return updated
+        })
       }
     } catch (error) {
       console.error('Failed to update breakdown quantity:', error)
@@ -309,7 +327,7 @@ export default function DesignCodeDetailPage({
                     style={{ cursor: cw.photos?.[0] ? 'pointer' : 'default' }}
                   >
                     {cw.photos?.[0] ? (
-                      <img src={cw.photos[0].url} alt={cw.fullCode} />
+                      <img src={cw.photos[0].url} alt={cw.fullCode} loading="lazy" decoding="async" />
                     ) : (
                       <div style={{
                         display: 'flex',
@@ -394,7 +412,7 @@ export default function DesignCodeDetailPage({
                           className="colorway-card__photo-thumb"
                           onClick={() => setExpandedPhoto(photo.url)}
                         >
-                          <img src={photo.url} alt={`${cw.fullCode} photo ${i + 1}`} />
+                          <img src={photo.url} alt={`${cw.fullCode} photo ${i + 1}`} loading="lazy" decoding="async" />
                         </div>
                       ))}
                     </div>

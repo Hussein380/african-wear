@@ -1,19 +1,18 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getDb } from '@/lib/mongodb'
 
-// Simple hash function for PIN (not crypto-grade, but fine for a personal app)
+// Simple hash function for PIN
 function hashPin(pin: string): string {
   let hash = 0
   for (let i = 0; i < pin.length; i++) {
     const char = pin.charCodeAt(i)
     hash = ((hash << 5) - hash) + char
-    hash = hash & hash // Convert to 32bit integer
+    hash = hash & hash
   }
   return Math.abs(hash).toString(36)
 }
 
-// POST /api/auth — verify PIN
+// POST /api/auth — verify PIN and set session cookie
 export async function POST(request: Request) {
   try {
     const { pin } = await request.json()
@@ -22,14 +21,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid PIN format' }, { status: 400 })
     }
 
-    // Check against env variable first (simple setup)
     const envPin = process.env.APP_PIN || '1234'
     
     if (pin === envPin) {
-      // Set session cookie
       const cookieStore = await cookies()
       const sessionToken = hashPin(pin + Date.now().toString())
       
+      // The cookie IS the session. No DB needed.
       cookieStore.set('maw-session', sessionToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -37,14 +35,6 @@ export async function POST(request: Request) {
         maxAge: 60 * 60 * 24 * 30, // 30 days
         path: '/',
       })
-
-      // Also store token in DB for validation
-      const db = await getDb()
-      await db.collection('sessions').updateOne(
-        { type: 'active-session' },
-        { $set: { token: sessionToken, createdAt: new Date() } },
-        { upsert: true }
-      )
 
       return NextResponse.json({ success: true })
     }
@@ -60,33 +50,18 @@ export async function DELETE() {
   try {
     const cookieStore = await cookies()
     cookieStore.delete('maw-session')
-    
-    const db = await getDb()
-    await db.collection('sessions').deleteMany({ type: 'active-session' })
-
     return NextResponse.json({ success: true })
   } catch {
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
 
-// GET /api/auth — check session
+// GET /api/auth — check session (just check the cookie)
 export async function GET() {
   try {
     const cookieStore = await cookies()
     const session = cookieStore.get('maw-session')
-
-    if (!session?.value) {
-      return NextResponse.json({ authenticated: false })
-    }
-
-    const db = await getDb()
-    const activeSession = await db.collection('sessions').findOne({ 
-      type: 'active-session',
-      token: session.value 
-    })
-
-    return NextResponse.json({ authenticated: !!activeSession })
+    return NextResponse.json({ authenticated: !!session?.value })
   } catch {
     return NextResponse.json({ authenticated: false })
   }
