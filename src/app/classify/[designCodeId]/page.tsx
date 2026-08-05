@@ -219,6 +219,9 @@ export default function DesignCodeDetailPage({
     return cw.fullCode.toLowerCase().includes(globalSearchTerm.toLowerCase())
   })
 
+  const totalStock = colorways.reduce((sum, cw) => sum + (cw.quantityAvailable || 0), 0)
+  const isPrintTC = designCodeObj?.category === 'PrintTC'
+
   return (
     <>
       {/* App Bar */}
@@ -235,7 +238,7 @@ export default function DesignCodeDetailPage({
           </button>
           <div>
             <h1 className="appbar__title">{designCode || 'Loading...'} Colorways</h1>
-            <p className="appbar__subtitle">{colorways.length} variant{colorways.length !== 1 ? 's' : ''}</p>
+            <p className="appbar__subtitle">Total in Stock: {totalStock}</p>
           </div>
         </div>
         <div className="appbar__right">
@@ -260,9 +263,9 @@ export default function DesignCodeDetailPage({
         {isLoading && (
           <div className="colorway-list">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="colorway-card">
-                <div className="skeleton" style={{ aspectRatio: '4/3' }} />
-                <div style={{ padding: 'var(--space-md)' }}>
+              <div key={i} className={`colorway-card ${isPrintTC ? 'colorway-card--compact' : ''}`}>
+                <div className="skeleton" style={{ aspectRatio: isPrintTC ? '1' : '4/3', width: isPrintTC ? '80px' : '100%', height: isPrintTC ? '80px' : 'auto' }} />
+                <div style={{ padding: 'var(--space-md)', flex: 1 }}>
                   <div className="skeleton" style={{ height: '20px', width: '60%', marginBottom: '8px' }} />
                   <div className="skeleton" style={{ height: '16px', width: '40%' }} />
                 </div>
@@ -295,30 +298,32 @@ export default function DesignCodeDetailPage({
         {!isLoading && filteredColorways.length > 0 && (
           <div className="colorway-list">
             {filteredColorways.map(cw => (
-              <div key={cw._id} className="colorway-card">
+              <div key={cw._id} className={`colorway-card ${isPrintTC ? 'colorway-card--compact' : ''}`}>
                 {/* Hero Image */}
-                <div
-                  className="colorway-card__hero"
-                  onClick={() => {
-                    if (cw.photos?.[0]?.url) setExpandedPhoto(cw.photos[0].url)
-                  }}
-                  style={{ cursor: cw.photos?.[0] ? 'pointer' : 'default' }}
-                >
-                  {cw.photos?.[0] ? (
-                    <img src={cw.photos[0].url} alt={cw.fullCode} />
-                  ) : (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      height: '100%',
-                      fontSize: '48px',
-                      opacity: 0.2,
-                    }}>
-                      🖼️
-                    </div>
-                  )}
-                </div>
+                {(!isPrintTC || cw.photos?.[0]) && (
+                  <div
+                    className="colorway-card__hero"
+                    onClick={() => {
+                      if (cw.photos?.[0]?.url) setExpandedPhoto(cw.photos[0].url)
+                    }}
+                    style={{ cursor: cw.photos?.[0] ? 'pointer' : 'default' }}
+                  >
+                    {cw.photos?.[0] ? (
+                      <img src={cw.photos[0].url} alt={cw.fullCode} />
+                    ) : (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                        fontSize: '48px',
+                        opacity: 0.2,
+                      }}>
+                        🖼️
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Body */}
                 <div className="colorway-card__body">

@@ -11,8 +11,8 @@ import { Category, DesignCode } from '@/types'
 
 function ClassifyPageInner() {
   const searchParams = useSearchParams()
-  // Always start with Dashboard to match server render, then hydrate from sessionStorage/URL
-  const [activeCategory, setActiveCategory] = useState<ViewState>('Dashboard')
+  const router = useRouter()
+  
   const [designCodes, setDesignCodes] = useState<DesignCode[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -22,25 +22,29 @@ function ClassifyPageInner() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [globalSearchTerm, setGlobalSearchTerm] = useState('')
-  const router = useRouter()
 
-  // After mount: restore last category from URL param or sessionStorage (client-only, avoids hydration mismatch)
+  const urlCat = searchParams.get('category') as ViewState
+  const activeCategory = urlCat || 'Dashboard'
+
+  // Persist to session storage so returning to /classify remembers the view
   useEffect(() => {
-    const urlCat = searchParams.get('category') as ViewState
-    if (urlCat) {
-      setActiveCategory(urlCat)
-      return
+    if (activeCategory !== 'Dashboard') {
+      sessionStorage.setItem('classify_last_category', activeCategory)
     }
-    const saved = sessionStorage.getItem('classify_last_category') as ViewState
-    if (saved && saved !== 'Dashboard') {
-      setActiveCategory(saved)
-    }
-  }, [searchParams])
+  }, [activeCategory])
 
-  // Persist category so Back button restores it
+  // If no category in URL, try restoring from session storage
+  useEffect(() => {
+    if (!urlCat) {
+      const saved = sessionStorage.getItem('classify_last_category') as ViewState
+      if (saved && saved !== 'Dashboard') {
+        router.replace(`/classify?category=${saved}`)
+      }
+    }
+  }, [urlCat, router])
+
   const handleCategoryChange = (cat: ViewState) => {
-    setActiveCategory(cat)
-    sessionStorage.setItem('classify_last_category', cat)
+    router.push(`/classify?category=${cat}`)
   }
 
   const fetchDesignCodes = useCallback(async (isBackgroundRefresh = false) => {
@@ -235,58 +239,69 @@ function ClassifyPageInner() {
 
         {/* Design Code Grid */}
         {!isLoading && filteredDesignCodes.length > 0 && (
-          <div className="design-grid">
-            {filteredDesignCodes.map(dc => (
-              <div
-                key={dc._id}
-                className="design-tile"
-                onClick={() => router.push(`/classify/${dc._id}`)}
-              >
-                <div className="design-tile__actions">
-                  <button
-                    className="design-tile__action-btn"
-                    onClick={e => {
-                      e.stopPropagation()
-                      setEditingCode(dc)
-                    }}
-                    title="Edit"
-                    type="button"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    className="design-tile__action-btn design-tile__action-btn--delete"
-                    onClick={e => {
-                      e.stopPropagation()
-                      setDeleteTarget(dc)
-                    }}
-                    title="Delete"
-                    type="button"
-                  >
-                    🗑️
-                  </button>
-                </div>
+          <div className={`design-grid ${activeCategory === 'PrintTC' ? 'design-grid--compact' : ''}`}>
+            {filteredDesignCodes.map(dc => {
+              const isPrintTC = activeCategory === 'PrintTC'
+              return (
+                <div
+                  key={dc._id}
+                  className={`design-tile ${isPrintTC ? 'design-tile--compact' : ''}`}
+                  onClick={() => router.push(`/classify/${dc._id}`)}
+                >
+                  <div className="design-tile__actions">
+                    <button
+                      className="design-tile__action-btn"
+                      onClick={e => {
+                        e.stopPropagation()
+                        setEditingCode(dc)
+                      }}
+                      title="Edit"
+                      type="button"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="design-tile__action-btn design-tile__action-btn--delete"
+                      onClick={e => {
+                        e.stopPropagation()
+                        setDeleteTarget(dc)
+                      }}
+                      title="Delete"
+                      type="button"
+                    >
+                      🗑️
+                    </button>
+                  </div>
 
-                <div className="design-tile__image-wrapper">
-                  {dc.thumbnailUrl ? (
-                    <img
-                      className="design-tile__image"
-                      src={dc.thumbnailUrl}
-                      alt={dc.code}
-                    />
-                  ) : (
-                    <div className="design-tile__placeholder">
-                      <img src="/mandera-logo.png" alt="Placeholder" style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: 0.3 }} />
+                  {(!isPrintTC || dc.thumbnailUrl) && (
+                    <div className="design-tile__image-wrapper">
+                      {dc.thumbnailUrl ? (
+                        <img
+                          className="design-tile__image"
+                          src={dc.thumbnailUrl}
+                          alt={dc.code}
+                        />
+                      ) : (
+                        <div className="design-tile__placeholder">
+                          <img src="/mandera-logo.png" alt="Placeholder" style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: 0.3 }} />
+                        </div>
+                      )}
+                      <span className="design-tile__badge">
+                        {dc.colorwayCount || 0}
+                      </span>
                     </div>
                   )}
-                  <span className="design-tile__badge">
-                    {dc.colorwayCount || 0}
-                  </span>
-                </div>
 
-                <span className="design-tile__code">{dc.code}</span>
-              </div>
-            ))}
+                  <span className="design-tile__code">{dc.code}</span>
+
+                  {isPrintTC && !dc.thumbnailUrl && (
+                    <span style={{ order: 3, padding: '0 8px', fontWeight: 'bold', color: 'var(--color-accent)' }}>
+                      {dc.colorwayCount || 0}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
         </>

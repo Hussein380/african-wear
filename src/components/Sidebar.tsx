@@ -76,18 +76,8 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
                 onClick={() => {
                   if (cat.key === 'History') {
                     router.push('/history')
-                  } else if (cat.key === 'Dashboard') {
-                    if (pathname === '/classify') {
-                      onCategoryChange('Dashboard')
-                    } else {
-                      router.push('/classify?category=Dashboard')
-                    }
                   } else {
-                    if (pathname === '/classify') {
-                      onCategoryChange(cat.key)
-                    } else {
-                      router.push(`/classify?category=${cat.key}`)
-                    }
+                    router.push(`/classify?category=${cat.key}`)
                   }
                   if (onClose) onClose()
                 }}

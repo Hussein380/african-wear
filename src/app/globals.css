@@ -208,18 +208,19 @@ ul, ol {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 44px;
-  padding: 0 14px;
+  gap: 8px;
+  height: 52px;
+  padding: 0 24px;
   color: var(--color-text-on-primary);
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.18);
-  font-size: 16px;
-  font-weight: 600;
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
+  font-size: 18px;
+  font-weight: 700;
+  border: 2px solid rgba(255, 255, 255, 0.4);
   transition: background var(--transition-fast), transform var(--transition-fast);
   white-space: nowrap;
-  min-width: 44px;
+  min-width: 110px;
+  box-shadow: var(--shadow-sm);
 }
 
 .appbar__back-btn:hover {
@@ -418,6 +419,48 @@ ul, ol {
 
 .design-tile__action-btn--delete:hover {
   background: var(--color-danger);
+}
+
+/* Compact layout for design tiles (e.g. PrintTC) */
+.design-grid--compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-md);
+}
+
+.design-tile--compact {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+}
+
+.design-tile--compact .design-tile__actions {
+  position: relative;
+  top: auto;
+  left: auto;
+  order: 4;
+  margin-left: auto;
+  opacity: 1; /* In list view, it's better to always see the actions or have them appear cleanly */
+}
+
+.design-tile--compact .design-tile__image-wrapper {
+  order: 1;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.design-tile--compact .design-tile__code {
+  order: 2;
+  margin-top: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  text-align: left;
 }
 
 /* ---------- Dashboard ---------- */
@@ -790,6 +833,58 @@ ul, ol {
 .colorway-card__quantity-label {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+}
+
+/* Compact layout for PrintTC */
+.colorway-card--compact {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: var(--space-sm);
+}
+
+.colorway-card--compact .colorway-card__hero {
+  width: 80px;
+  height: 80px;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  margin-right: var(--space-md);
+}
+
+.colorway-card--compact .colorway-card__body {
+  flex: 1;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.colorway-card--compact .colorway-card__code {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--space-xs);
+}
+
+.colorway-card--compact .colorway-card__quantity {
+  margin-bottom: var(--space-sm);
+}
+
+.colorway-card--compact .colorway-card__qty-btn {
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+}
+
+.colorway-card--compact .colorway-card__quantity-value {
+  font-size: var(--font-size-lg);
+  min-width: 40px;
+}
+
+.colorway-card--compact .colorway-card__footer {
+  margin-top: auto;
+  padding-top: var(--space-sm);
+  border-top: none;
+  display: flex;
+  gap: var(--space-sm);
 }
 
 .colorway-card__quantity-value {

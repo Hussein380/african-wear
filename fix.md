@@ -1,0 +1,2 @@
+we need to fix the issue of  when we are at trnasactional hisotry , we can click printP or other unless we first click dashabord, it sems it is liocked 
+we need to need to fix navigation, if we try to navigaete back in any page we are in it direclyt takes us to dashabord, lets say and inside the inventory why is it taking me back direclty to dahsbaord and not the page i came from ? also the ui for navigating back is so smll and not good enougth to be seen cleary for the elderly
