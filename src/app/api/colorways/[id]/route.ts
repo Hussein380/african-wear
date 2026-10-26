@@ -11,7 +11,7 @@ export async function PUT(
   try {
     const { id } = await ctx.params
     const body = await request.json()
-    const { fullCode, photos, quantityAvailable, breakdown } = body
+    const { fullCode, photos, quantityAvailable, breakdown, buyingPrice, sellingPrice } = body
 
     const db = await getDb()
     const objectId = new ObjectId(id)
@@ -22,10 +22,28 @@ export async function PUT(
     }
 
     const updateData: Record<string, unknown> = { updatedAt: new Date() }
+    const unsetData: Record<string, string> = {}
+
     if (fullCode !== undefined) updateData.fullCode = fullCode
     if (photos !== undefined) updateData.photos = photos
     if (quantityAvailable !== undefined) updateData.quantityAvailable = quantityAvailable
     if (breakdown !== undefined) updateData.breakdown = breakdown
+
+    if (buyingPrice !== undefined) {
+      if (buyingPrice === null || buyingPrice === '' || isNaN(Number(buyingPrice))) {
+        unsetData.buyingPrice = ''
+      } else {
+        updateData.buyingPrice = Number(buyingPrice)
+      }
+    }
+
+    if (sellingPrice !== undefined) {
+      if (sellingPrice === null || sellingPrice === '' || isNaN(Number(sellingPrice))) {
+        unsetData.sellingPrice = ''
+      } else {
+        updateData.sellingPrice = Number(sellingPrice)
+      }
+    }
 
     // If photos are being replaced, delete old photos from Cloudinary that aren't in the new set
     if (photos !== undefined && existing.photos) {
@@ -101,9 +119,14 @@ export async function PUT(
       })
     }
 
+    const updateOp: Record<string, unknown> = { $set: updateData }
+    if (Object.keys(unsetData).length > 0) {
+      updateOp.$unset = unsetData
+    }
+
     await db.collection('colorways').updateOne(
       { _id: objectId },
-      { $set: updateData }
+      updateOp
     )
 
     return NextResponse.json({ success: true })
@@ -113,18 +136,15 @@ export async function PUT(
   }
 }
 
-// PATCH /api/colorways/:id — quick update quantity only
+// PATCH /api/colorways/:id — quick update quantity or price
 export async function PATCH(
   request: Request,
   ctx: RouteContext<'/api/colorways/[id]'>
 ) {
   try {
     const { id } = await ctx.params
-    const { quantityAvailable } = await request.json()
-
-    if (quantityAvailable === undefined || typeof quantityAvailable !== 'number') {
-      return NextResponse.json({ error: 'quantityAvailable is required' }, { status: 400 })
-    }
+    const body = await request.json()
+    const { quantityAvailable, buyingPrice, sellingPrice } = body
 
     const db = await getDb()
     const objectId = new ObjectId(id)
@@ -134,33 +154,57 @@ export async function PATCH(
       return NextResponse.json({ error: 'Colorway not found' }, { status: 404 })
     }
 
-    const previousQuantity = existing.quantityAvailable
+    const updateData: Record<string, unknown> = { updatedAt: new Date() }
+    const unsetData: Record<string, string> = {}
+
+    if (quantityAvailable !== undefined && typeof quantityAvailable === 'number') {
+      updateData.quantityAvailable = quantityAvailable
+    }
+
+    if (buyingPrice !== undefined) {
+      if (buyingPrice === null || buyingPrice === '' || isNaN(Number(buyingPrice))) {
+        unsetData.buyingPrice = ''
+      } else {
+        updateData.buyingPrice = Number(buyingPrice)
+      }
+    }
+
+    if (sellingPrice !== undefined) {
+      if (sellingPrice === null || sellingPrice === '' || isNaN(Number(sellingPrice))) {
+        unsetData.sellingPrice = ''
+      } else {
+        updateData.sellingPrice = Number(sellingPrice)
+      }
+    }
+
+    const updateOp: Record<string, unknown> = { $set: updateData }
+    if (Object.keys(unsetData).length > 0) {
+      updateOp.$unset = unsetData
+    }
 
     await db.collection('colorways').updateOne(
       { _id: objectId },
-      { $set: { quantityAvailable, updatedAt: new Date() } }
+      updateOp
     )
 
-    if (quantityAvailable !== previousQuantity) {
-      const quantityChange = quantityAvailable - previousQuantity
+    if (quantityAvailable !== undefined && typeof quantityAvailable === 'number' && quantityAvailable !== existing.quantityAvailable) {
+      const quantityChange = quantityAvailable - existing.quantityAvailable
       await db.collection('activities').insertOne({
         type: quantityChange > 0 ? 'IN' : 'OUT',
         quantityChange: Math.abs(quantityChange),
         colorwayId: existing._id.toString(),
         designCodeId: existing.designCodeId,
         fullCode: existing.fullCode,
-        previousQuantity,
+        previousQuantity: existing.quantityAvailable,
         newQuantity: quantityAvailable,
         timestamp: new Date().toISOString()
       })
     }
 
-
-
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error updating quantity:', error)
-    return NextResponse.json({ error: 'Failed to update quantity' }, { status: 500 })
+    console.error('Error updating colorway:', error)
+    return NextResponse.json({ error: 'Failed to update colorway' }, { status: 500 })
   }
 }
 
@@ -190,6 +234,21 @@ export async function DELETE(
           }
         }
       }
+    }
+
+    // Keep the history honest: stock that disappears with the item is recorded as removed
+    if (colorway.quantityAvailable > 0) {
+      await db.collection('activities').insertOne({
+        type: 'OUT',
+        kind: 'deleted',
+        quantityChange: colorway.quantityAvailable,
+        colorwayId: colorway._id.toString(),
+        designCodeId: colorway.designCodeId,
+        fullCode: colorway.fullCode,
+        previousQuantity: colorway.quantityAvailable,
+        newQuantity: 0,
+        timestamp: new Date().toISOString(),
+      })
     }
 
     await db.collection('colorways').deleteOne({ _id: objectId })

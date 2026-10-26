@@ -28,13 +28,27 @@ interface DashboardMetrics {
   lowStockItems: LowStockItem[]
   stockDistribution: StockDistribution[]
   recentActivities: ActivityLog[]
+  insights?: {
+    totals: {
+      sold: { today: number; week: number; month: number }
+      arrived: { today: number; week: number; month: number }
+      returned: { month: number }
+      ownUse: { month: number }
+      countMissing: { month: number }
+      countExtra: { month: number }
+    }
+    bestSellers: { fullCode: string; sold: number }[]
+    notSelling: { _id: string; designCodeId: string; fullCode: string; quantityAvailable: number }[]
+    notSellingDays: number
+  }
 }
 
 interface DashboardProps {
   onCategoryChange: (category: ViewState) => void
+  onOpenSearch?: () => void
 }
 
-export default function Dashboard({ onCategoryChange }: DashboardProps) {
+export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardProps) {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -116,10 +130,41 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
     }
   }
 
+  const [dashboardPeriod, setDashboardPeriod] = useState<'today' | 'week' | 'month'>('week')
+
   return (
     <div className="dashboard">
-      <div className="dashboard__header">
-        <h2 className="main-content__title">Overview</h2>
+
+      <div className="dashboard__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <h2 className="main-content__title" style={{ margin: 0 }}>Store Overview</h2>
+        
+        {/* Calendar Quick Toggle */}
+        <div style={{ display: 'flex', gap: '6px', background: 'var(--color-bg-card)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+          <button
+            type="button"
+            className={`btn btn--sm ${dashboardPeriod === 'today' ? 'btn--primary' : 'btn--secondary'}`}
+            onClick={() => setDashboardPeriod('today')}
+            style={{ padding: '4px 12px', fontSize: '13px' }}
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            className={`btn btn--sm ${dashboardPeriod === 'week' ? 'btn--primary' : 'btn--secondary'}`}
+            onClick={() => setDashboardPeriod('week')}
+            style={{ padding: '4px 12px', fontSize: '13px' }}
+          >
+            This Week
+          </button>
+          <button
+            type="button"
+            className={`btn btn--sm ${dashboardPeriod === 'month' ? 'btn--primary' : 'btn--secondary'}`}
+            onClick={() => setDashboardPeriod('month')}
+            style={{ padding: '4px 12px', fontSize: '13px' }}
+          >
+            Past 30 Days
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -130,30 +175,107 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
         </div>
       ) : (
         <>
-          <div className="dashboard__grid">
+          <div className="dashboard__grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+            {/* Total Stock */}
             <div 
               className="dashboard-card dashboard-card--primary" 
               onClick={() => router.push('/inventory')}
               style={{ cursor: 'pointer' }}
               title="View Current Inventory"
             >
-              <div className="dashboard-card__icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+              <div className="dashboard-card__icon" style={{ background: 'rgba(255, 255, 255, 0.15)', color: '#ffffff' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
               </div>
               <div className="dashboard-card__content">
-                <span className="dashboard-card__label">Total Stock Volume</span>
-                <span className="dashboard-card__value">{metrics?.totalStock || 0}</span>
-                <span style={{ fontSize: '12px', color: 'white', fontWeight: 600, marginTop: 'auto' }}>View Current Inventory →</span>
+                <span className="dashboard-card__label">Total Stock in Store</span>
+                <span className="dashboard-card__value" style={{ color: '#ffffff' }}>
+                  {metrics?.totalStock ? metrics.totalStock.toLocaleString() : 0}
+                </span>
+                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: 'auto' }}>
+                  View Full Inventory →
+                </span>
               </div>
             </div>
 
-            <div className="dashboard-card">
-              <div className="dashboard-card__icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            {/* Sold Stats (Pieces only, no money) */}
+            <div className="dashboard-card" style={{ borderLeft: '5px solid #16a34a' }}>
+              <div className="dashboard-card__icon" style={{ background: '#ecfdf5', color: '#16a34a' }}>
+                🛍️
               </div>
               <div className="dashboard-card__content">
-                <span className="dashboard-card__label">Total Design Codes</span>
-                <span className="dashboard-card__value">{metrics?.totalDesigns || 0}</span>
+                <span className="dashboard-card__label" style={{ color: '#15803d' }}>
+                  Pieces Sold ({dashboardPeriod === 'today' ? 'Today' : dashboardPeriod === 'week' ? 'This Week' : 'Past 30 Days'})
+                </span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
+                  <span className="dashboard-card__value" style={{ color: '#16a34a' }}>
+                    {dashboardPeriod === 'today'
+                      ? metrics?.insights?.totals.sold.today ?? 0
+                      : dashboardPeriod === 'week'
+                      ? metrics?.insights?.totals.sold.week ?? 0
+                      : metrics?.insights?.totals.sold.month ?? 0}
+                  </span>
+                  <span style={{ fontSize: '14px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                    pcs
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: 'auto', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border-light)', paddingTop: '8px' }}>
+                  <span>{metrics?.insights?.totals.sold.month ?? 0} sold in 30 days</span>
+                  <span style={{ color: '#92400e', fontWeight: 600 }}>{metrics?.insights?.totals.returned.month ?? 0} returns</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Arrived & Restocked */}
+            <div className="dashboard-card" style={{ borderLeft: '5px solid #2563eb' }}>
+              <div className="dashboard-card__icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                📦
+              </div>
+              <div className="dashboard-card__content">
+                <span className="dashboard-card__label" style={{ color: '#1d4ed8' }}>
+                  Stock Arrived ({dashboardPeriod === 'today' ? 'Today' : dashboardPeriod === 'week' ? 'This Week' : 'Past 30 Days'})
+                </span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
+                  <span className="dashboard-card__value" style={{ color: '#2563eb' }}>
+                    +{dashboardPeriod === 'today'
+                      ? metrics?.insights?.totals.arrived.today ?? 0
+                      : dashboardPeriod === 'week'
+                      ? metrics?.insights?.totals.arrived.week ?? 0
+                      : metrics?.insights?.totals.arrived.month ?? 0}
+                  </span>
+                  <span style={{ fontSize: '14px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                    pcs
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: 'auto', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border-light)', paddingTop: '8px' }}>
+                  <span>+{metrics?.insights?.totals.arrived.month ?? 0} arrived in 30 days</span>
+                  <span style={{ color: '#6b7280' }}>{metrics?.insights?.totals.ownUse.month ?? 0} own use</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Finance & Invoices (Hybrid Link) */}
+            <div 
+              className="dashboard-card" 
+              style={{ borderLeft: '5px solid #8b5cf6', cursor: 'pointer' }}
+              onClick={() => router.push('/finance')}
+              title="Open Finance & Invoices"
+            >
+              <div className="dashboard-card__icon" style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
+                🧾
+              </div>
+              <div className="dashboard-card__content">
+                <span className="dashboard-card__label" style={{ color: '#6d28d9' }}>
+                  Finance & Invoices
+                </span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#6d28d9' }}>
+                    Sales & Invoices
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: 'auto', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border-light)', paddingTop: '8px' }}>
+                  <span>Track receipts & profit</span>
+                  <span style={{ color: '#8b5cf6', fontWeight: 600 }}>Manage →</span>
+                </div>
               </div>
             </div>
           </div>
@@ -161,6 +283,66 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
           {/* Phase 2: Actionable Sections */}
           {metrics && (
             <>
+              {/* Best Sellers & Not Selling Insights */}
+              <div className="dashboard__sections" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginTop: '24px' }}>
+                {/* Best Sellers */}
+                <section className="dashboard-section" style={{ boxShadow: 'var(--shadow-sm)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 className="dashboard-section__title" style={{ margin: 0, fontSize: '17px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      🔥 Top Selling Fabrics
+                    </h3>
+                    <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Past 30 Days</span>
+                  </div>
+                  {(!metrics.insights?.bestSellers || metrics.insights.bestSellers.length === 0) ? (
+                    <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>No sales recorded yet.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {metrics.insights.bestSellers.map((item, idx) => (
+                        <div key={item.fullCode} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--color-bg)', border: '1px solid var(--color-border-light)', borderRadius: 'var(--radius-md)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: idx === 0 ? '#fef08a' : idx === 1 ? '#e2e8f0' : '#ffedd5', color: '#854d0e', fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {idx + 1}
+                            </span>
+                            <span style={{ fontWeight: 700, fontSize: '15px' }}>{item.fullCode}</span>
+                          </div>
+                          <span style={{ color: '#16a34a', fontWeight: 800, fontSize: '15px', background: 'rgba(34, 197, 94, 0.1)', padding: '3px 10px', borderRadius: '999px' }}>
+                            {item.sold} sold
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Not Selling / Dead Stock */}
+                <section className="dashboard-section" style={{ boxShadow: 'var(--shadow-sm)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 className="dashboard-section__title" style={{ margin: 0, fontSize: '17px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      ⏳ Slow-Moving Stock
+                    </h3>
+                    <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 500 }}>No sales in {metrics.insights?.notSellingDays || 60}d</span>
+                  </div>
+                  {(!metrics.insights?.notSelling || metrics.insights.notSelling.length === 0) ? (
+                    <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>All stocked items have recent movement.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {metrics.insights.notSelling.map(item => (
+                        <div
+                          key={item._id}
+                          onClick={() => router.push(`/classify/${item.designCodeId}`)}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--color-bg)', border: '1px solid var(--color-border-light)', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}
+                          title="Click to view card"
+                        >
+                          <span style={{ fontWeight: 700, fontSize: '15px' }}>{item.fullCode}</span>
+                          <span style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600 }}>
+                            {item.quantityAvailable} in store →
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
               <div className="dashboard__sections">              {/* Stock Distribution */}
               <section className="dashboard-section">
                 <h3 className="dashboard-section__title" style={{ display: 'flex', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
@@ -222,26 +404,55 @@ export default function Dashboard({ onCategoryChange }: DashboardProps) {
                           )}
                         </div>
                         <div className="activity-item__details">
-                          <span className="activity-item__action">
-                            {activity.type === 'IN' ? 'Stock Added' : activity.type === 'OUT' ? 'Stock Removed' : 'New Item Added'}
-                          </span>
-                          <span className="activity-item__context">
-                            <strong>{activity.quantityChange}</strong> items for <strong>{activity.fullCode}</strong>
-                            {activity.subVariantLabel && (
-                              <span style={{ color: 'var(--color-primary)', marginLeft: '4px' }}>
-                                ({activity.subVariantLabel})
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' }}>
+                            <span className="activity-item__action" style={{
+                              color: activity.type === 'IN' ? '#15803d' : activity.type === 'OUT' ? '#b91c1c' : '#1d4ed8',
+                              fontWeight: 700,
+                            }}>
+                              {activity.kind === 'sold'
+                                ? '🛍️ Sold'
+                                : activity.kind === 'own_use'
+                                ? '👤 Own/Shop Use'
+                                : activity.kind === 'arrived'
+                                ? '📦 Stock Arrived'
+                                : activity.kind === 'returned'
+                                ? '↩️ Customer Return'
+                                : activity.kind === 'count_diff'
+                                ? '⚖️ Count Adjustment'
+                                : activity.type === 'IN'
+                                ? 'Stock Added'
+                                : activity.type === 'OUT'
+                                ? 'Stock Removed'
+                                : 'New Item Created'}
+                            </span>
+                            {activity.edited && (
+                              <span style={{ fontSize: '10px', background: 'rgba(91, 26, 62, 0.1)', color: 'var(--color-primary)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                                corrected
                               </span>
                             )}
-                          </span>
+                          </div>
+                          <div className="activity-item__context">
+                            <strong style={{ fontSize: '15px' }}>{activity.quantityChange} pcs</strong> of <strong style={{ color: 'var(--color-primary)' }}>{activity.fullCode}</strong>
+                            {activity.subVariantLabel && (
+                              <span style={{ color: 'var(--color-text-secondary)', marginLeft: '6px', fontSize: '13px' }}>
+                                (Variant: {activity.subVariantLabel})
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="activity-item__meta">
                           <span className="activity-item__time">
-                            {new Date(activity.timestamp).toLocaleString(undefined, {
-                              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                            {new Date(activity.timestamp).toLocaleDateString(undefined, {
+                              weekday: 'short', month: 'short', day: 'numeric'
+                            })}
+                          </span>
+                          <span className="activity-item__time-sub">
+                            {new Date(activity.timestamp).toLocaleTimeString(undefined, {
+                              hour: '2-digit', minute: '2-digit'
                             })}
                           </span>
                           <span className="activity-item__qty-change">
-                            {activity.previousQuantity} → {activity.newQuantity}
+                            {activity.previousQuantity} → <strong>{activity.newQuantity}</strong> in store
                           </span>
                         </div>
                       </div>

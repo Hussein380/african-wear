@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import InventoryTable from '@/components/InventoryTable'
-import SearchOverlay from '@/components/SearchOverlay'
+import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadcnui'
 
 export default function InventoryPage() {
   const router = useRouter()
@@ -55,9 +55,7 @@ export default function InventoryPage() {
           </div>
         </div>
         <div className="appbar__right">
-          <button className="appbar__action-btn" onClick={() => setIsSearchOpen(true)} type="button" aria-label="Search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          </button>
+          <ExpandingSearchDock onSearch={(val) => setGlobalSearchTerm(val)} />
         </div>
       </header>
       
@@ -72,12 +70,6 @@ export default function InventoryPage() {
           </Suspense>
         )}
       </main>
-
-      <SearchOverlay 
-        isOpen={isSearchOpen} 
-        onClose={() => { setIsSearchOpen(false); setGlobalSearchTerm('') }} 
-        onSearch={(term) => setGlobalSearchTerm(term)}
-      />
     </>
   )
 }

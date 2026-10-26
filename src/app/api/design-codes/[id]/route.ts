@@ -115,6 +115,25 @@ export async function DELETE(
       }
     }
 
+    // Keep the history honest: stock that disappears with the design is recorded as removed
+    const deletedAt = new Date().toISOString()
+    const deletionLogs = colorways
+      .filter(cw => cw.quantityAvailable > 0)
+      .map(cw => ({
+        type: 'OUT',
+        kind: 'deleted',
+        quantityChange: cw.quantityAvailable,
+        colorwayId: cw._id.toString(),
+        designCodeId: id,
+        fullCode: cw.fullCode,
+        previousQuantity: cw.quantityAvailable,
+        newQuantity: 0,
+        timestamp: deletedAt,
+      }))
+    if (deletionLogs.length > 0) {
+      await db.collection('activities').insertMany(deletionLogs)
+    }
+
     // Cascade delete colorways
     await db.collection('colorways').deleteMany({ designCodeId: id })
 

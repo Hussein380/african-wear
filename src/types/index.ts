@@ -23,6 +23,8 @@ export interface Colorway {
   photos: Photo[];
   quantityAvailable: number;
   breakdown?: { id: string; label: string; quantity: number }[];
+  buyingPrice?: number;
+  sellingPrice?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,7 +39,40 @@ export interface ActivityLog {
   previousQuantity: number;
   newQuantity: number;
   subVariantLabel?: string;
+  kind?: 'sold' | 'own_use' | 'arrived' | 'returned' | 'count_diff' | 'deleted' | 'new';
+  soldPrice?: number;
+  costPrice?: number;
+  invoiceId?: string;
+  edited?: boolean;
   timestamp: string;
+}
+
+export interface InvoiceItem {
+  colorwayId: string;
+  designCodeId?: string;
+  fullCode: string;
+  subVariantLabel?: string;
+  quantity: number;
+  unitPrice: number;
+  costPrice?: number;
+  subtotal: number;
+  skipDeduction?: boolean;
+  recentSaleActivityId?: string;
+}
+
+export interface Invoice {
+  _id?: string;
+  invoiceNumber: string;
+  customerName?: string;
+  customerPhone?: string;
+  paymentMethod: 'cash' | 'mpesa' | 'credit' | 'other';
+  items: InvoiceItem[];
+  totalAmount: number;
+  totalCost?: number;
+  estimatedProfit?: number;
+  notes?: string;
+  status: 'completed' | 'cancelled';
+  createdAt: string;
 }
 
 export interface AppSettings {

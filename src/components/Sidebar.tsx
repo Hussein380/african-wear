@@ -3,13 +3,14 @@
 import { useRouter, usePathname } from 'next/navigation'
 import { Category } from '@/types'
 
-export type ViewState = Category | 'Dashboard' | 'History'
+export type ViewState = Category | 'Dashboard' | 'History' | 'Finance'
 
 interface SidebarProps {
   activeCategory: ViewState
   onCategoryChange: (category: ViewState) => void
   isOpen?: boolean
   onClose?: () => void
+  onOpenSearch?: () => void
 }
 
 const categories: { key: ViewState; label: string; isSpecial?: boolean; route?: string }[] = [
@@ -18,9 +19,10 @@ const categories: { key: ViewState; label: string; isSpecial?: boolean; route?: 
   { key: 'PrintTC', label: 'PrintTC' },
   { key: 'Dashboard', label: 'Dashboard', isSpecial: true, route: '/classify' },
   { key: 'History', label: 'Transaction History', isSpecial: true, route: '/history' },
+  { key: 'Finance', label: 'Finance & Invoices', isSpecial: true, route: '/finance' },
 ]
 
-export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onClose, onOpenSearch }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
 
@@ -45,6 +47,8 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
       url = `/api/activities?page=1&limit=20&startDate=${start.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`
     } else if (cat.key === 'Dashboard') {
       url = '/api/dashboard'
+    } else if (cat.key === 'Finance') {
+      url = '/api/finance?range=month'
     } else {
       // PrintedC, PrintedP, PrintTC
       url = `/api/design-codes?category=${cat.key}`
@@ -76,6 +80,8 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
                 onClick={() => {
                   if (cat.key === 'History') {
                     router.push('/history')
+                  } else if (cat.key === 'Finance') {
+                    router.push('/finance')
                   } else {
                     router.push(`/classify?category=${cat.key}`)
                   }

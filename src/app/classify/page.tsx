@@ -6,9 +6,10 @@ import Sidebar, { ViewState } from '@/components/Sidebar'
 import Dashboard from '@/components/Dashboard'
 import DesignCodeModal from '@/components/DesignCodeModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
-import SearchOverlay from '@/components/SearchOverlay'
+import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadcnui'
 import { Category, DesignCode } from '@/types'
 import { CacheKeys, getCached, getCacheAge, setCached, bustCache } from '@/lib/cache'
+import SaleBasketFloating from '@/components/SaleBasketFloating'
 
 function ClassifyPageInner() {
   const searchParams = useSearchParams()
@@ -43,6 +44,18 @@ function ClassifyPageInner() {
       }
     }
   }, [urlCat, router])
+
+  // Global '/' keyboard shortcut to open search
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault()
+        setIsSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [])
 
   const handleCategoryChange = (cat: ViewState) => {
     router.push(`/classify?category=${cat}`)
@@ -170,9 +183,7 @@ function ClassifyPageInner() {
           </div>
         </div>
         <div className="appbar__right">
-          <button className="appbar__action-btn" onClick={() => setIsSearchOpen(true)} type="button" aria-label="Search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          </button>
+          <ExpandingSearchDock onSearch={(val) => setGlobalSearchTerm(val)} />
           <button className="appbar__action-btn" onClick={() => fetchDesignCodes()} type="button">
             ↻ Refresh
           </button>
@@ -188,11 +199,15 @@ function ClassifyPageInner() {
         onCategoryChange={handleCategoryChange}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        onOpenSearch={() => setIsSearchOpen(true)}
       />
 
       <main className="main-content">
         {activeCategory === 'Dashboard' ? (
-          <Dashboard onCategoryChange={handleCategoryChange} />
+          <Dashboard
+            onCategoryChange={handleCategoryChange}
+            onOpenSearch={() => setIsSearchOpen(true)}
+          />
         ) : (
           <>
             <div className="main-content__header">
@@ -348,11 +363,9 @@ function ClassifyPageInner() {
         message={`Are you sure you want to delete "${deleteTarget?.code}"? This will also delete all colorways under it.`}
         isLoading={isDeleting}
       />
-      <SearchOverlay 
-        isOpen={isSearchOpen} 
-        onClose={() => { setIsSearchOpen(false); setGlobalSearchTerm('') }} 
-        onSearch={(term) => setGlobalSearchTerm(term)}
-      />
+
+      {/* Floating Multi-Item Sale Basket */}
+      <SaleBasketFloating />
     </>
   )
 }

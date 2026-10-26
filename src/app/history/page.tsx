@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 import { ActivityLog } from '@/types'
 import Sidebar from '@/components/Sidebar'
-import SearchOverlay from '@/components/SearchOverlay'
+import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadcnui'
 
 export default function HistoryPage() {
   const router = useRouter()
@@ -16,7 +16,9 @@ export default function HistoryPage() {
   const [globalSearchTerm, setGlobalSearchTerm] = useState('')
   
   // Date Filters
-  const [datePreset, setDatePreset] = useState<'7days' | '30days' | 'all' | 'custom'>('7days')
+  const [datePreset, setDatePreset] = useState<
+    'this_week' | '7days' | 'this_month' | 'last_month' | 'this_year' | 'all' | 'custom'
+  >('this_week')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
   
@@ -31,16 +33,30 @@ export default function HistoryPage() {
   const [isClearing, setIsClearing] = useState(false)
   const [clearResult, setClearResult] = useState<string | null>(null)
 
-  // Helper to set dates based on preset
-  const applyPreset = (preset: '7days' | '30days' | 'all') => {
+  // Helper to set dates based on calendar periods
+  const applyPreset = (preset: 'this_week' | '7days' | 'this_month' | 'last_month' | 'this_year' | 'all') => {
     setDatePreset(preset)
     const today = new Date()
     let start = new Date()
+    let end = new Date()
     
-    if (preset === '7days') {
+    if (preset === 'this_week') {
+      // Start of current week (Monday)
+      const day = today.getDay()
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1) // adjust when day is sunday
+      start = new Date(today.setDate(diff))
+      end = new Date()
+    } else if (preset === '7days') {
       start.setDate(today.getDate() - 7)
-    } else if (preset === '30days') {
-      start.setDate(today.getDate() - 30)
+    } else if (preset === 'this_month') {
+      start = new Date(today.getFullYear(), today.getMonth(), 1)
+      end = new Date()
+    } else if (preset === 'last_month') {
+      start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      end = new Date(today.getFullYear(), today.getMonth(), 0) // last day of prev month
+    } else if (preset === 'this_year') {
+      start = new Date(today.getFullYear(), 0, 1)
+      end = new Date()
     } else if (preset === 'all') {
       setStartDate('')
       setEndDate('')
@@ -48,12 +64,24 @@ export default function HistoryPage() {
     }
     
     setStartDate(start.toISOString().split('T')[0])
-    setEndDate(today.toISOString().split('T')[0])
+    setEndDate(end.toISOString().split('T')[0])
   }
 
-  // Initial load
+  // Initial load: default to This Week
   useEffect(() => {
-    applyPreset('7days')
+    applyPreset('this_week')
+  }, [])
+
+  // Global '/' keyboard shortcut to open search
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault()
+        setIsSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
   }, [])
 
   // Fetch data when dates or page 1 changes
@@ -97,8 +125,8 @@ export default function HistoryPage() {
             setHasMore(data.pagination.page < data.pagination.totalPages)
             setPage(1)
             setIsLoading(false)
-            // Still refresh in background if older than 15s
-            if (age > 15_000) fetchHistory(true)
+            // Always refresh in background so a just-made change is never missing
+            fetchHistory(true)
             return
           }
         } catch { /* ignore bad cache */ }
@@ -147,15 +175,26 @@ export default function HistoryPage() {
       // Transform data for Excel
       const excelData = allActivities.map(activity => {
         const dateObj = new Date(activity.timestamp)
+        let actionLabel = 'Stock Added'
+        if (activity.kind === 'sold') actionLabel = 'Sold'
+        else if (activity.kind === 'own_use') actionLabel = 'Own Use'
+        else if (activity.kind === 'arrived') actionLabel = 'New Stock Arrived'
+        else if (activity.kind === 'returned') actionLabel = 'Customer Return'
+        else if (activity.kind === 'count_diff') actionLabel = 'Stock Count Adjustment'
+        else if (activity.kind === 'deleted') actionLabel = 'Deleted with Stock'
+        else if (activity.type === 'OUT') actionLabel = 'Sold / Removed'
+        else if (activity.type === 'NEW') actionLabel = 'New Item'
+
         return {
           'Date': dateObj.toLocaleDateString(),
           'Time': dateObj.toLocaleTimeString(),
-          'Action': activity.type === 'IN' ? 'Stock Added' : activity.type === 'OUT' ? 'Stock Removed' : 'System Event',
+          'Category': actionLabel,
           'Colorway Code': activity.fullCode || '-',
           'Sub-Variant': activity.subVariantLabel || '-',
-          'Quantity Changed': activity.type === 'IN' ? `+${activity.quantityChange}` : `-${activity.quantityChange}`,
+          'Quantity Changed': activity.type === 'OUT' ? `-${activity.quantityChange}` : `+${activity.quantityChange}`,
           'Final Stock': activity.newQuantity,
           'Previous Stock': activity.previousQuantity,
+          'Corrected': activity.edited ? 'Yes' : 'No',
         }
       })
 
@@ -213,6 +252,33 @@ export default function HistoryPage() {
     )
   })
 
+  const handleVoidActivity = async (e: React.MouseEvent, activity: ActivityLog) => {
+    e.stopPropagation()
+    const isOut = activity.type === 'OUT'
+    const promptMsg = isOut
+      ? `Undo / Void this ${activity.kind || 'sale'} of ${activity.quantityChange} pc(s) of ${activity.fullCode}?\n\n• The item will be restored back into stock (+${activity.quantityChange}).\n• Any sales revenue will be erased from financial reports.`
+      : `Undo / Void this stock addition of ${activity.quantityChange} pc(s) of ${activity.fullCode}?\n\n• The item will be deducted from stock (-${activity.quantityChange}).`
+
+    if (!window.confirm(promptMsg)) return
+
+    try {
+      const res = await fetch(`/api/activities/${activity._id}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        alert(`✓ Action undone. Stock for ${activity.fullCode} restored.`)
+        setActivities(prev => prev.filter(a => a._id !== activity._id))
+        sessionStorage.removeItem('prefetch_History')
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Failed to undo action')
+      }
+    } catch (err) {
+      console.error('Error undoing activity:', err)
+      alert('Network error')
+    }
+  }
+
   const handleClearHistory = async () => {
     if (!clearMode) return
     setIsClearing(true)
@@ -254,20 +320,22 @@ export default function HistoryPage() {
           >
             ☰
           </button>
+          <button
+            className="appbar__back-btn"
+            onClick={() => router.back()}
+            type="button"
+            aria-label="Go back"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            Back
+          </button>
           <div>
             <h1 className="appbar__title">Transaction History</h1>
             <p className="appbar__subtitle">Mandera African Wear</p>
           </div>
         </div>
         <div className="appbar__right">
-          <button 
-            className="appbar__action-btn" 
-            onClick={() => setIsSearchOpen(true)} 
-            type="button" 
-            aria-label="Search"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          </button>
+          <ExpandingSearchDock onSearch={(val) => setGlobalSearchTerm(val)} />
           <button 
             className="appbar__action-btn" 
             onClick={() => { setShowClearModal(true); setClearResult(null) }} 
@@ -286,6 +354,7 @@ export default function HistoryPage() {
         onCategoryChange={(category) => router.push(`/classify?category=${category}`)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        onOpenSearch={() => setIsSearchOpen(true)}
       />
 
       <main className="main-content">
@@ -309,21 +378,33 @@ export default function HistoryPage() {
         </button>
       </div>
 
-      {/* Filter Controls */}
+      {/* Filter Controls & Calendar Presets */}
       <div style={{ background: 'var(--color-bg-card)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-lg)' }}>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ fontWeight: 600, marginRight: '8px' }}>Filter by Date:</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ fontWeight: 600, marginRight: '4px' }}>Period:</div>
           <button 
-            onClick={() => applyPreset('7days')}
-            className={`btn btn--sm ${datePreset === '7days' ? 'btn--primary' : 'btn--secondary'}`}
+            onClick={() => applyPreset('this_week')}
+            className={`btn btn--sm ${datePreset === 'this_week' ? 'btn--primary' : 'btn--secondary'}`}
           >
-            Last 7 Days
+            This Week
           </button>
           <button 
-            onClick={() => applyPreset('30days')}
-            className={`btn btn--sm ${datePreset === '30days' ? 'btn--primary' : 'btn--secondary'}`}
+            onClick={() => applyPreset('this_month')}
+            className={`btn btn--sm ${datePreset === 'this_month' ? 'btn--primary' : 'btn--secondary'}`}
           >
-            Last 30 Days
+            This Month
+          </button>
+          <button 
+            onClick={() => applyPreset('last_month')}
+            className={`btn btn--sm ${datePreset === 'last_month' ? 'btn--primary' : 'btn--secondary'}`}
+          >
+            Last Month
+          </button>
+          <button 
+            onClick={() => applyPreset('this_year')}
+            className={`btn btn--sm ${datePreset === 'this_year' ? 'btn--primary' : 'btn--secondary'}`}
+          >
+            Year to Date ({new Date().getFullYear()})
           </button>
           <button 
             onClick={() => applyPreset('all')}
@@ -332,25 +413,25 @@ export default function HistoryPage() {
             All Time
           </button>
           
-          <div style={{ width: '1px', height: '24px', background: 'var(--color-border)', margin: '0 8px' }} />
+          <div style={{ width: '1px', height: '24px', background: 'var(--color-border)', margin: '0 4px' }} />
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '14px' }}>Custom:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600 }}>Custom:</span>
             <input 
               type="date" 
               className="form-group__input" 
-              style={{ padding: '6px 12px', minHeight: 'unset', maxWidth: '140px' }}
+              style={{ padding: '6px 10px', minHeight: 'unset', maxWidth: '140px', fontSize: '13px' }}
               value={startDate}
               onChange={(e) => {
                 setStartDate(e.target.value)
                 setDatePreset('custom')
               }}
             />
-            <span style={{ fontSize: '14px' }}>to</span>
+            <span style={{ fontSize: '13px' }}>to</span>
             <input 
               type="date" 
               className="form-group__input" 
-              style={{ padding: '6px 12px', minHeight: 'unset', maxWidth: '140px' }}
+              style={{ padding: '6px 10px', minHeight: 'unset', maxWidth: '140px', fontSize: '13px' }}
               value={endDate}
               onChange={(e) => {
                 setEndDate(e.target.value)
@@ -359,6 +440,42 @@ export default function HistoryPage() {
             />
           </div>
         </div>
+
+        {/* Dynamic Period Summary Card */}
+        {activities.length > 0 && (
+          <div style={{
+            display: 'flex',
+            gap: '16px',
+            flexWrap: 'wrap',
+            marginTop: '16px',
+            paddingTop: '14px',
+            borderTop: '1px solid var(--color-border)',
+            alignItems: 'center',
+          }}>
+            <div style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+              Summary for <strong>{startDate || 'All'}</strong> to <strong>{endDate || 'Present'}</strong>:
+            </div>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <span className="badge" style={{ background: '#dcfce7', color: '#166534', padding: '4px 10px', fontSize: '13px', fontWeight: 700 }}>
+                🛍️ {filteredActivities
+                  .filter(a => a.type === 'OUT' && (a.kind === 'sold' || !a.kind))
+                  .reduce((sum, a) => sum + (a.quantityChange || 0), 0)} Pieces Sold
+              </span>
+              <span className="badge" style={{ background: '#dbeafe', color: '#1e40af', padding: '4px 10px', fontSize: '13px', fontWeight: 700 }}>
+                📦 {filteredActivities
+                  .filter(a => a.type === 'IN' || a.type === 'NEW')
+                  .reduce((sum, a) => sum + (a.quantityChange || 0), 0)} Pieces Received
+              </span>
+              {filteredActivities.some(a => a.kind === 'returned') && (
+                <span className="badge" style={{ background: '#fef3c7', color: '#92400e', padding: '4px 10px', fontSize: '13px', fontWeight: 700 }}>
+                  ↩️ {filteredActivities
+                    .filter(a => a.kind === 'returned')
+                    .reduce((sum, a) => sum + (a.quantityChange || 0), 0)} Returns
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* History Table */}
@@ -387,6 +504,7 @@ export default function HistoryPage() {
                   <th>Item</th>
                   <th>Change</th>
                   <th>Stock</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -404,9 +522,32 @@ export default function HistoryPage() {
                     </td>
                     
                     <td>
-                      <span className={`badge ${activity.type === 'IN' ? 'badge--in' : 'badge--out'}`}>
-                        {activity.type === 'IN' ? '↓ IN' : '↑ OUT'}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                        <span className={`badge ${activity.type === 'OUT' ? 'badge--out' : 'badge--in'}`}>
+                          {activity.kind === 'sold'
+                            ? '− SOLD'
+                            : activity.kind === 'own_use'
+                            ? '− OWN USE'
+                            : activity.kind === 'arrived'
+                            ? '+ ARRIVED'
+                            : activity.kind === 'returned'
+                            ? '+ RETURN'
+                            : activity.kind === 'count_diff'
+                            ? '⚖ COUNT'
+                            : activity.kind === 'deleted'
+                            ? '🗑 DELETED'
+                            : activity.type === 'IN'
+                            ? '↓ IN'
+                            : activity.type === 'OUT'
+                            ? '↑ OUT'
+                            : '★ NEW'}
+                        </span>
+                        {activity.edited && (
+                          <span style={{ fontSize: '10px', color: 'var(--color-primary)', fontWeight: 600 }}>
+                            (corrected)
+                          </span>
+                        )}
+                      </div>
                     </td>
                     
                     <td>
@@ -419,8 +560,8 @@ export default function HistoryPage() {
                     </td>
                     
                     <td>
-                      <strong style={{ fontSize: '15px', color: activity.type === 'IN' ? '#166534' : '#991b1b' }}>
-                        {activity.type === 'IN' ? '+' : '-'}{activity.quantityChange}
+                      <strong style={{ fontSize: '15px', color: activity.type === 'OUT' ? '#991b1b' : '#166534' }}>
+                        {activity.type === 'OUT' ? '-' : '+'}{activity.quantityChange}
                       </strong>
                     </td>
                     
@@ -428,6 +569,26 @@ export default function HistoryPage() {
                       <span className="text-muted">
                         {activity.previousQuantity} → <strong style={{ color: 'var(--color-text-primary)', fontSize: '14px' }}>{activity.newQuantity}</strong>
                       </span>
+                    </td>
+
+                    <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="btn btn--secondary"
+                        onClick={e => handleVoidActivity(e, activity)}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: '11px',
+                          color: '#dc2626',
+                          borderColor: '#fca5a5',
+                          background: '#fff5f5',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                        title="Undo this transaction and restore original stock count"
+                      >
+                        ↺ Undo
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -451,12 +612,6 @@ export default function HistoryPage() {
       </div>
       </div>
       </main>
-
-      <SearchOverlay 
-        isOpen={isSearchOpen} 
-        onClose={() => { setIsSearchOpen(false); setGlobalSearchTerm('') }} 
-        onSearch={(term) => setGlobalSearchTerm(term)}
-      />
 
       {/* Clear History Modal */}
       {showClearModal && (

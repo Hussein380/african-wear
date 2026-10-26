@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { designCodeId, fullCode, photos, quantityAvailable, breakdown } = body
+    const { designCodeId, fullCode, photos, quantityAvailable, breakdown, buyingPrice, sellingPrice } = body
 
     if (!designCodeId || !fullCode) {
       return NextResponse.json({ error: 'designCodeId and fullCode are required' }, { status: 400 })
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     const db = await getDb()
     const now = new Date()
 
-    const result = await db.collection('colorways').insertOne({
+    const newDoc: Record<string, unknown> = {
       designCodeId,
       fullCode,
       photos: photos || [],
@@ -50,7 +50,16 @@ export async function POST(request: Request) {
       breakdown: breakdown || [],
       createdAt: now,
       updatedAt: now,
-    })
+    }
+
+    if (buyingPrice !== undefined && buyingPrice !== null && buyingPrice !== '' && !isNaN(Number(buyingPrice))) {
+      newDoc.buyingPrice = Number(buyingPrice)
+    }
+    if (sellingPrice !== undefined && sellingPrice !== null && sellingPrice !== '' && !isNaN(Number(sellingPrice))) {
+      newDoc.sellingPrice = Number(sellingPrice)
+    }
+
+    const result = await db.collection('colorways').insertOne(newDoc)
 
     if (quantityAvailable > 0) {
       if (breakdown && breakdown.length > 0) {

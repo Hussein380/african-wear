@@ -11,12 +11,16 @@ interface ColorwayModalProps {
     photos: { url: string; publicId: string }[]
     quantityAvailable: number
     breakdown?: { id: string; label: string; quantity: number }[]
+    buyingPrice?: number
+    sellingPrice?: number
   }) => void
   initialData?: {
     fullCode: string
     photos: { url: string; publicId: string }[]
     quantityAvailable: number
     breakdown?: { id: string; label: string; quantity: number }[]
+    buyingPrice?: number
+    sellingPrice?: number
   }
 }
 
@@ -33,6 +37,12 @@ export default function ColorwayModal({
   const [quantity, setQuantity] = useState(initialData?.quantityAvailable?.toString() || '0')
   const [breakdown, setBreakdown] = useState<{ id: string; label: string; quantity: number }[]>(
     initialData?.breakdown || []
+  )
+  const [buyingPrice, setBuyingPrice] = useState<string>(
+    initialData?.buyingPrice !== undefined ? initialData.buyingPrice.toString() : ''
+  )
+  const [sellingPrice, setSellingPrice] = useState<string>(
+    initialData?.sellingPrice !== undefined ? initialData.sellingPrice.toString() : ''
   )
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -55,11 +65,16 @@ export default function ColorwayModal({
 
     setIsSaving(true)
     try {
+      const bVal = buyingPrice.trim() !== '' && !isNaN(Number(buyingPrice)) ? Number(buyingPrice) : undefined
+      const sVal = sellingPrice.trim() !== '' && !isNaN(Number(sellingPrice)) ? Number(sellingPrice) : undefined
+
       await onSave({
         fullCode: fullCode.trim().toUpperCase(),
         photos,
         quantityAvailable: parseInt(quantity) || 0,
         breakdown,
+        buyingPrice: bVal,
+        sellingPrice: sVal,
       })
       onClose()
     } catch {
@@ -68,6 +83,9 @@ export default function ColorwayModal({
       setIsSaving(false)
     }
   }
+
+  const bPrice = parseFloat(buyingPrice) || 0
+  const sPrice = parseFloat(sellingPrice) || 0
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -163,6 +181,93 @@ export default function ColorwayModal({
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Pricing Section (100% Optional) */}
+          <div className="form-group" style={{ 
+            background: 'var(--color-surface, #f9fafb)', 
+            padding: '12px', 
+            borderRadius: '8px', 
+            border: '1px solid var(--color-border, #e5e7eb)' 
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <label className="form-group__label" style={{ marginBottom: 0, fontWeight: 600 }}>
+                Pricing <span style={{ fontWeight: 400, color: 'var(--color-text-secondary, #6b7280)', fontSize: '12px' }}>(Optional)</span>
+              </label>
+              {(buyingPrice || sellingPrice) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBuyingPrice('')
+                    setSellingPrice('')
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Clear / Remove Pricing
+                </button>
+              )}
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-secondary, #6b7280)', display: 'block', marginBottom: '4px' }}>
+                  Buying Price (Cost)
+                </span>
+                <input
+                  type="number"
+                  className="form-group__input"
+                  placeholder="e.g. 1500 (KES)"
+                  min="0"
+                  value={buyingPrice}
+                  onChange={e => setBuyingPrice(e.target.value)}
+                />
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-secondary, #6b7280)', display: 'block', marginBottom: '4px' }}>
+                  Selling Price (Retail)
+                </span>
+                <input
+                  type="number"
+                  className="form-group__input"
+                  placeholder="e.g. 2200 (KES)"
+                  min="0"
+                  value={sellingPrice}
+                  onChange={e => setSellingPrice(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Dynamic Live Profit & Margin Indicator */}
+            {bPrice > 0 && sPrice > 0 && (
+              <div style={{ 
+                marginTop: '10px', 
+                padding: '8px 12px', 
+                borderRadius: '6px', 
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: sPrice >= bPrice ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                color: sPrice >= bPrice ? '#047857' : '#b91c1c',
+                border: `1px solid ${sPrice >= bPrice ? '#a7f3d0' : '#fecaca'}`
+              }}>
+                <span>
+                  {sPrice >= bPrice ? 'Expected Profit:' : '⚠️ Below Cost (Loss):'}
+                  <strong> KES {Math.abs(sPrice - bPrice).toLocaleString()}</strong>
+                </span>
+                <span style={{ fontWeight: 600 }}>
+                  {sPrice >= bPrice ? '+' : ''}{((sPrice - bPrice) / bPrice * 100).toFixed(1)}%
+                </span>
               </div>
             )}
           </div>

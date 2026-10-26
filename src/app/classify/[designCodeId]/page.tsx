@@ -6,9 +6,12 @@ import { use } from 'react'
 import ColorwayModal from '@/components/ColorwayModal'
 import DesignCodeModal from '@/components/DesignCodeModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
-import SearchOverlay from '@/components/SearchOverlay'
+import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadcnui'
+import Toast, { ToastData } from '@/components/Toast'
 import { Colorway, DesignCode } from '@/types'
 import { CacheKeys, getCached, getCacheAge, setCached, bustCache } from '@/lib/cache'
+import SaleBasketFloating from '@/components/SaleBasketFloating'
+import { useSaleBasket } from '@/lib/useSaleBasket'
 
 export default function DesignCodeDetailPage({
   params,
@@ -16,6 +19,7 @@ export default function DesignCodeDetailPage({
   params: Promise<{ designCodeId: string }>
 }) {
   const { designCodeId } = use(params)
+  const { addItem } = useSaleBasket()
   const [colorways, setColorways] = useState<Colorway[]>([])
   const [designCode, setDesignCode] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
@@ -50,6 +54,18 @@ export default function DesignCodeDetailPage({
       setGlobalSearchTerm(term)
     }
   }, [searchParams])
+
+  // Global '/' keyboard shortcut to open search
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault()
+        setIsSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [])
 
   const fetchColorways = useCallback(async (isBackgroundRefresh = false) => {
     if (!isBackgroundRefresh) setIsLoading(true)
@@ -141,6 +157,9 @@ export default function DesignCodeDetailPage({
     fullCode: string
     photos: { url: string; publicId: string }[]
     quantityAvailable: number
+    breakdown?: { id: string; label: string; quantity: number }[]
+    buyingPrice?: number
+    sellingPrice?: number
   }) => {
     const res = await fetch('/api/colorways', {
       method: 'POST',
@@ -158,6 +177,8 @@ export default function DesignCodeDetailPage({
     photos: { url: string; publicId: string }[]
     quantityAvailable: number
     breakdown?: { id: string; label: string; quantity: number }[]
+    buyingPrice?: number
+    sellingPrice?: number
   }) => {
     if (!editingColorway) return
     const res = await fetch(`/api/colorways/${editingColorway._id}`, {
@@ -189,54 +210,187 @@ export default function DesignCodeDetailPage({
     }
   }
 
-  const handleQuantityChange = async (colorwayId: string, newQuantity: number) => {
-    if (newQuantity < 0) return
+  const [activeToast, setActiveToast] = useState<ToastData | null>(null)
+  const pendingUpdatesRef = useRef<Map<string, { delta: number; timer: ReturnType<typeof setTimeout> }>>(new Map())
+  const [directCountTarget, setDirectCountTarget] = useState<{
+    cw: Colorway
+    subVariantId?: string
+    currentQty: number
+    label: string
+  } | null>(null)
+  const [directCountInput, setDirectCountInput] = useState('')
+
+  // Clean timers on unmount
+  useEffect(() => {
+    const currentMap = pendingUpdatesRef.current
+    return () => {
+      currentMap.forEach(item => clearTimeout(item.timer))
+    }
+  }, [])
+
+  // Send the batched delta to /api/stock atomically
+  const commitStockChange = async (
+    cw: Colorway,
+    delta: number,
+    subVariantId?: string,
+    subVariantLabel?: string
+  ) => {
+    if (delta === 0) return
     try {
-      const res = await fetch(`/api/colorways/${colorwayId}`, {
-        method: 'PATCH',
+      const res = await fetch('/api/stock', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantityAvailable: newQuantity }),
+        body: JSON.stringify({
+          colorwayId: cw._id,
+          change: delta,
+          subVariantId,
+        }),
       })
+
+      const data = await res.json()
       if (res.ok) {
-        // Optimistic update — also write back to cache so revisits see fresh data
+        // Sync fresh authoritative quantities
         setColorways(prev => {
-          const updated = prev.map(cw =>
-            cw._id === colorwayId ? { ...cw, quantityAvailable: newQuantity } : cw
+          const updated = prev.map(item =>
+            item._id === cw._id
+              ? {
+                  ...item,
+                  quantityAvailable: data.quantityAvailable,
+                  breakdown: data.breakdown || item.breakdown,
+                }
+              : item
           )
           setCached(CacheKeys.colorways(designCodeId), updated)
           return updated
         })
+
+        // Show Toast with 1-tap tag and Undo option
+        const itemDisplayName = subVariantLabel ? `${cw.fullCode} (${subVariantLabel})` : cw.fullCode
+        setActiveToast({
+          id: `${Date.now()}_${Math.random()}`,
+          message: `${delta > 0 ? '+' : ''}${delta} ${itemDisplayName}`,
+          itemCode: itemDisplayName,
+          activityId: data.activityId,
+          colorwayId: cw._id,
+          change: delta,
+          subVariantId,
+          currentKind: data.kind,
+          soldPrice: data.soldPrice !== undefined ? data.soldPrice : cw.sellingPrice,
+          costPrice: data.costPrice !== undefined ? data.costPrice : cw.buyingPrice,
+          onUndo: async () => {
+            await fetch('/api/stock', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                colorwayId: cw._id,
+                change: -delta,
+                subVariantId,
+                undoOf: data.activityId,
+              }),
+            })
+            bustCache(CacheKeys.colorways(designCodeId))
+            fetchColorways()
+          },
+        })
+      } else {
+        alert(data.error || 'Failed to update stock')
+        bustCache(CacheKeys.colorways(designCodeId))
+        fetchColorways()
       }
-    } catch (error) {
-      console.error('Failed to update quantity:', error)
+    } catch (err) {
+      console.error('Error committing stock change:', err)
+      alert('Network error. Refreshing stock...')
+      bustCache(CacheKeys.colorways(designCodeId))
+      fetchColorways()
     }
   }
 
-  const handleBreakdownQuantityChange = async (colorway: Colorway, breakdownId: string, newQuantity: number) => {
-    if (newQuantity < 0 || !colorway.breakdown) return
-    try {
-      const newBreakdown = colorway.breakdown.map(item => 
-        item.id === breakdownId ? { ...item, quantity: newQuantity } : item
-      )
-      const newTotalQuantity = newBreakdown.reduce((sum, item) => sum + item.quantity, 0)
+  // Batched rapid-tap quantity change: smooth local UI, one batched network request after 1.2s pause
+  const handleQuantityDelta = (
+    cw: Colorway,
+    deltaStep: number,
+    subVariantId?: string,
+    subVariantLabel?: string
+  ) => {
+    const key = subVariantId ? `${cw._id}_${subVariantId}` : cw._id
 
-      const res = await fetch(`/api/colorways/${colorway._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantityAvailable: newTotalQuantity, breakdown: newBreakdown }),
-      })
-      if (res.ok) {
-        // Optimistic update — write back to cache too
-        setColorways(prev => {
-          const updated = prev.map(cw =>
-            cw._id === colorway._id ? { ...cw, quantityAvailable: newTotalQuantity, breakdown: newBreakdown } : cw
+    // Check available locally to prevent negative
+    let currentQty = cw.quantityAvailable
+    if (subVariantId) {
+      const v = cw.breakdown?.find(b => b.id === subVariantId)
+      currentQty = v ? v.quantity : 0
+    }
+    const existingPending = pendingUpdatesRef.current.get(key)
+    const currentDelta = existingPending ? existingPending.delta : 0
+    const nextDelta = currentDelta + deltaStep
+
+    if (currentQty + nextDelta < 0) {
+      alert(`Only ${currentQty} in stock`)
+      return
+    }
+
+    // Optimistically update the UI numbers instantly
+    setColorways(prev => {
+      const updated = prev.map(item => {
+        if (item._id !== cw._id) return item
+        if (subVariantId && item.breakdown) {
+          const newBreakdown = item.breakdown.map(b =>
+            b.id === subVariantId ? { ...b, quantity: b.quantity + deltaStep } : b
           )
-          setCached(CacheKeys.colorways(designCodeId), updated)
-          return updated
-        })
+          const newTotal = newBreakdown.reduce((sum, b) => sum + b.quantity, 0)
+          return { ...item, breakdown: newBreakdown, quantityAvailable: newTotal }
+        } else {
+          return { ...item, quantityAvailable: item.quantityAvailable + deltaStep }
+        }
+      })
+      return updated
+    })
+
+    // Clear previous timer for this item
+    if (existingPending) {
+      clearTimeout(existingPending.timer)
+    }
+
+    // Set 1.2 second debounce timer
+    const timer = setTimeout(() => {
+      pendingUpdatesRef.current.delete(key)
+      commitStockChange(cw, nextDelta, subVariantId, subVariantLabel)
+    }, 1200)
+
+    pendingUpdatesRef.current.set(key, { delta: nextDelta, timer })
+  }
+
+  // Direct count modal commit (for bulk arrival or physical count adjustment)
+  const handleDirectCountSave = async () => {
+    if (!directCountTarget) return
+    const counted = parseInt(directCountInput, 10)
+    if (isNaN(counted) || counted < 0) {
+      alert('Please enter a valid non-negative number')
+      return
+    }
+
+    try {
+      const res = await fetch('/api/stock/count', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          colorwayId: directCountTarget.cw._id,
+          counted,
+          subVariantId: directCountTarget.subVariantId,
+        }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setDirectCountTarget(null)
+        setDirectCountInput('')
+        bustCache(CacheKeys.colorways(designCodeId))
+        fetchColorways()
+      } else {
+        alert(data.error || 'Failed to save count')
       }
-    } catch (error) {
-      console.error('Failed to update breakdown quantity:', error)
+    } catch {
+      alert('Network error')
     }
   }
 
@@ -268,17 +422,15 @@ export default function DesignCodeDetailPage({
           </div>
         </div>
         <div className="appbar__right">
+          <ExpandingSearchDock onSearch={(val) => setGlobalSearchTerm(val)} />
           <button className="appbar__action-btn" onClick={() => setShowEditDesignModal(true)} type="button" title="Edit Design">
             ✏️
           </button>
           <button className="appbar__action-btn" onClick={() => setShowDeleteDesignConfirm(true)} type="button" title="Delete Design">
             🗑️
           </button>
-          <button className="appbar__action-btn" onClick={fetchColorways} type="button" title="Refresh">
+          <button className="appbar__action-btn" onClick={() => fetchColorways()} type="button" title="Refresh">
             ↻
-          </button>
-          <button className="appbar__action-btn" onClick={() => setIsSearchOpen(true)} type="button" aria-label="Search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           </button>
         </div>
       </header>
@@ -363,18 +515,33 @@ export default function DesignCodeDetailPage({
                           <div className="colorway-card__quantity-controls">
                             <button
                               className="colorway-card__qty-btn"
-                              onClick={() => handleBreakdownQuantityChange(cw, item.id, item.quantity - 1)}
+                              onClick={() => handleQuantityDelta(cw, -1, item.id, item.label)}
                               type="button"
+                              aria-label="Decrease quantity"
                             >
                               −
                             </button>
-                            <span className="colorway-card__quantity-value">
+                            <span
+                              className="colorway-card__quantity-value"
+                              onClick={() => {
+                                setDirectCountTarget({
+                                  cw,
+                                  subVariantId: item.id,
+                                  currentQty: item.quantity,
+                                  label: `${cw.fullCode} (${item.label})`,
+                                })
+                                setDirectCountInput(String(item.quantity))
+                              }}
+                              style={{ cursor: 'pointer', borderBottom: '1px dashed var(--color-primary)' }}
+                              title="Click to type exact count or bulk arrival"
+                            >
                               {item.quantity}
                             </span>
                             <button
                               className="colorway-card__qty-btn"
-                              onClick={() => handleBreakdownQuantityChange(cw, item.id, item.quantity + 1)}
+                              onClick={() => handleQuantityDelta(cw, 1, item.id, item.label)}
                               type="button"
+                              aria-label="Increase quantity"
                             >
                               +
                             </button>
@@ -392,22 +559,60 @@ export default function DesignCodeDetailPage({
                       <div className="colorway-card__quantity-controls">
                         <button
                           className="colorway-card__qty-btn"
-                          onClick={() => handleQuantityChange(cw._id, cw.quantityAvailable - 1)}
+                          onClick={() => handleQuantityDelta(cw, -1)}
                           type="button"
+                          aria-label="Decrease quantity"
                         >
                           −
                         </button>
-                        <span className="colorway-card__quantity-value">
+                        <span
+                          className="colorway-card__quantity-value"
+                          onClick={() => {
+                            setDirectCountTarget({
+                              cw,
+                              currentQty: cw.quantityAvailable,
+                              label: cw.fullCode,
+                            })
+                            setDirectCountInput(String(cw.quantityAvailable))
+                          }}
+                          style={{ cursor: 'pointer', borderBottom: '1px dashed var(--color-primary)' }}
+                          title="Click to type exact count or bulk arrival"
+                        >
                           {cw.quantityAvailable}
                         </span>
                         <button
                           className="colorway-card__qty-btn"
-                          onClick={() => handleQuantityChange(cw._id, cw.quantityAvailable + 1)}
+                          onClick={() => handleQuantityDelta(cw, 1)}
                           type="button"
+                          aria-label="Increase quantity"
                         >
                           +
                         </button>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Optional Price Display (Only if set) */}
+                  {(cw.sellingPrice !== undefined || cw.buyingPrice !== undefined) && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '4px 8px',
+                      background: 'var(--color-surface, #f9fafb)',
+                      borderRadius: '6px',
+                      border: '1px solid var(--color-border, #e5e7eb)',
+                      marginTop: '8px',
+                      fontSize: '11px',
+                    }}>
+                      <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                        {cw.sellingPrice !== undefined ? `KES ${cw.sellingPrice.toLocaleString()}` : 'Price not set'}
+                      </span>
+                      {cw.buyingPrice !== undefined && (
+                        <span style={{ color: 'var(--color-text-secondary, #6b7280)' }}>
+                          Cost: {cw.buyingPrice.toLocaleString()}
+                        </span>
+                      )}
                     </div>
                   )}
 
@@ -428,6 +633,24 @@ export default function DesignCodeDetailPage({
 
                   {/* Actions */}
                   <div className="colorway-card__footer">
+                    <button
+                      className="btn btn--secondary btn--sm"
+                      onClick={() => {
+                        addItem({
+                          colorwayId: cw._id,
+                          designCodeId,
+                          fullCode: cw.fullCode,
+                          unitPrice: cw.sellingPrice || 0,
+                          costPrice: cw.buyingPrice,
+                          available: cw.quantityAvailable,
+                        })
+                      }}
+                      style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      type="button"
+                      title="Add to combined customer invoice"
+                    >
+                      🛍️ +Invoice
+                    </button>
                     <button
                       className="btn btn--secondary btn--sm"
                       onClick={() => setEditingColorway(cw)}
@@ -478,6 +701,8 @@ export default function DesignCodeDetailPage({
             photos: editingColorway.photos,
             quantityAvailable: editingColorway.quantityAvailable,
             breakdown: editingColorway.breakdown,
+            buyingPrice: editingColorway.buyingPrice,
+            sellingPrice: editingColorway.sellingPrice,
           }}
         />
       )}
@@ -538,11 +763,82 @@ export default function DesignCodeDetailPage({
         message={`Are you sure you want to delete "${designCode}"? This will also delete ALL colorways under it.`}
         isLoading={isDeleting}
       />
-      <SearchOverlay 
-        isOpen={isSearchOpen} 
-        onClose={() => { setIsSearchOpen(false); setGlobalSearchTerm('') }} 
-        onSearch={(term) => setGlobalSearchTerm(term)}
-      />
+
+      {/* 1-tap categorization & Undo Toast */}
+      <Toast toast={activeToast} onDismiss={() => setActiveToast(null)} />
+
+      {/* Direct Count / Bulk Arrival Modal */}
+      {directCountTarget && (
+        <div
+          className="modal-overlay"
+          onClick={() => setDirectCountTarget(null)}
+          style={{ zIndex: 1000 }}
+        >
+          <div
+            className="direct-count-modal"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: 700 }}>
+              Set Count for {directCountTarget.label}
+            </h3>
+            <p style={{ margin: '0 0 16px', fontSize: '14px', color: 'var(--color-text-muted)' }}>
+              Current stock: <strong>{directCountTarget.currentQty}</strong>
+            </p>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+                Exact Total in Stock:
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={directCountInput}
+                onChange={e => setDirectCountInput(e.target.value)}
+                autoFocus
+                className="form-group__input"
+                style={{ fontSize: '18px', fontWeight: 700, padding: '10px 14px' }}
+                placeholder="e.g. 50"
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              {[+5, +10, +20, +50].map(add => (
+                <button
+                  key={add}
+                  type="button"
+                  className="btn btn--sm btn--secondary"
+                  onClick={() => {
+                    const base = parseInt(directCountInput, 10) || 0
+                    setDirectCountInput(String(base + add))
+                  }}
+                >
+                  +{add} Bulk
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn--secondary"
+                onClick={() => setDirectCountTarget(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={handleDirectCountSave}
+              >
+                Save Stock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Multi-Item Sale Basket */}
+      <SaleBasketFloating />
     </>
   )
 }

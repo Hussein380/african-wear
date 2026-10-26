@@ -1,84 +1,72 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+
+const MAX_LENGTH = 4
 
 export default function PinAuth() {
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const maxLength = 4
+  const inputRef = useRef<HTMLInputElement>(null)
+  // Guards against double submission (the old effect-based flow posted twice)
+  const submittingRef = useRef(false)
 
-  const handleKeyPress = useCallback((digit: string) => {
+  useEffect(() => {
+    router.prefetch('/classify')
+    inputRef.current?.focus()
+  }, [router])
+
+  const verifyPin = async (value: string) => {
+    if (submittingRef.current) return
+    submittingRef.current = true
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: value }),
+      })
+
+      if (res.ok) {
+        // Stay in loading state while navigating; replace so Back doesn't return to login
+        router.replace('/classify')
+        return
+      }
+      setError('Incorrect PIN')
+      setPin('')
+    } catch {
+      setError('Connection error')
+      setPin('')
+    }
+    submittingRef.current = false
+    setIsLoading(false)
+    inputRef.current?.focus()
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isLoading) return
+    const value = e.target.value.replace(/\D/g, '').slice(0, MAX_LENGTH)
     setError('')
-    setPin(prev => {
-      if (prev.length >= maxLength) return prev
-      return prev + digit
-    })
-  }, [isLoading])
-
-  useEffect(() => {
-    if (pin.length === maxLength && !isLoading) {
-      const verifyPin = async () => {
-        setIsLoading(true)
-        try {
-          const res = await fetch('/api/auth', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pin }),
-          })
-
-          if (res.ok) {
-            router.push('/classify')
-          } else {
-            setError('Incorrect PIN')
-            setPin('')
-          }
-        } catch {
-          setError('Connection error')
-          setPin('')
-        } finally {
-          setIsLoading(false)
-        }
-      }
-      verifyPin()
-    }
-  }, [pin, isLoading, router])
-
-  const handleBackspace = useCallback(() => {
-    setPin(prev => prev.slice(0, -1))
-    setError('')
-  }, [])
-
-  // Allow typing the PIN directly from a keyboard
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isLoading) return
-      if (e.key >= '0' && e.key <= '9') {
-        handleKeyPress(e.key)
-      } else if (e.key === 'Backspace') {
-        handleBackspace()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isLoading, handleKeyPress, handleBackspace])
-
-  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫']
+    setPin(value)
+    if (value.length === MAX_LENGTH) verifyPin(value)
+  }
 
   return (
-    <div className="pin-screen">
+    <div className="pin-screen" onClick={() => inputRef.current?.focus()}>
       <div className="pin-screen__card">
         <div className="pin-screen__logo">
           <img src="/mandera-logo.png" alt="Mandera African Wear" />
         </div>
         <h2 className="pin-screen__title">Welcome Back</h2>
-        <p className="pin-screen__subtitle">Enter your PIN to continue</p>
+        <p className="pin-screen__subtitle">
+          {isLoading ? 'Signing in…' : 'Type your PIN to continue'}
+        </p>
 
-        <div className="pin-screen__dots">
-          {Array.from({ length: maxLength }).map((_, i) => (
+        <div className="pin-screen__dots" style={{ position: 'relative' }}>
+          {Array.from({ length: MAX_LENGTH }).map((_, i) => (
             <div
               key={i}
               className={`pin-screen__dot ${
@@ -90,25 +78,28 @@ export default function PinAuth() {
               }`}
             />
           ))}
-        </div>
-
-        <div className="pin-screen__keypad">
-          {keys.map((key, i) => (
-            <button
-              key={i}
-              className={`pin-screen__key ${
-                key === '⌫' ? 'pin-screen__key--backspace' : ''
-              } ${key === '' ? 'pin-screen__key--empty' : ''}`}
-              onClick={() => {
-                if (key === '⌫') handleBackspace()
-                else if (key !== '') handleKeyPress(key)
-              }}
-              disabled={isLoading}
-              type="button"
-            >
-              {key}
-            </button>
-          ))}
+          <input
+            ref={inputRef}
+            type="password"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="one-time-code"
+            autoFocus
+            maxLength={MAX_LENGTH}
+            value={pin}
+            onChange={handleChange}
+            disabled={isLoading}
+            aria-label="Enter your PIN"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              opacity: 0,
+              cursor: 'text',
+              fontSize: '16px', // prevents iOS zoom on focus
+            }}
+          />
         </div>
 
         {error && <p className="pin-screen__error">{error}</p>}

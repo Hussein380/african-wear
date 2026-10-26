@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/mongodb'
+import { shopDayBoundary } from '@/lib/stockRules'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,12 +25,10 @@ export async function GET(request: Request) {
     if (startDate || endDate) {
       query.timestamp = {}
       if (startDate) {
-        query.timestamp.$gte = new Date(startDate).toISOString()
+        query.timestamp.$gte = shopDayBoundary(startDate, false).toISOString()
       }
       if (endDate) {
-        const end = new Date(endDate)
-        end.setHours(23, 59, 59, 999)
-        query.timestamp.$lte = end.toISOString()
+        query.timestamp.$lte = shopDayBoundary(endDate, true).toISOString()
       }
     }
     

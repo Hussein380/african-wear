@@ -4,6 +4,11 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Already signed in (30-day cookie)? Skip the landing/PIN screen entirely.
+  if (pathname === '/' && request.cookies.get('maw-session')?.value) {
+    return NextResponse.redirect(new URL('/classify', request.url))
+  }
+
   // Public paths that don't need auth
   const publicPaths = ['/', '/api/auth']
   const isPublicPath = publicPaths.some(p => pathname === p)

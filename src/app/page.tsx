@@ -7,7 +7,7 @@ import PinAuth from '@/components/PinAuth'
 function HomeContent() {
   const searchParams = useSearchParams()
   const authRequired = searchParams.get('auth') === 'required'
-  const [showPin, setShowPin] = useState(authRequired)
+  const [showPin, setShowPin] = useState(true)
 
   if (showPin) {
     return <PinAuth />

@@ -49,3 +49,9 @@ mandera-logo.png
 # Agent config
 AGENTS.md
 CLAUDE.md
+
+# local DB backups
+/backups/
+
+# scratch scripts
+scratch/
