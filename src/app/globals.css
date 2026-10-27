@@ -90,7 +90,7 @@
   --font-size-4xl: 2.5rem;
 
   /* Layout */
-  --sidebar-width: 110px;
+  --sidebar-width: 145px;
   --appbar-height: 60px;
 }
 
@@ -212,22 +212,21 @@ ul, ol {
 }
 
 .appbar__back-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 52px;
-  padding: 0 24px;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
   color: var(--color-text-on-primary);
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.25);
-  font-size: 18px;
-  font-weight: 700;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  transition: background var(--transition-fast), transform var(--transition-fast);
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  transition: all var(--transition-fast);
   white-space: nowrap;
-  min-width: 110px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .appbar__back-btn:hover {
@@ -236,7 +235,7 @@ ul, ol {
 }
 
 .appbar__back-btn:active {
-  transform: translateX(-4px);
+  transform: translateX(-3px);
 }
 
 .appbar__action-btn {
@@ -321,14 +320,16 @@ ul, ol {
 .sidebar__item {
   display: flex;
   align-items: center;
-  padding: var(--space-md) var(--space-md);
+  gap: 10px;
+  padding: 11px 16px;
   font-size: var(--font-size-sm);
-  font-weight: 400;
+  font-weight: 500;
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--transition-fast);
   border-left: 3px solid transparent;
   position: relative;
+  user-select: none;
 }
 
 .sidebar__item:hover {
@@ -338,13 +339,35 @@ ul, ol {
 
 .sidebar__item--active {
   color: var(--color-primary);
-  font-weight: 600;
+  font-weight: 700;
   background: var(--color-bg);
   border-left-color: var(--color-primary);
 }
 
+.sidebar__item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: opacity var(--transition-fast);
+}
+
+.sidebar__item:hover .sidebar__item-icon,
+.sidebar__item--active .sidebar__item-icon {
+  opacity: 1;
+}
+
+.sidebar__item-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+
 .sidebar__item--special {
-  margin-top: var(--space-md);
+  margin-top: var(--space-sm);
   border-top: 1px solid var(--color-border-light);
   font-weight: 500;
 }
@@ -1874,12 +1897,12 @@ ul, ol {
     right: var(--space-lg);
   }
 
-  /* Back button — smaller on tablet */
+  /* Back button — sleek on tablet */
   .appbar__back-btn {
-    height: 44px;
-    padding: 0 16px;
-    font-size: 16px;
-    min-width: 80px;
+    height: 38px;
+    padding: 0 14px;
+    font-size: 14px;
+    min-width: unset;
   }
 
   /* Subtitle always visible */
@@ -1892,7 +1915,7 @@ ul, ol {
 @media (max-width: 480px) {
   :root {
     --sidebar-width: 70px;
-    --appbar-height: 54px;
+    --appbar-height: 56px;
   }
 
   .design-grid {
@@ -1911,10 +1934,10 @@ ul, ol {
 
   /* Back button — compact on small phones */
   .appbar__back-btn {
-    height: 36px;
-    padding: 0 12px;
-    font-size: 14px;
-    min-width: 64px;
+    height: 34px;
+    padding: 0 10px;
+    font-size: 13px;
+    min-width: unset;
     gap: 4px;
   }
 
@@ -2465,4 +2488,90 @@ ul, ol {
     max-width: none;
   }
 }
+
+/* ==========================================================================
+   Finance & Ledger Design System (Theme-Enforced & Mobile-Responsive)
+   ========================================================================== */
+.finance-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.finance-tabs-nav {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.finance-grid-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: flex-start;
+}
+
+@media (max-width: 960px) {
+  .finance-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.finance-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 600px) {
+  .finance-card {
+    padding: 14px 12px;
+  }
+}
+
+.finance-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+}
+
+.finance-table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.finance-table th {
+  padding: 10px 14px;
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.finance-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--color-border-light);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.finance-table tr:hover td {
+  background: rgba(91, 26, 62, 0.02);
+}
+
 

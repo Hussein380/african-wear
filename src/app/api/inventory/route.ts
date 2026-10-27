@@ -11,7 +11,9 @@ export async function GET() {
     const inventory = await db.collection('colorways').aggregate([
       {
         $addFields: {
-          designCodeIdObj: { $toObjectId: "$designCodeId" }
+          designCodeIdObj: {
+            $convert: { input: "$designCodeId", to: "objectId", onError: null, onNull: null }
+          }
         }
       },
       {
@@ -23,7 +25,7 @@ export async function GET() {
         }
       },
       {
-        $unwind: "$design" // Flatten the array
+        $unwind: { path: "$design", preserveNullAndEmptyArrays: true }
       },
       {
         $project: {
@@ -33,9 +35,9 @@ export async function GET() {
           breakdown: 1,
           photos: 1,
           designCodeId: 1,
-          category: "$design.category",
-          designCodeName: "$design.code",
-          thumbnailUrl: "$design.thumbnailUrl"
+          category: { $ifNull: ["$design.category", "Uncategorized"] },
+          designCodeName: { $ifNull: ["$design.code", "$fullCode"] },
+          thumbnailUrl: { $ifNull: ["$design.thumbnailUrl", ""] }
         }
       },
       {

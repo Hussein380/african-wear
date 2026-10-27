@@ -100,7 +100,11 @@ export async function DELETE(
     }
 
     // Get all colorways for this design code and delete their images
-    const colorways = await db.collection('colorways').find({ designCodeId: id }).toArray()
+    const cwQuery = ObjectId.isValid(id)
+      ? { $or: [{ designCodeId: id }, { designCodeId: new ObjectId(id) }] }
+      : { designCodeId: id }
+
+    const colorways = await db.collection('colorways').find(cwQuery).toArray()
     for (const cw of colorways) {
       if (cw.photos && Array.isArray(cw.photos)) {
         for (const photo of cw.photos) {
@@ -135,7 +139,7 @@ export async function DELETE(
     }
 
     // Cascade delete colorways
-    await db.collection('colorways').deleteMany({ designCodeId: id })
+    await db.collection('colorways').deleteMany(cwQuery)
 
     // Delete the design code
     await db.collection('designCodes').deleteOne({ _id: objectId })

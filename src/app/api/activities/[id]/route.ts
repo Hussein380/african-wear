@@ -123,19 +123,32 @@ export async function DELETE(
         if (remainingActivities === 0) {
           await invoicesColl.deleteOne({ _id: invoice._id })
         } else {
-          const price = activity.soldPrice || 0
-          const qty = activity.quantityChange || 1
-          const itemSubtotal = price * qty
-          const updatedItems = Array.isArray(invoice.items)
-            ? invoice.items.filter((it: { colorwayId: string }) => it.colorwayId !== activity.colorwayId)
-            : []
-          await invoicesColl.updateOne(
-            { _id: invoice._id },
-            {
-              $inc: { totalAmount: -itemSubtotal },
-              $set: { items: updatedItems },
-            }
-          )
+          const items = Array.isArray(invoice.items) ? [...invoice.items] : []
+          let removedSubtotal = (activity.soldPrice || 0) * (activity.quantityChange || 1)
+
+          const matchIndex = items.findIndex((it: { recentSaleActivityId?: string; colorwayId: string; subVariantLabel?: string; subtotal?: number }) => {
+            if (it.recentSaleActivityId && it.recentSaleActivityId === activity._id.toString()) return true
+            const sameCw = String(it.colorwayId) === String(activity.colorwayId)
+            const sameSub = (it.subVariantLabel || null) === (activity.subVariantLabel || null)
+            return sameCw && sameSub
+          })
+
+          if (matchIndex > -1) {
+            removedSubtotal = items[matchIndex].subtotal || removedSubtotal
+            items.splice(matchIndex, 1)
+          }
+
+          if (items.length === 0) {
+            await invoicesColl.deleteOne({ _id: invoice._id })
+          } else {
+            await invoicesColl.updateOne(
+              { _id: invoice._id },
+              {
+                $inc: { totalAmount: -removedSubtotal },
+                $set: { items },
+              }
+            )
+          }
         }
       }
     }

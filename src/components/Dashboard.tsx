@@ -54,6 +54,10 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [showReorderModal, setShowReorderModal] = useState(false)
+  const [reorderSelections, setReorderSelections] = useState<{ [id: string]: { selected: boolean; qty: number } }>({})
+  const [supplierPhone, setSupplierPhone] = useState('')
+  const [copiedOrder, setCopiedOrder] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -132,6 +136,138 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
 
   const [dashboardPeriod, setDashboardPeriod] = useState<'today' | 'week' | 'month'>('week')
 
+  // Initialize reorder selections whenever lowStockItems change
+  useEffect(() => {
+    if (metrics?.lowStockItems) {
+      const initial: { [id: string]: { selected: boolean; qty: number } } = {}
+      metrics.lowStockItems.forEach(item => {
+        initial[item._id] = { selected: true, qty: 10 }
+      })
+      setReorderSelections(initial)
+    }
+  }, [metrics?.lowStockItems])
+
+  // Load saved supplier phone
+  useEffect(() => {
+    const saved = localStorage.getItem('mandera_supplier_phone')
+    if (saved) setSupplierPhone(saved)
+  }, [])
+
+  const handleToggleItemSelection = (id: string) => {
+    setReorderSelections(prev => ({
+      ...prev,
+      [id]: {
+        selected: !prev[id]?.selected,
+        qty: prev[id]?.qty || 10,
+      },
+    }))
+  }
+
+  const handleUpdateItemQty = (id: string, qty: number) => {
+    setReorderSelections(prev => ({
+      ...prev,
+      [id]: {
+        selected: prev[id]?.selected ?? true,
+        qty: Math.max(1, qty),
+      },
+    }))
+  }
+
+  const handleSendReorderWhatsApp = () => {
+    const activeItems = (metrics?.lowStockItems || []).filter(item => reorderSelections[item._id]?.selected)
+    if (activeItems.length === 0) {
+      alert('Please select at least one low-stock fabric to reorder.')
+      return
+    }
+
+    if (supplierPhone.trim()) {
+      localStorage.setItem('mandera_supplier_phone', supplierPhone.trim())
+    }
+
+    let phoneClean = supplierPhone.trim().replace(/[^0-9]/g, '')
+    if (phoneClean.startsWith('0')) {
+      phoneClean = '254' + phoneClean.slice(1)
+    } else if ((phoneClean.startsWith('7') || phoneClean.startsWith('1')) && phoneClean.length === 9) {
+      phoneClean = '254' + phoneClean
+    }
+
+    const itemsText = activeItems
+      .map((item, idx) => {
+        const qty = reorderSelections[item._id]?.qty || 10
+        return `${idx + 1}. *${item.fullCode}* — ${qty} rolls (Current shop stock: ${item.quantityAvailable} pcs)`
+      })
+      .join('\n')
+
+    const totalRolls = activeItems.reduce((acc, item) => acc + (reorderSelections[item._id]?.qty || 10), 0)
+
+    const message =
+`Assalaam Alaykum / Hello, this is *Mandera African Wear* (Mandera Town). 🌸
+
+We would like to place a wholesale fabric reorder for our store:
+
+📦 *FABRIC REORDER LIST:*
+${itemsText}
+
+───────────────────
+*TOTAL DESIGNS:* ${activeItems.length}
+*TOTAL ROLLS REQUESTED:* ${totalRolls} rolls
+───────────────────
+
+Kindly confirm availability, current roll wholesale prices, and dispatch schedule to Mandera. Thank you!`
+
+    if (phoneClean) {
+      const waUrl = `https://wa.me/${phoneClean}?text=${encodeURIComponent(message)}`
+      window.open(waUrl, '_blank')
+    } else {
+      // Direct WhatsApp share allowing user to pick any contact/supplier from their chat list
+      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`
+      try {
+        navigator.clipboard.writeText(message)
+        setCopiedOrder(true)
+        setTimeout(() => setCopiedOrder(false), 3000)
+      } catch (e) {
+        // clipboard might be blocked in some insecure contexts
+      }
+      window.open(waUrl, '_blank')
+    }
+  }
+
+  const handleCopyOrder = () => {
+    const activeItems = (metrics?.lowStockItems || []).filter(item => reorderSelections[item._id]?.selected)
+    if (activeItems.length === 0) {
+      alert('Please select at least one low-stock fabric to reorder.')
+      return
+    }
+
+    const itemsText = activeItems
+      .map((item, idx) => {
+        const qty = reorderSelections[item._id]?.qty || 10
+        return `${idx + 1}. *${item.fullCode}* — ${qty} rolls (Current shop stock: ${item.quantityAvailable} pcs)`
+      })
+      .join('\n')
+
+    const totalRolls = activeItems.reduce((acc, item) => acc + (reorderSelections[item._id]?.qty || 10), 0)
+
+    const message =
+`Assalaam Alaykum / Hello, this is *Mandera African Wear* (Mandera Town). 🌸
+
+We would like to place a wholesale fabric reorder for our store:
+
+📦 *FABRIC REORDER LIST:*
+${itemsText}
+
+───────────────────
+*TOTAL DESIGNS:* ${activeItems.length}
+*TOTAL ROLLS REQUESTED:* ${totalRolls} rolls
+───────────────────
+
+Kindly confirm availability, current roll wholesale prices, and dispatch schedule to Mandera. Thank you!`
+
+    navigator.clipboard.writeText(message)
+    setCopiedOrder(true)
+    setTimeout(() => setCopiedOrder(false), 3000)
+  }
+
   return (
     <div className="dashboard">
 
@@ -200,7 +336,11 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
             {/* Sold Stats (Pieces only, no money) */}
             <div className="dashboard-card" style={{ borderLeft: '5px solid #16a34a' }}>
               <div className="dashboard-card__icon" style={{ background: '#ecfdf5', color: '#16a34a' }}>
-                🛍️
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+                  <path d="M3 6h18"/>
+                  <path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
               </div>
               <div className="dashboard-card__content">
                 <span className="dashboard-card__label" style={{ color: '#15803d' }}>
@@ -228,7 +368,12 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
             {/* Arrived & Restocked */}
             <div className="dashboard-card" style={{ borderLeft: '5px solid #2563eb' }}>
               <div className="dashboard-card__icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
-                📦
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m7.5 4.27 9 5.15"/>
+                  <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                  <path d="m3.3 7 8.7 5 8.7-5"/>
+                  <path d="M12 22V12"/>
+                </svg>
               </div>
               <div className="dashboard-card__content">
                 <span className="dashboard-card__label" style={{ color: '#1d4ed8' }}>
@@ -261,7 +406,11 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
               title="Open Finance & Invoices"
             >
               <div className="dashboard-card__icon" style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
-                🧾
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/>
+                  <path d="M16 8h-8"/>
+                  <path d="M16 12h-8"/>
+                </svg>
               </div>
               <div className="dashboard-card__content">
                 <span className="dashboard-card__label" style={{ color: '#6d28d9' }}>
@@ -289,7 +438,10 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
                 <section className="dashboard-section" style={{ boxShadow: 'var(--shadow-sm)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h3 className="dashboard-section__title" style={{ margin: 0, fontSize: '17px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      🔥 Top Selling Fabrics
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+                      </svg>
+                      Top Selling Fabrics
                     </h3>
                     <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Past 30 Days</span>
                   </div>
@@ -318,7 +470,11 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
                 <section className="dashboard-section" style={{ boxShadow: 'var(--shadow-sm)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h3 className="dashboard-section__title" style={{ margin: 0, fontSize: '17px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      ⏳ Slow-Moving Stock
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                      </svg>
+                      Slow-Moving Stock
                     </h3>
                     <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 500 }}>No sales in {metrics.insights?.notSellingDays || 60}d</span>
                   </div>
@@ -339,6 +495,100 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
                           </span>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Low Stock & Wholesale Reorder Card */}
+                <section className="dashboard-section" style={{ boxShadow: 'var(--shadow-sm)', borderTop: '3px solid #ef4444' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <div>
+                      <h3 className="dashboard-section__title" style={{ margin: 0, fontSize: '17px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        🚨 Low Stock Fabrics
+                      </h3>
+                      <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
+                        {metrics.lowStockItems.length} design{metrics.lowStockItems.length === 1 ? '' : 's'} running out
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowReorderModal(true)}
+                      className="btn"
+                      style={{
+                        background: '#25D366',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 6px rgba(37, 211, 102, 0.3)',
+                      }}
+                    >
+                      <span>📋 Order via WA</span>
+                    </button>
+                  </div>
+
+                  {metrics.lowStockItems.length === 0 ? (
+                    <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>All fabric lines are well-stocked.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {metrics.lowStockItems.slice(0, 5).map(item => (
+                        <div
+                          key={item._id}
+                          onClick={() => router.push(`/classify/${item.designCodeId}`)}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '8px 12px',
+                            background: item.quantityAvailable === 0 ? '#fef2f2' : 'var(--color-bg)',
+                            border: `1px solid ${item.quantityAvailable === 0 ? '#fecaca' : 'var(--color-border-light)'}`,
+                            borderRadius: 'var(--radius-md)',
+                            cursor: 'pointer',
+                          }}
+                          title="Click to view card"
+                        >
+                          <span style={{ fontWeight: 700, fontSize: '14px', color: item.quantityAvailable === 0 ? '#b91c1c' : 'inherit' }}>
+                            {item.fullCode}
+                          </span>
+                          <span style={{
+                            color: item.quantityAvailable === 0 ? '#b91c1c' : '#d97706',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            background: item.quantityAvailable === 0 ? '#fee2e2' : '#fef3c7',
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                          }}>
+                            {item.quantityAvailable === 0 ? 'OUT OF STOCK' : `${item.quantityAvailable} left`}
+                          </span>
+                        </div>
+                      ))}
+
+                      {metrics.lowStockItems.length > 5 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowReorderModal(true)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--color-primary)',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            padding: '4px 0',
+                            textDecoration: 'underline',
+                          }}
+                        >
+                          + View all {metrics.lowStockItems.length} low stock & create supplier order
+                        </button>
+                      )}
                     </div>
                   )}
                 </section>
@@ -475,6 +725,176 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
             </>
           )}
         </>
+      )}
+
+      {/* 1-Click Wholesale Supplier Reorder Modal */}
+      {showReorderModal && (
+        <div className="modal-overlay" onClick={() => setShowReorderModal(false)} style={{ zIndex: 9999 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px', width: '92%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal__header">
+              <div>
+                <h3 className="modal__title" style={{ fontSize: '17px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>📦 Wholesale Supplier Reorder List</span>
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>
+                  Select low-stock fabrics & generate a 1-tap WhatsApp purchase order for Nairobi or Dubai agents.
+                </p>
+              </div>
+              <button className="modal__close-btn" onClick={() => setShowReorderModal(false)} type="button">
+                ✕
+              </button>
+            </div>
+
+            <div className="modal__body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Supplier Contact */}
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Supplier / Agent WhatsApp Number:
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="tel"
+                    className="form-group__input"
+                    placeholder="e.g. 0712 345 678 (Nairobi) or 97150... (Dubai)"
+                    value={supplierPhone}
+                    onChange={e => setSupplierPhone(e.target.value)}
+                    style={{ fontSize: '13px', padding: '8px 12px' }}
+                  />
+                </div>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                  Saved automatically for future reorders
+                </span>
+              </div>
+
+              {/* Items List */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700 }}>
+                    Low Stock Fabrics ({metrics?.lowStockItems.length || 0})
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    Edit quantity per design below
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto' }}>
+                  {(metrics?.lowStockItems || []).map(item => {
+                    const sel = reorderSelections[item._id] || { selected: true, qty: 10 }
+                    return (
+                      <div
+                        key={item._id}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'auto 1.8fr 1fr 1fr',
+                          gap: '10px',
+                          alignItems: 'center',
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: `1px solid ${sel.selected ? '#bbf7d0' : '#e2e8f0'}`,
+                          background: sel.selected ? '#f0fdf4' : '#ffffff',
+                          fontSize: '12px',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={sel.selected}
+                          onChange={() => handleToggleItemSelection(item._id)}
+                          style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        />
+
+                        <div>
+                          <strong style={{ fontSize: '13px', color: '#1e293b' }}>{item.fullCode}</strong>
+                          <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
+                            {item.designCodeName}
+                          </span>
+                        </div>
+
+                        <div>
+                          <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>In Store</span>
+                          <span style={{
+                            fontWeight: 700,
+                            color: item.quantityAvailable === 0 ? '#dc2626' : '#d97706',
+                          }}>
+                            {item.quantityAvailable} pcs
+                          </span>
+                        </div>
+
+                        <div>
+                          <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>Reorder Rolls</span>
+                          <input
+                            type="number"
+                            min="1"
+                            disabled={!sel.selected}
+                            value={sel.qty}
+                            onChange={e => handleUpdateItemQty(item._id, parseInt(e.target.value) || 1)}
+                            style={{
+                              width: '100%',
+                              padding: '4px 6px',
+                              fontSize: '12px',
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="modal__footer" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px', width: '100%' }}>
+                <button
+                  type="button"
+                  onClick={handleSendReorderWhatsApp}
+                  style={{
+                    background: '#25D366',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(37, 211, 102, 0.3)',
+                  }}
+                >
+                  💬 Send Order via WhatsApp
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCopyOrder}
+                  className="btn btn--secondary"
+                  style={{
+                    padding: '12px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {copiedOrder ? '✓ Copied!' : '📋 Copy Text'}
+                </button>
+              </div>
+
+              <div style={{ textAlign: 'right', width: '100%', paddingTop: '4px' }}>
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  onClick={() => setShowReorderModal(false)}
+                  style={{ fontSize: '12px', padding: '6px 16px' }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

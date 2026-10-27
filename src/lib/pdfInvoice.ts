@@ -23,7 +23,9 @@ export interface InvoicePdfData {
  */
 export function normalizeKenyanPhone(phone: string): string {
   let clean = phone.trim().replace(/[^0-9]/g, '')
-  if (clean.startsWith('0')) {
+  if (clean.startsWith('00254')) {
+    clean = clean.slice(2)
+  } else if (clean.startsWith('0')) {
     clean = '254' + clean.slice(1)
   } else if ((clean.startsWith('7') || clean.startsWith('1')) && clean.length === 9) {
     clean = '254' + clean
@@ -67,23 +69,26 @@ export function getWhatsAppInvoiceUrl(phone: string, data: InvoicePdfData): stri
   })
 
   const totalPieces = data.items.reduce((acc, i) => acc + i.quantity, 0)
+  const isCredit = data.paymentMethod === 'credit'
+  const paymentText = isCredit ? 'CREDIT (DEYN - OUTSTANDING)' : (data.paymentMethod || 'CASH').toUpperCase()
+  const totalSuffix = isCredit ? '*(UNPAID BALANCE)*' : '*(PAID)*'
 
   const message = `✨ *MANDERA AFRICAN WEAR* ✨
 *Official Receipt: ${data.invoiceNumber}*
 ────────────────────────${clientName}
 *Date:* ${dateStr}
-*Payment:* ${(data.paymentMethod || 'CASH').toUpperCase()}
+*Payment:* ${paymentText}
 
 *Items Purchased:*
 ${itemsList}────────────────────────
 *TOTAL PIECES:* ${totalPieces} pcs
-*TOTAL AMOUNT:* *KES ${data.totalAmount.toLocaleString()}*
+*TOTAL AMOUNT:* *KES ${data.totalAmount.toLocaleString()}* ${totalSuffix}
 ────────────────────────
 Thank you for shopping with Mandera African Wear!
 _Quality African Fabric & Authentic Prints Specialist_`
 
   const encoded = encodeURIComponent(message)
-  return normPhone ? `https://wa.me/${normPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`
+  return normPhone ? `https://wa.me/${normPhone}?text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`
 }
 
 /**
@@ -237,7 +242,8 @@ export async function generateInvoicePdf(data: InvoicePdfData) {
   const totalPieces = data.items.reduce((acc, i) => acc + i.quantity, 0)
 
   // Total Summary Box
-  doc.setFillColor(...primaryColor)
+  const isCredit = data.paymentMethod === 'credit'
+  doc.setFillColor(...(isCredit ? [153, 27, 27] as [number, number, number] : primaryColor))
   doc.roundedRect(120, finalY, 76, 22, 2, 2, 'F')
 
   doc.setFont('helvetica', 'normal')
@@ -246,8 +252,8 @@ export async function generateInvoicePdf(data: InvoicePdfData) {
   doc.text(`Total Pieces: ${totalPieces} pcs`, 124, finalY + 7)
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(13)
-  doc.text('TOTAL PAID:', 124, finalY + 16)
+  doc.setFontSize(12)
+  doc.text(isCredit ? 'BALANCE DUE:' : 'TOTAL PAID:', 124, finalY + 16)
   doc.text(`KES ${data.totalAmount.toLocaleString()}`, 192, finalY + 16, { align: 'right' })
 
   // 8. Footer & Terms

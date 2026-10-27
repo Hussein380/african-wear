@@ -68,8 +68,23 @@ export async function DELETE(request: Request) {
     if (mode === 'older') {
       const cutoff = new Date()
       cutoff.setDate(cutoff.getDate() - days)
-      query = { timestamp: { $lt: cutoff.toISOString() } }
-    } else if (mode !== 'all') {
+      query = {
+        timestamp: { $lt: cutoff.toISOString() },
+        $or: [
+          { invoiceId: { $exists: false } },
+          { invoiceId: null },
+          { invoiceId: '' },
+        ],
+      }
+    } else if (mode === 'all') {
+      query = {
+        $or: [
+          { invoiceId: { $exists: false } },
+          { invoiceId: null },
+          { invoiceId: '' },
+        ],
+      }
+    } else {
       return NextResponse.json({ error: 'Invalid mode. Use mode=all or mode=older&days=N' }, { status: 400 })
     }
 
@@ -79,8 +94,8 @@ export async function DELETE(request: Request) {
       success: true, 
       deletedCount: result.deletedCount,
       message: mode === 'all' 
-        ? `Deleted all ${result.deletedCount} records`
-        : `Deleted ${result.deletedCount} records older than ${days} days`
+        ? `Deleted ${result.deletedCount} un-invoiced history records (financial audit records preserved)`
+        : `Deleted ${result.deletedCount} un-invoiced records older than ${days} days`
     })
   } catch (error) {
     console.error('Error deleting activities:', error)

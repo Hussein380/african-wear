@@ -183,12 +183,23 @@ function ClassifyPageInner() {
           </div>
         </div>
         <div className="appbar__right">
-          <ExpandingSearchDock onSearch={(val) => setGlobalSearchTerm(val)} />
-          <button className="appbar__action-btn" onClick={() => fetchDesignCodes()} type="button">
-            ↻ Refresh
+          <ExpandingSearchDock onSearch={(val) => setGlobalSearchTerm(val)} placeholder="Search designs..." />
+          <button className="appbar__action-btn" onClick={() => fetchDesignCodes()} type="button" title="Refresh">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 21h5v-5"/>
+            </svg>
+            <span className="desktop-only">Refresh</span>
           </button>
-          <button className="appbar__action-btn" onClick={handleLogout} type="button">
-            Logout
+          <button className="appbar__action-btn" onClick={handleLogout} type="button" title="Sign Out">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" x2="9" y1="12" y2="12"/>
+            </svg>
+            <span className="desktop-only">Sign Out</span>
           </button>
         </div>
       </header>
@@ -229,7 +240,13 @@ function ClassifyPageInner() {
         {/* Empty State */}
         {!isLoading && designCodes.length === 0 && (
           <div className="empty-state">
-            <div className="empty-state__icon">🧵</div>
+            <div className="empty-state__icon" style={{ display: 'inline-flex', padding: '16px', borderRadius: '50%', background: 'var(--color-bg-hover)', color: 'var(--color-text-muted)' }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z"/>
+                <path d="M9 3v18"/>
+                <path d="M15 3v18"/>
+              </svg>
+            </div>
             <h3 className="empty-state__title">No Design Codes Yet</h3>
             <p className="empty-state__text">
               Add your first design code by tapping the + button below.
@@ -240,7 +257,12 @@ function ClassifyPageInner() {
         {/* Search No Results */}
         {!isLoading && designCodes.length > 0 && filteredDesignCodes.length === 0 && (
           <div className="empty-state">
-            <div className="empty-state__icon">🔍</div>
+            <div className="empty-state__icon" style={{ display: 'inline-flex', padding: '16px', borderRadius: '50%', background: 'var(--color-bg-hover)', color: 'var(--color-text-muted)' }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.3-4.3"/>
+              </svg>
+            </div>
             <h3 className="empty-state__title">No Results Found</h3>
             <p className="empty-state__text">No design codes match your search. Try a different keyword.</p>
           </div>

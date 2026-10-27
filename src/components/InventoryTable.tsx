@@ -93,25 +93,31 @@ export default function InventoryTable({ data, externalSearchTerm }: Props) {
   return (
     <div style={{ background: 'var(--color-bg-card)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-lg)' }}>
       {/* Category Tabs */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-md)', overflowX: 'auto', paddingBottom: '4px' }}>
-        {categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setCategoryFilter(cat)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '20px',
-              border: 'none',
-              background: categoryFilter === cat ? 'var(--color-primary)' : 'var(--color-bg)',
-              color: categoryFilter === cat ? 'white' : 'var(--color-text)',
-              cursor: 'pointer',
-              fontWeight: categoryFilter === cat ? 600 : 400,
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {cat}
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-md)', overflowX: 'auto', paddingBottom: '6px' }}>
+        {categories.map(cat => {
+          const isSelected = categoryFilter === cat
+          return (
+            <button
+              key={cat}
+              onClick={() => setCategoryFilter(cat)}
+              type="button"
+              style={{
+                padding: '6px 14px',
+                borderRadius: 'var(--radius-full)',
+                border: '1px solid ' + (isSelected ? 'var(--color-primary)' : 'var(--color-border)'),
+                background: isSelected ? 'var(--color-primary)' : 'var(--color-bg-card)',
+                color: isSelected ? '#ffffff' : 'var(--color-text-primary)',
+                cursor: 'pointer',
+                fontWeight: isSelected ? 600 : 500,
+                fontSize: '13px',
+                whiteSpace: 'nowrap',
+                transition: 'all var(--transition-fast)',
+              }}
+            >
+              {cat}
+            </button>
+          )
+        })}
       </div>
 
       {/* Search Bar - only show when not using external overlay search */}
@@ -219,8 +225,13 @@ export default function InventoryTable({ data, externalSearchTerm }: Props) {
         </table>
 
         {filteredAndSortedData.length === 0 && (
-          <div className="empty-state" style={{ border: 'none', boxShadow: 'none' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
+          <div className="empty-state" style={{ border: 'none', boxShadow: 'none', padding: '48px 16px' }}>
+            <div style={{ display: 'inline-flex', padding: '16px', borderRadius: '50%', background: 'var(--color-bg-hover)', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.3-4.3"/>
+              </svg>
+            </div>
             <h3 className="empty-state__title">No Results Found</h3>
             <p className="empty-state__text">No inventory items match your search. Try a different code or category.</p>
           </div>

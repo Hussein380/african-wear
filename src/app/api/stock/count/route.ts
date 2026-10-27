@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       }
 
       const diff = counted - current
-      if (diff === 0) return NextResponse.json({ quantityAvailable: existing.quantityAvailable, diff: 0 })
+      if (diff === 0) return NextResponse.json({ quantityAvailable: existing.quantityAvailable, breakdown: existing.breakdown ?? [], diff: 0 })
 
       // Only apply if nobody changed the stock since we read it; otherwise re-read and retry.
       const filter = subVariantId
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         ...(variantLabel ? { subVariantLabel: variantLabel } : {}),
         timestamp: new Date().toISOString(),
       })
-      return NextResponse.json({ quantityAvailable: after.quantityAvailable, diff })
+      return NextResponse.json({ quantityAvailable: after.quantityAvailable, breakdown: after.breakdown ?? [], diff })
     }
 
     return NextResponse.json({ error: 'Stock changed while counting. Try again.' }, { status: 409 })

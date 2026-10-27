@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/mongodb'
+import { startOfShopDay, shopDaysAgo } from '@/lib/stockRules'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,10 +17,9 @@ export async function GET(request: Request) {
     if (customStart) {
       startDate = new Date(customStart)
     } else if (range === 'today') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      startDate = startOfShopDay(now)
     } else if (range === 'week') {
-      startDate = new Date(now)
-      startDate.setDate(now.getDate() - 7)
+      startDate = shopDaysAgo(7)
     } else if (range === 'year') {
       startDate = new Date(now.getFullYear(), 0, 1)
     } else if (range === 'all') {
@@ -82,6 +82,7 @@ export async function GET(request: Request) {
 
         recentSales.push({
           id: act._id.toString(),
+          invoiceId: act.invoiceId ? String(act.invoiceId) : undefined,
           fullCode: act.fullCode,
           subVariantLabel: act.subVariantLabel,
           quantity: qty,
@@ -96,6 +97,7 @@ export async function GET(request: Request) {
         unpricedPiecesSold += qty
         recentSales.push({
           id: act._id.toString(),
+          invoiceId: act.invoiceId ? String(act.invoiceId) : undefined,
           fullCode: act.fullCode,
           subVariantLabel: act.subVariantLabel,
           quantity: qty,
@@ -109,13 +111,73 @@ export async function GET(request: Request) {
       }
     }
 
-    // Invoices count in range
-    const invoicesCount = await invoicesColl.countDocuments({
-      createdAt: {
-        $gte: startDate.toISOString(),
-        $lte: endDate.toISOString(),
-      },
-    })
+    // Calculate payment breakdown from invoices and direct shop sales
+    const startIso = startDate.toISOString()
+    const endIso = endDate.toISOString()
+
+    const invoicesInRange = await invoicesColl
+      .find({
+        $or: [
+          { createdAt: { $gte: startIso, $lte: endIso } },
+          { settledAt: { $gte: startIso, $lte: endIso } },
+        ],
+      })
+      .toArray()
+
+    let invoiceCashTotal = 0
+    let invoiceMpesaTotal = 0
+    let invoiceCreditTotal = 0
+    let invoiceOtherTotal = 0
+    const invoicedSaleIds = new Set<string>()
+
+    // Direct items created with an invoice have act.invoiceId recorded
+    for (const act of salesActivities) {
+      if (act.invoiceId) {
+        invoicedSaleIds.add(act._id.toString())
+      }
+    }
+
+    for (const inv of invoicesInRange) {
+      const amt = Number(inv.totalAmount) || 0
+
+      // Case 1: Settled in this window (collected cash/mpesa today)
+      if (inv.settledAt && inv.settledAt >= startIso && inv.settledAt <= endIso) {
+        if (inv.settledMethod === 'mpesa') invoiceMpesaTotal += amt
+        else invoiceCashTotal += amt
+      }
+      // Case 2: Created in this window (and not settled on a different day)
+      else if (inv.createdAt >= startIso && inv.createdAt <= endIso) {
+        const pm = inv.paymentMethod || 'cash'
+        if (pm === 'cash') invoiceCashTotal += amt
+        else if (pm === 'mpesa') invoiceMpesaTotal += amt
+        else if (pm === 'credit') invoiceCreditTotal += amt
+        else invoiceOtherTotal += amt
+      }
+
+      // Sales that were originally counter sales and later linked into an invoice
+      if (Array.isArray(inv.items)) {
+        for (const it of inv.items) {
+          if (it.recentSaleActivityId) invoicedSaleIds.add(String(it.recentSaleActivityId))
+        }
+      }
+    }
+
+    // Direct shop sales not attached to an invoice are counted as direct cash drawer
+    let directCashTotal = 0
+    for (const sale of recentSales) {
+      if (!sale.invoiceId && !invoicedSaleIds.has(sale.id) && sale.totalRevenue) {
+        directCashTotal += sale.totalRevenue
+      }
+    }
+
+    const drawerBreakdown = {
+      cash: invoiceCashTotal + directCashTotal,
+      mpesa: invoiceMpesaTotal,
+      credit: invoiceCreditTotal,
+      other: invoiceOtherTotal,
+    }
+
+    const invoicesCount = invoicesInRange.filter(inv => inv.createdAt >= startIso && inv.createdAt <= endIso).length
 
     // Pricing Coverage in total inventory
     const totalColorways = await colorwaysColl.countDocuments({})
@@ -137,13 +199,15 @@ export async function GET(request: Request) {
         pricedPiecesSold,
         unpricedPiecesSold,
         invoicesCount,
+        drawerBreakdown,
       },
+      drawerBreakdown,
       coverage: {
         totalColorways,
         pricedColorways,
         coveragePercent: totalColorways > 0 ? Math.round((pricedColorways / totalColorways) * 100) : 0,
       },
-      recentSales: recentSales.slice(0, 30),
+      recentSales: recentSales.slice(0, 50),
     })
   } catch (error) {
     console.error('Error fetching finance summary:', error)

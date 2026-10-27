@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/mongodb'
+import { ObjectId } from 'mongodb'
 
 // GET /api/colorways?designCodeId=xxx
 export async function GET(request: Request) {
@@ -12,8 +13,12 @@ export async function GET(request: Request) {
     }
 
     const db = await getDb()
+    const query = ObjectId.isValid(designCodeId)
+      ? { $or: [{ designCodeId }, { designCodeId: new ObjectId(designCodeId) }] }
+      : { designCodeId }
+
     const colorways = await db.collection('colorways')
-      .find({ designCodeId })
+      .find(query)
       .sort({ fullCode: 1 })
       .toArray()
 
@@ -39,12 +44,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'designCodeId and fullCode are required' }, { status: 400 })
     }
 
+    const trimmedCode = fullCode.trim()
     const db = await getDb()
+
+    // Prevent duplicate fabric codes
+    const existingCode = await db.collection('colorways').findOne({ fullCode: trimmedCode })
+    if (existingCode) {
+      return NextResponse.json({ error: `A fabric with code "${trimmedCode}" already exists` }, { status: 409 })
+    }
+
     const now = new Date()
 
     const newDoc: Record<string, unknown> = {
       designCodeId,
-      fullCode,
+      fullCode: trimmedCode,
       photos: photos || [],
       quantityAvailable: quantityAvailable || 0,
       breakdown: breakdown || [],

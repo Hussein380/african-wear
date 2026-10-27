@@ -43,8 +43,8 @@ export default function HistoryPage() {
     if (preset === 'this_week') {
       // Start of current week (Monday)
       const day = today.getDay()
-      const diff = today.getDate() - day + (day === 0 ? -6 : 1) // adjust when day is sunday
-      start = new Date(today.setDate(diff))
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1)
+      start = new Date(today.getFullYear(), today.getMonth(), diff)
       end = new Date()
     } else if (preset === '7days') {
       start.setDate(today.getDate() - 7)
@@ -188,12 +188,16 @@ export default function HistoryPage() {
         return {
           'Date': dateObj.toLocaleDateString(),
           'Time': dateObj.toLocaleTimeString(),
-          'Category': actionLabel,
+          'Direction': activity.type === 'OUT' ? 'Outflow' : 'Inflow',
+          'Transaction Type': actionLabel,
           'Colorway Code': activity.fullCode || '-',
           'Sub-Variant': activity.subVariantLabel || '-',
-          'Quantity Changed': activity.type === 'OUT' ? `-${activity.quantityChange}` : `+${activity.quantityChange}`,
+          'Quantity Changed': activity.type === 'OUT' ? -activity.quantityChange : activity.quantityChange,
+          'Unit Price (KES)': activity.soldPrice !== undefined ? activity.soldPrice : '-',
+          'Total Revenue (KES)': activity.soldPrice !== undefined ? activity.soldPrice * activity.quantityChange : '-',
           'Final Stock': activity.newQuantity,
           'Previous Stock': activity.previousQuantity,
+          'Invoice ID': activity.invoiceId ? String(activity.invoiceId) : '-',
           'Corrected': activity.edited ? 'Yes' : 'No',
         }
       })
@@ -205,12 +209,17 @@ export default function HistoryPage() {
       const colWidths = [
         { wch: 12 }, // Date
         { wch: 12 }, // Time
-        { wch: 15 }, // Action
+        { wch: 12 }, // Direction
+        { wch: 22 }, // Transaction Type
         { wch: 15 }, // Code
         { wch: 15 }, // SubVariant
-        { wch: 18 }, // Qty Changed
+        { wch: 16 }, // Qty Changed
+        { wch: 15 }, // Unit Price
+        { wch: 18 }, // Total Revenue
         { wch: 12 }, // Final Stock
-        { wch: 15 }, // Prev Stock
+        { wch: 14 }, // Prev Stock
+        { wch: 26 }, // Invoice ID
+        { wch: 10 }, // Corrected
       ]
       ws['!cols'] = colWidths
 
@@ -322,16 +331,16 @@ export default function HistoryPage() {
           </button>
           <button
             className="appbar__back-btn"
-            onClick={() => router.back()}
+            onClick={() => router.push('/classify')}
             type="button"
             aria-label="Go back"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-            Back
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            <span>Back</span>
           </button>
           <div>
-            <h1 className="appbar__title">Transaction History</h1>
-            <p className="appbar__subtitle">Mandera African Wear</p>
+            <h1 className="appbar__title">Activity History</h1>
+            <p className="appbar__subtitle">Audit trail of sales, roll arrivals, and stock updates</p>
           </div>
         </div>
         <div className="appbar__right">
@@ -628,8 +637,8 @@ export default function HistoryPage() {
             <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
               <div style={{ fontSize: '48px', marginBottom: '12px' }}>🗑️</div>
               <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>Clear Transaction History</h2>
-              <p style={{ margin: '8px 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
-                This action cannot be undone. Choose what to delete:
+              <p style={{ margin: '8px 0 0', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                Clear counter movements. Official tax invoices and financial reports are protected and preserved.
               </p>
             </div>
 

@@ -108,6 +108,7 @@ export async function POST(request: Request) {
 
       const canNet =
         prev &&
+        !prev.invoiceId &&
         (prev.type === 'IN' || prev.type === 'OUT') &&
         prev.type !== type &&
         (prev.subVariantLabel || undefined) === variantLabel

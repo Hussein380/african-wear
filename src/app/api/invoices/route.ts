@@ -72,10 +72,27 @@ export async function POST(request: Request) {
         // Item was already deducted from shelf when recorded as recent sale
         continue
       }
-      const cw = await colorwaysColl.findOne({ _id: new ObjectId(item.colorwayId) })
+      let cw = null
+      if (ObjectId.isValid(item.colorwayId)) {
+        cw = await colorwaysColl.findOne({ _id: new ObjectId(item.colorwayId) })
+      }
+      if (!cw && item.fullCode) {
+        cw = await colorwaysColl.findOne({ fullCode: item.fullCode })
+      }
       if (!cw) {
         return NextResponse.json({ error: `Item ${item.fullCode || item.colorwayId} not found` }, { status: 404 })
       }
+
+      if (item.subVariantLabel && Array.isArray(cw.breakdown)) {
+        const sub = cw.breakdown.find((b: { id: string; label: string; quantity: number }) => b.label === item.subVariantLabel)
+        if (sub && sub.quantity < item.quantity) {
+          return NextResponse.json(
+            { error: `Insufficient stock for ${cw.fullCode} (${item.subVariantLabel}). Available: ${sub.quantity}, Requested: ${item.quantity}` },
+            { status: 409 }
+          )
+        }
+      }
+
       if (cw.quantityAvailable < item.quantity) {
         return NextResponse.json(
           { error: `Insufficient stock for ${cw.fullCode}. Available: ${cw.quantityAvailable}, Requested: ${item.quantity}` },
@@ -167,37 +184,53 @@ export async function POST(request: Request) {
         continue
       }
 
-      const cwId = new ObjectId(item.colorwayId)
+      let cw = null
+      if (item.colorwayId && ObjectId.isValid(item.colorwayId)) {
+        cw = await colorwaysColl.findOne({ _id: new ObjectId(item.colorwayId) })
+      }
+      if (!cw && item.fullCode) {
+        cw = await colorwaysColl.findOne({ fullCode: item.fullCode })
+      }
 
-      // Deduct quantity
-      await colorwaysColl.updateOne(
-        { _id: cwId },
-        {
+      if (cw) {
+        const updateDoc: Record<string, unknown> = {
           $inc: { quantityAvailable: -item.quantity },
           $set: { updatedAt: now },
         }
-      )
 
-      // Fetch new balance
-      const updatedCw = await colorwaysColl.findOne({ _id: cwId })
-      const newQty = updatedCw?.quantityAvailable ?? 0
+        if (item.subVariantLabel && Array.isArray(cw.breakdown)) {
+          const updatedBreakdown = cw.breakdown.map((b: { id: string; label: string; quantity: number }) => {
+            if (b.label === item.subVariantLabel) {
+              return { ...b, quantity: Math.max(0, b.quantity - item.quantity) }
+            }
+            return b
+          })
+          updateDoc.$set = { updatedAt: now, breakdown: updatedBreakdown }
+        }
 
-      // Log movement as sold with price snapshot and invoice reference
-      await activitiesColl.insertOne({
-        type: 'OUT',
-        kind: 'sold',
-        quantityChange: item.quantity,
-        colorwayId: item.colorwayId,
-        designCodeId: item.designCodeId,
-        fullCode: item.fullCode,
-        previousQuantity: newQty + item.quantity,
-        newQuantity: newQty,
-        subVariantLabel: item.subVariantLabel,
-        soldPrice: item.unitPrice,
-        costPrice: item.costPrice,
-        invoiceId,
-        timestamp: now.toISOString(),
-      })
+        await colorwaysColl.updateOne({ _id: cw._id }, updateDoc)
+
+        // Fetch new balance
+        const updatedCw = await colorwaysColl.findOne({ _id: cw._id })
+        const newQty = updatedCw?.quantityAvailable ?? 0
+
+        // Log movement as sold with price snapshot and invoice reference
+        await activitiesColl.insertOne({
+          type: 'OUT',
+          kind: 'sold',
+          quantityChange: item.quantity,
+          colorwayId: cw._id.toString(),
+          designCodeId: cw.designCodeId || item.designCodeId,
+          fullCode: cw.fullCode || item.fullCode,
+          previousQuantity: newQty + item.quantity,
+          newQuantity: newQty,
+          subVariantLabel: item.subVariantLabel,
+          soldPrice: item.unitPrice,
+          costPrice: item.costPrice,
+          invoiceId,
+          timestamp: now.toISOString(),
+        })
+      }
     }
 
     return NextResponse.json({

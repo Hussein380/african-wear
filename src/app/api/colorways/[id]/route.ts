@@ -24,7 +24,16 @@ export async function PUT(
     const updateData: Record<string, unknown> = { updatedAt: new Date() }
     const unsetData: Record<string, string> = {}
 
-    if (fullCode !== undefined) updateData.fullCode = fullCode
+    if (fullCode !== undefined) {
+      const trimmedCode = fullCode.trim()
+      if (trimmedCode !== existing.fullCode) {
+        const duplicate = await db.collection('colorways').findOne({ fullCode: trimmedCode, _id: { $ne: objectId } })
+        if (duplicate) {
+          return NextResponse.json({ error: `A fabric with code "${trimmedCode}" already exists` }, { status: 409 })
+        }
+      }
+      updateData.fullCode = trimmedCode
+    }
     if (photos !== undefined) updateData.photos = photos
     if (quantityAvailable !== undefined) updateData.quantityAvailable = quantityAvailable
     if (breakdown !== undefined) updateData.breakdown = breakdown

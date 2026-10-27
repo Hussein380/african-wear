@@ -33,7 +33,9 @@ export async function GET() {
       { $match: { quantityAvailable: { $lt: LOW_STOCK_THRESHOLD } } },
       {
         $addFields: {
-          designCodeIdObj: { $toObjectId: '$designCodeId' }
+          designCodeIdObj: {
+            $convert: { input: '$designCodeId', to: 'objectId', onError: null, onNull: null }
+          }
         }
       },
       {
@@ -44,7 +46,7 @@ export async function GET() {
           as: 'designCodeData'
         }
       },
-      { $unwind: '$designCodeData' },
+      { $unwind: { path: '$designCodeData', preserveNullAndEmptyArrays: true } },
       {
         $project: {
           _id: { $toString: '$_id' },
@@ -53,7 +55,7 @@ export async function GET() {
           quantityAvailable: 1,
           photos: 1,
           designCodeThumbnail: '$designCodeData.thumbnailUrl',
-          designCodeName: '$designCodeData.code'
+          designCodeName: { $ifNull: ['$designCodeData.code', '$fullCode'] }
         }
       },
       { $sort: { quantityAvailable: 1 } },
@@ -64,7 +66,9 @@ export async function GET() {
     const stockDistribution = await db.collection('colorways').aggregate([
       {
         $addFields: {
-          designCodeIdObj: { $toObjectId: '$designCodeId' }
+          designCodeIdObj: {
+            $convert: { input: '$designCodeId', to: 'objectId', onError: null, onNull: null }
+          }
         }
       },
       {
@@ -75,10 +79,10 @@ export async function GET() {
           as: 'designCodeData'
         }
       },
-      { $unwind: '$designCodeData' },
+      { $unwind: { path: '$designCodeData', preserveNullAndEmptyArrays: true } },
       {
         $group: {
-          _id: '$designCodeData.category',
+          _id: { $ifNull: ['$designCodeData.category', 'Uncategorized'] },
           totalQuantity: { $sum: '$quantityAvailable' }
         }
       },

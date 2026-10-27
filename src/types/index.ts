@@ -66,6 +66,8 @@ export interface Invoice {
   customerName?: string;
   customerPhone?: string;
   paymentMethod: 'cash' | 'mpesa' | 'credit' | 'other';
+  settledAt?: string;
+  settledMethod?: 'cash' | 'mpesa';
   items: InvoiceItem[];
   totalAmount: number;
   totalCost?: number;
@@ -73,6 +75,7 @@ export interface Invoice {
   notes?: string;
   status: 'completed' | 'cancelled';
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface AppSettings {
