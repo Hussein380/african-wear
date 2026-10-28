@@ -487,29 +487,26 @@ export default function DesignCodeDetailPage({
                 {/* Hero Image */}
                 {(!isPrintTC || cw.photos?.[0]) && (
                   <div
-                    className="colorway-card__hero"
+                    className={`colorway-card__hero ${!cw.photos?.[0] ? 'colorway-card__hero--empty' : ''}`}
                     onClick={() => {
                       if (cw.photos?.[0]?.url) setExpandedPhoto(cw.photos[0].url)
                     }}
                     style={{ cursor: cw.photos?.[0] ? 'pointer' : 'default' }}
                   >
                     {cw.photos?.[0] ? (
-                      <img
-                        src={getOptimizedImageUrl(cw.photos[0].url, { width: 520, quality: 'auto' })}
-                        alt={cw.fullCode}
-                        loading="lazy"
-                        decoding="async"
-                      />
+                      <>
+                        <img
+                          src={getOptimizedImageUrl(cw.photos[0].url, { width: 520, quality: 'auto' })}
+                          alt={cw.fullCode}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        <span className="colorway-card__zoom-hint" title="Tap to enlarge">🔍</span>
+                      </>
                     ) : (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                        fontSize: '48px',
-                        opacity: 0.2,
-                      }}>
-                        🖼️
+                      <div className="colorway-card__placeholder">
+                        <span style={{ fontSize: '22px', opacity: 0.4 }}>📷</span>
+                        <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>No photo added</span>
                       </div>
                     )}
                   </div>

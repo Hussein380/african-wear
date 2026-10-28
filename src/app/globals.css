@@ -1053,6 +1053,7 @@ ul, ol {
   position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
+  max-height: 240px;
   background: linear-gradient(135deg, #faf5f8 0%, #f3ebf0 100%);
   overflow: hidden;
   display: flex;
@@ -1063,7 +1064,52 @@ ul, ol {
 
 @media (max-width: 640px) {
   .colorway-card__hero {
-    aspect-ratio: 16 / 11;
+    aspect-ratio: 16 / 10;
+    max-height: 200px;
+  }
+}
+
+.colorway-card__hero--empty {
+  aspect-ratio: auto !important;
+  height: 72px !important;
+  background: #fdfafc !important;
+  border-bottom: 1px dashed rgba(91, 26, 62, 0.12);
+}
+
+.colorway-card__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+.colorway-card__zoom-hint {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.colorway-card:hover .colorway-card__zoom-hint {
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .colorway-card__zoom-hint {
+    opacity: 0.75;
   }
 }
 
@@ -2020,13 +2066,14 @@ ul, ol {
   }
 
   .design-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
   }
 
   .main-content {
     margin-left: 0;
     padding: var(--space-md);
+    padding-bottom: 120px;
   }
 
   .landing__title {
@@ -2584,6 +2631,16 @@ ul, ol {
   border-color: var(--color-primary, #6b21a8);
 }
 
+@media (max-width: 640px) {
+  .stock-toast {
+    bottom: 84px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    padding: 12px 14px;
+  }
+}
+
 .stock-toast__actions {
   display: flex;
   align-items: center;
@@ -2593,17 +2650,24 @@ ul, ol {
 .stock-toast__undo-btn {
   background: #fef3c7;
   color: #92400e;
-  border: 1px solid #fde68a;
-  padding: 6px 12px;
-  border-radius: var(--radius-md, 8px);
+  border: 1.5px solid #f59e0b;
+  padding: 8px 14px;
+  border-radius: 10px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.25);
+  transition: all 0.15s ease;
 }
 
 .stock-toast__undo-btn:hover {
   background: #fde68a;
+  transform: scale(1.04);
+}
+
+.stock-toast__undo-btn:active {
+  transform: scale(0.95);
 }
 
 .stock-toast__close-btn {
