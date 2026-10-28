@@ -7,6 +7,7 @@ import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadc
 import Sidebar from '@/components/Sidebar'
 import {
   generateInvoicePdf,
+  generateZReportPdf,
   openWhatsAppInvoice,
   isValidKenyanPhone,
   formatKenyanPhoneDisplay,
@@ -430,8 +431,46 @@ Kindly settle when convenient. Thank you for your continued business.`
     window.open(url, '_blank')
   }
 
-  // Send Daily Register Close Summary to the Shop Owner via WhatsApp
-  const handleSendDailyCloseWhatsApp = () => {
+  // Generate and Download Official Z-Report (Daily Register Close) PDF
+  const handleDownloadZReportPdf = async () => {
+    const cash = drawerBreakdown.cash
+    const mpesa = drawerBreakdown.mpesa
+    const credit = drawerBreakdown.credit
+    const total = financeData?.summary.totalRevenue || 0
+    const expensesTotal = financeData?.summary.totalExpenses !== undefined ? financeData.summary.totalExpenses : totalExpensesComputed
+    const netProfit = financeData?.summary.netProfit !== undefined ? financeData.summary.netProfit : ((financeData?.summary.estimatedProfit || 0) - expensesTotal)
+    const wholesaleCost = (financeData?.summary.totalRevenue || 0) - (financeData?.summary.estimatedProfit || 0)
+    const pcs = financeData?.summary.totalPiecesSold || 0
+    const invoicesCount = financeData?.summary.invoicesCount || 0
+    const dateFormatted = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    const reportNumber = `ZREP-${Date.now().toString().slice(-6)}`
+
+    await generateZReportPdf({
+      reportNumber,
+      dateStr: dateFormatted,
+      periodLabel: selectedRange === 'today' ? "Today's Close" : `Period: ${selectedRange.toUpperCase()}`,
+      drawer: {
+        cash,
+        mpesa,
+        credit,
+        totalCollections: cash + mpesa,
+      },
+      summary: {
+        totalRevenue: total,
+        wholesaleCost: wholesaleCost > 0 ? wholesaleCost : undefined,
+        totalExpenses: expensesTotal,
+        netProfit,
+        totalPiecesSold: pcs,
+        invoicesCount,
+      },
+    })
+  }
+
+  // Send Daily Register Close Summary to the Shop Owner via WhatsApp (With PDF auto-download)
+  const handleSendDailyCloseWhatsApp = async () => {
+    // 1. Immediately generate and download the official PDF
+    await handleDownloadZReportPdf()
+
     const cash = drawerBreakdown.cash
     const mpesa = drawerBreakdown.mpesa
     const credit = drawerBreakdown.credit
@@ -469,7 +508,7 @@ Date: ${dateFormatted}
 • Fabrics Sold: ${pcs} pieces
 • Receipts Generated: ${invoicesCount}
 ------------------------------------------
-Verified End-of-Day Store Closing Summary`
+Official Verified Z-Report PDF has been generated and saved to your device.`
 
     const url = `https://wa.me/${normOwner}?text=${encodeURIComponent(msg)}`
     window.open(url, '_blank')
@@ -1791,28 +1830,58 @@ Verified End-of-Day Store Closing Summary`
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleSendDailyCloseWhatsApp}
-                    style={{
-                      background: '#128C7E',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '9px 14px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    <span>Send Daily Close to Owner via WhatsApp</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={handleDownloadZReportPdf}
+                      style={{
+                        background: '#5B1A3E',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '9px 14px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxShadow: '0 2px 6px rgba(91, 26, 62, 0.25)',
+                      }}
+                      title="Generate and download official PDF Z-Report"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                      </svg>
+                      <span>Download Z-Report (PDF)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSendDailyCloseWhatsApp}
+                      style={{
+                        background: '#128C7E',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '9px 14px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>
+                      <span>Send via WhatsApp</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Drawer Breakdown Grid */}
@@ -2134,28 +2203,58 @@ Verified End-of-Day Store Closing Summary`
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleSendDailyCloseWhatsApp}
-                    style={{
-                      background: '#128C7E',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '9px 14px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    <span>Send P&L Summary via WhatsApp</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={handleDownloadZReportPdf}
+                      style={{
+                        background: '#5B1A3E',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '9px 14px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxShadow: '0 2px 6px rgba(91, 26, 62, 0.25)',
+                      }}
+                      title="Generate and download official PDF Z-Report"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                      </svg>
+                      <span>Download Z-Report (PDF)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSendDailyCloseWhatsApp}
+                      style={{
+                        background: '#128C7E',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '9px 14px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>
+                      <span>Send via WhatsApp</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* 5-Step P&L Flow Grid */}

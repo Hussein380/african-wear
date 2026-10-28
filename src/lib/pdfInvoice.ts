@@ -267,6 +267,250 @@ export async function generateInvoicePdf(data: InvoicePdfData) {
   doc.save(`${data.invoiceNumber}_ManderaWear.pdf`)
 }
 
+export interface ZReportPdfData {
+  reportNumber: string
+  dateStr: string
+  periodLabel: string
+  drawer: {
+    cash: number
+    mpesa: number
+    credit: number
+    totalCollections: number
+  }
+  summary: {
+    totalRevenue: number
+    wholesaleCost?: number
+    estimatedGrossProfit?: number
+    totalExpenses: number
+    netProfit: number
+    totalPiecesSold: number
+    invoicesCount: number
+  }
+  expensesList?: {
+    category: string
+    description?: string
+    amount: number
+  }[]
+}
+
+/**
+ * Generates and downloads an Executive Branded Z-Report (Daily Register Close) PDF
+ */
+export async function generateZReportPdf(data: ZReportPdfData) {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  })
+
+  const primaryColor: [number, number, number] = [91, 26, 62] // #5B1A3E
+  const goldColor: [number, number, number] = [212, 175, 55] // #D4AF37
+  const darkTextColor: [number, number, number] = [15, 23, 42] // #0F172A
+  const greenColor: [number, number, number] = [21, 128, 61] // #15803D
+  const redColor: [number, number, number] = [185, 28, 28] // #B91C1C
+
+  // 1. Top Decorative Brand Bar
+  doc.setFillColor(...primaryColor)
+  doc.rect(0, 0, 210, 10, 'F')
+
+  doc.setFillColor(...goldColor)
+  doc.rect(0, 10, 210, 2.5, 'F')
+
+  // 2. Logo & Company Details
+  let currentY = 24
+
+  const logoBase64 = await getBase64ImageFromUrl('/mandera-logo.png')
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, 'PNG', 14, currentY, 24, 24)
+    } catch {
+      // Fallback
+    }
+  }
+
+  const textStartX = logoBase64 ? 42 : 14
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.setTextColor(...primaryColor)
+  doc.text('MANDERA AFRICAN WEAR', textStartX, currentY + 6)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(11)
+  doc.setTextColor(...goldColor)
+  doc.text('DAILY REGISTER CLOSE (Z-REPORT)', textStartX, currentY + 12)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(100, 116, 139)
+  doc.text('Mandera Town, Kenya  •  Official Cash Drawer & P&L Reconciliation', textStartX, currentY + 17)
+
+  // Top Right Report Metadata Box
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(14)
+  doc.setTextColor(...primaryColor)
+  doc.text('Z-REPORT', 196, currentY + 6, { align: 'right' })
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(71, 85, 105)
+  doc.text(`Ref: ${data.reportNumber}`, 196, currentY + 12, { align: 'right' })
+  doc.text(`Date: ${data.dateStr}`, 196, currentY + 17, { align: 'right' })
+  doc.text(`Period: ${data.periodLabel}`, 196, currentY + 22, { align: 'right' })
+
+  // 3. Divider
+  currentY += 28
+  doc.setDrawColor(226, 232, 240)
+  doc.setLineWidth(0.5)
+  doc.line(14, currentY, 196, currentY)
+
+  // 4. Section 1: Cash Drawer Reconciliation Table
+  currentY += 6
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(...primaryColor)
+  doc.text('1. CASH DRAWER & REGISTER RECONCILIATION', 14, currentY)
+
+  currentY += 4
+  const drawerRows = [
+    ['Physical Cash in Drawer', 'Cash balance counted in register drawer', `KES ${data.drawer.cash.toLocaleString()}`],
+    ['M-Pesa on Till', 'Safaricom Buy Goods Till account collections', `KES ${data.drawer.mpesa.toLocaleString()}`],
+    ['Customer Credit (Deyn)', 'Outstanding customer debt balance (uncollected)', `KES ${data.drawer.credit.toLocaleString()}`],
+    ['TOTAL VERIFIED COLLECTIONS', 'Cash in Drawer + M-Pesa on Till Balance', `KES ${(data.drawer.cash + data.drawer.mpesa).toLocaleString()}`],
+  ]
+
+  autoTable(doc, {
+    startY: currentY,
+    head: [['Register Channel', 'Reconciliation Description', 'Verified Balance']],
+    body: drawerRows,
+    theme: 'striped',
+    headStyles: {
+      fillColor: primaryColor,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 8.5,
+    },
+    columnStyles: {
+      0: { cellWidth: 55, fontStyle: 'bold' },
+      1: { cellWidth: 'auto', textColor: [71, 85, 105] },
+      2: { cellWidth: 45, halign: 'right', fontStyle: 'bold' },
+    },
+    styles: {
+      fontSize: 8.5,
+      cellPadding: 3,
+      textColor: darkTextColor,
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252],
+    },
+    margin: { left: 14, right: 14 },
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  currentY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 8 : currentY + 35
+
+  // 5. Section 2: Store Profitability & Financial Summary
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(...primaryColor)
+  doc.text('2. STORE REVENUE, EXPENSES & NET PROFIT', 14, currentY)
+
+  currentY += 4
+  const wholesaleCost = data.summary.wholesaleCost || 0
+  const grossProfit = data.summary.estimatedGrossProfit !== undefined ? data.summary.estimatedGrossProfit : (data.summary.totalRevenue - wholesaleCost)
+
+  const summaryRows = [
+    ['Total Sales Revenue', 'Total revenue generated from customer purchases', `KES ${data.summary.totalRevenue.toLocaleString()}`],
+    ['Cost of Goods Sold (COGS)', 'Wholesale fabric purchase cost from suppliers', `KES ${wholesaleCost.toLocaleString()}`],
+    ['Estimated Gross Profit', 'Revenue minus wholesale cost of fabrics sold', `KES ${grossProfit.toLocaleString()}`],
+    ['Shop Operating Expenses', 'Rent, electricity, logistics, and store overheads', `- KES ${data.summary.totalExpenses.toLocaleString()}`],
+    ['ESTIMATED NET STORE PROFIT', 'Net shop earnings after all inventory & operating costs', `KES ${data.summary.netProfit.toLocaleString()}`],
+    ['Total Fabrics Sold', 'Physical fabric rolls deducted from store inventory', `${data.summary.totalPiecesSold} pieces`],
+    ['Receipts & Invoices Issued', 'Total transactions recorded through system', `${data.summary.invoicesCount} invoices`],
+  ]
+
+  autoTable(doc, {
+    startY: currentY,
+    head: [['Financial Metric', 'Description', 'Amount']],
+    body: summaryRows,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [15, 23, 42], // Dark slate
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 8.5,
+    },
+    columnStyles: {
+      0: { cellWidth: 55, fontStyle: 'bold' },
+      1: { cellWidth: 'auto', textColor: [71, 85, 105] },
+      2: { cellWidth: 45, halign: 'right', fontStyle: 'bold' },
+    },
+    styles: {
+      fontSize: 8.5,
+      cellPadding: 3,
+      textColor: darkTextColor,
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252],
+    },
+    margin: { left: 14, right: 14 },
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  currentY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 8 : currentY + 50
+
+  // 6. Section 3: Highlight Cards (Net Profit Box & Drawer Total Box)
+  if (currentY < 235) {
+    const isNetPositive = data.summary.netProfit >= 0
+    doc.setFillColor(...(isNetPositive ? greenColor : redColor))
+    doc.roundedRect(14, currentY, 86, 22, 2, 2, 'F')
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(255, 255, 255)
+    doc.text('ESTIMATED NET TAKE-HOME:', 18, currentY + 7)
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(13)
+    doc.text(`KES ${data.summary.netProfit.toLocaleString()}`, 18, currentY + 16)
+
+    doc.setFillColor(...primaryColor)
+    doc.roundedRect(108, currentY, 88, 22, 2, 2, 'F')
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(255, 255, 255)
+    doc.text('CASH & M-PESA AVAILABLE TODAY:', 112, currentY + 7)
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(13)
+    doc.text(`KES ${(data.drawer.cash + data.drawer.mpesa).toLocaleString()}`, 112, currentY + 16)
+
+    currentY += 28
+  }
+
+  // 7. Store Verification & Signatures
+  doc.setDrawColor(203, 213, 225)
+  doc.setLineWidth(0.5)
+
+  const signY = 265
+  doc.line(14, signY, 85, signY)
+  doc.line(125, signY, 196, signY)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(8)
+  doc.setTextColor(71, 85, 105)
+  doc.text('Store Manager / Cashier Verification', 14, signY + 4)
+  doc.text('Shop Owner Sign-Off & Approval', 125, signY + 4)
+
+  doc.setFont('helvetica', 'italic')
+  doc.setFontSize(7.5)
+  doc.setTextColor(148, 163, 184)
+  doc.text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} • Mandera African Wear`, 14, 285)
+
+  // Save PDF
+  doc.save(`${data.reportNumber}_ManderaWear_ZReport.pdf`)
+}
+
 /**
  * Opens WhatsApp directly in the customer's chat DM and returns the URL
  */
