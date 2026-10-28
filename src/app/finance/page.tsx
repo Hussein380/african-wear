@@ -14,15 +14,15 @@ import {
   normalizeKenyanPhone,
 } from '@/lib/pdfInvoice'
 
-const EXPENSE_CATEGORIES: { key: ExpenseCategory; label: string; icon: string }[] = [
-  { key: 'rent', label: 'Shop Rent', icon: '🏢' },
-  { key: 'utilities', label: 'Electricity & Water (KPLC)', icon: '💡' },
-  { key: 'transport', label: 'Cargo & Transport', icon: '🚚' },
-  { key: 'wages', label: 'Staff Wages & Allowances', icon: '👥' },
-  { key: 'packaging', label: 'Packaging & Bags', icon: '🛍️' },
-  { key: 'food', label: 'Meals & Refreshments', icon: '☕' },
-  { key: 'maintenance', label: 'Repairs & Maintenance', icon: '🔧' },
-  { key: 'other', label: 'Other Operating Expenses', icon: '📌' },
+const EXPENSE_CATEGORIES: { key: ExpenseCategory; label: string; shortLabel: string }[] = [
+  { key: 'rent', label: 'Shop Rent', shortLabel: 'Rent' },
+  { key: 'utilities', label: 'Electricity & Water (KPLC)', shortLabel: 'Utilities' },
+  { key: 'transport', label: 'Cargo & Transport', shortLabel: 'Transport' },
+  { key: 'wages', label: 'Staff Wages & Allowances', shortLabel: 'Wages' },
+  { key: 'packaging', label: 'Packaging & Bags', shortLabel: 'Packaging' },
+  { key: 'food', label: 'Meals & Refreshments', shortLabel: 'Meals' },
+  { key: 'maintenance', label: 'Repairs & Maintenance', shortLabel: 'Repairs' },
+  { key: 'other', label: 'Other Operating Expenses', shortLabel: 'Other' },
 ]
 
 interface FinanceSummary {
@@ -420,11 +420,11 @@ export default function FinancePage() {
     const normPhone = normalizeKenyanPhone(phone)
     const itemsSummary = inv.items.map(i => `${i.quantity}x ${i.fullCode}`).join(', ')
     const msg =
-`Habari ${inv.customerName ? inv.customerName.trim() : 'valued customer'}, this is Mandera African Wear. 🌸
+`Habari ${inv.customerName ? inv.customerName.trim() : 'valued customer'}, this is Mandera African Wear.
 
-Friendly reminder regarding your outstanding credit balance of *KES ${inv.totalAmount.toLocaleString()}* for receipt *#${inv.invoiceNumber}* (${itemsSummary}).
+Friendly reminder regarding your outstanding balance of KES ${inv.totalAmount.toLocaleString()} for receipt #${inv.invoiceNumber} (${itemsSummary}).
 
-Kindly settle when convenient. Thank you for your continued business!`
+Kindly settle when convenient. Thank you for your continued business.`
 
     const url = `https://wa.me/${normPhone}?text=${encodeURIComponent(msg)}`
     window.open(url, '_blank')
@@ -455,21 +455,21 @@ Kindly settle when convenient. Thank you for your continued business!`
 
     const normOwner = normalizeKenyanPhone(ownerPhone)
     const msg =
-`👑 *MANDERA AFRICAN WEAR*
-📊 *DAILY REGISTER CLOSE (Z-REPORT)*
-📅 Date: ${dateFormatted}
-──────────────────────────
-💵 *Net Cash in Drawer:* KES ${cash.toLocaleString()}
-📱 *M-Pesa on Till:* KES ${mpesa.toLocaleString()}
-💳 *Customer Credit (Deyn):* KES ${credit.toLocaleString()}
-──────────────────────────
-💰 *TOTAL SALES REVENUE:* KES ${total.toLocaleString()}
-💸 *Shop Operating Expenses:* KES ${expensesTotal.toLocaleString()}
-🏆 *NET TAKE-HOME ESTIMATE:* KES ${netProfit.toLocaleString()}
-📦 *Fabrics Sold:* ${pcs} pieces
-🧾 *Receipts Generated:* ${invoicesCount}
-──────────────────────────
-✅ Verified End-of-Day Store Closing Summary`
+`*MANDERA AFRICAN WEAR*
+*Daily Register Close Summary (Z-Report)*
+Date: ${dateFormatted}
+------------------------------------------
+• Net Cash in Drawer: KES ${cash.toLocaleString()}
+• M-Pesa on Till: KES ${mpesa.toLocaleString()}
+• Customer Credit (Deyn): KES ${credit.toLocaleString()}
+------------------------------------------
+• Total Sales Revenue: KES ${total.toLocaleString()}
+• Shop Operating Expenses: KES ${expensesTotal.toLocaleString()}
+• Estimated Net Take-Home: KES ${netProfit.toLocaleString()}
+• Fabrics Sold: ${pcs} pieces
+• Receipts Generated: ${invoicesCount}
+------------------------------------------
+Verified End-of-Day Store Closing Summary`
 
     const url = `https://wa.me/${normOwner}?text=${encodeURIComponent(msg)}`
     window.open(url, '_blank')
@@ -1023,12 +1023,16 @@ Kindly settle when convenient. Thank you for your continued business!`
                   </div>
                 )}
 
-                <div style={{ background: 'rgba(91, 26, 62, 0.04)', border: '1px solid rgba(91, 26, 62, 0.15)', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: '12px', color: 'var(--color-primary-dark)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '18px' }}>💡</span>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: '12px', color: '#334155', marginBottom: '14px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '2px' }}>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="16" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                  </svg>
                   <div>
-                    <strong>Tapped minus (−) on a fabric in the shop?</strong>
-                    <div style={{ marginTop: '2px', color: 'var(--color-text-secondary)' }}>
-                      That fabric was already deducted from your shelves! Tap <strong>&quot;+ Add to Receipt&quot;</strong> on it to generate a customer bill without double-deducting.
+                    <strong style={{ color: '#0f172a' }}>Tapped minus (−) on a fabric in the shop?</strong>
+                    <div style={{ marginTop: '2px', color: '#64748b' }}>
+                      That fabric was already deducted from your shelves. Tap <strong>&quot;+ Add to Receipt&quot;</strong> to bundle it into a customer receipt without deducting twice.
                     </div>
                   </div>
                 </div>
@@ -1178,16 +1182,16 @@ Kindly settle when convenient. Thank you for your continued business!`
                                 </span>
                               ) : (
                                 <span style={{ fontSize: '10px', background: 'rgba(91, 26, 62, 0.08)', color: 'var(--color-primary)', padding: '1px 6px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
-                                  📦 From Shelves (Deducts on Save)
+                                  Shelves Stock (Deducts on Save)
                                 </span>
                               )}
                             </div>
                             <button
                               type="button"
                               onClick={() => handleRemoveItem(idx)}
-                              style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
+                              style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
                             >
-                              ✕ Remove
+                              Remove
                             </button>
                           </div>
 
@@ -1222,8 +1226,8 @@ Kindly settle when convenient. Thank you for your continued business!`
                           </div>
 
                           {isBelowCost && (
-                            <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--color-danger)', fontWeight: 600 }}>
-                              ⚠️ Below Cost! Buying price is KES {item.costPrice?.toLocaleString()}. Loss of KES {((item.costPrice! - item.unitPrice) * item.quantity).toLocaleString()}.
+                            <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#b91c1c', fontWeight: 600 }}>
+                              Below Cost: Buying price is KES {item.costPrice?.toLocaleString()}. Loss of KES {((item.costPrice! - item.unitPrice) * item.quantity).toLocaleString()}.
                             </p>
                           )}
                         </div>
@@ -1524,17 +1528,20 @@ Kindly settle when convenient. Thank you for your continued business!`
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                   <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>💳 Customer Credit (Deyn) Ledger</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="20" height="14" x="2" y="5" rx="2" />
+                      <line x1="2" x2="22" y1="10" y2="10" />
+                    </svg>
+                    <span>Customer Credit (Deyn) Ledger</span>
                   </h2>
                   <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: '3px 0 0' }}>
-                    Track fabrics handed out on credit, send polite WhatsApp payment reminders, and settle debts with 1 tap.
+                    Track fabrics handed out on credit, send WhatsApp payment reminders, and settle balances.
                   </p>
                 </div>
 
                 <div style={{
-                  background: 'var(--color-bg-card)',
-                  border: '1px solid var(--color-border)',
-                  borderLeft: '4px solid var(--color-danger)',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
                   borderRadius: 'var(--radius-md)',
                   padding: '10px 18px',
                   display: 'flex',
@@ -1544,8 +1551,8 @@ Kindly settle when convenient. Thank you for your continued business!`
                   boxShadow: 'var(--shadow-sm)',
                   flexWrap: 'wrap',
                 }}>
-                  <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Total Outstanding Balance:</span>
-                  <strong style={{ fontSize: '18px', color: 'var(--color-danger)', fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Total Outstanding Balance:</span>
+                  <strong style={{ fontSize: '18px', color: '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
                     KES {totalCreditBalance.toLocaleString()}
                   </strong>
                 </div>
@@ -1555,12 +1562,16 @@ Kindly settle when convenient. Thank you for your continued business!`
                 <div style={{
                   textAlign: 'center',
                   padding: '48px 20px',
-                  background: 'var(--color-bg-card)',
+                  background: '#ffffff',
                   borderRadius: 'var(--radius-lg)',
-                  border: '1px solid var(--color-border)',
+                  border: '1px solid #e2e8f0',
                   color: 'var(--color-text-muted)',
                 }}>
-                  <span style={{ fontSize: '36px', display: 'block', marginBottom: '8px' }}>🎉</span>
+                  <div style={{ width: '48px', height: '48px', margin: '0 auto 12px', borderRadius: '50%', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
                   <h4 style={{ margin: '0 0 4px', fontSize: '16px', color: 'var(--color-text-primary)', fontWeight: 700 }}>
                     No Outstanding Customer Debt
                   </h4>
@@ -1574,10 +1585,9 @@ Kindly settle when convenient. Thank you for your continued business!`
                     <div
                       key={inv._id}
                       style={{
-                        background: 'var(--color-bg-card)',
+                        background: '#ffffff',
                         borderRadius: 'var(--radius-lg)',
-                        border: '1px solid var(--color-border)',
-                        borderLeft: '4px solid var(--color-danger)',
+                        border: '1px solid #e2e8f0',
                         padding: '16px',
                         boxShadow: 'var(--shadow-sm)',
                         display: 'flex',
@@ -1596,18 +1606,19 @@ Kindly settle when convenient. Thank you for your continued business!`
                             </span>
                           </div>
                           <span style={{
-                            background: 'rgba(198, 40, 40, 0.1)',
-                            color: 'var(--color-danger)',
+                            background: '#fef2f2',
+                            color: '#b91c1c',
                             fontWeight: 700,
                             fontSize: '11px',
                             padding: '3px 8px',
                             borderRadius: 'var(--radius-sm)',
+                            border: '1px solid #fecaca',
                           }}>
-                            Deyn / Credit
+                            Credit Debt
                           </span>
                         </div>
 
-                        <div style={{ background: 'var(--color-bg-hover)', padding: '10px 12px', borderRadius: 'var(--radius-md)', marginBottom: '12px', fontSize: '12px' }}>
+                        <div style={{ background: '#f8fafc', border: '1px solid #f1f5f9', padding: '10px 12px', borderRadius: 'var(--radius-md)', marginBottom: '12px', fontSize: '12px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--color-text-secondary)', alignItems: 'center' }}>
                             <span>Receipt #:</span>
                             <button
@@ -1625,14 +1636,14 @@ Kindly settle when convenient. Thank you for your continued business!`
                               }}
                               title="Click to view full receipt or print slip"
                             >
-                              🧾 {inv.invoiceNumber}
+                              {inv.invoiceNumber}
                             </button>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: 'var(--color-text-muted)' }}>
                             <span>Sale Date:</span>
                             <span>{new Date(inv.createdAt).toLocaleDateString()}</span>
                           </div>
-                          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '6px' }}>
+                          <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '6px' }}>
                             <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>Fabrics Taken:</div>
                             {inv.items.map((item, idx) => (
                               <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-primary)' }}>
@@ -1645,20 +1656,20 @@ Kindly settle when convenient. Thank you for your continued business!`
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                           <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Amount Owed:</span>
-                          <strong style={{ fontSize: '18px', color: 'var(--color-danger)', fontVariantNumeric: 'tabular-nums' }}>
+                          <strong style={{ fontSize: '18px', color: '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
                             KES {inv.totalAmount.toLocaleString()}
                           </strong>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--color-border)', paddingTop: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 110px), 1fr))', gap: '8px' }}>
                           <button
                             type="button"
                             disabled={isUpdatingPayment === inv._id}
                             onClick={() => handleMarkInvoicePaid(inv._id, 'cash')}
                             style={{
-                              background: 'var(--color-success)',
+                              background: '#16a34a',
                               color: '#ffffff',
                               border: 'none',
                               padding: '8px 10px',
@@ -1668,7 +1679,7 @@ Kindly settle when convenient. Thank you for your continued business!`
                               cursor: 'pointer',
                             }}
                           >
-                            ✓ Paid (Cash)
+                            Paid (Cash)
                           </button>
                           <button
                             type="button"
@@ -1685,7 +1696,7 @@ Kindly settle when convenient. Thank you for your continued business!`
                               cursor: 'pointer',
                             }}
                           >
-                            ✓ Paid (M-Pesa)
+                            Paid (M-Pesa)
                           </button>
                         </div>
 
@@ -1693,13 +1704,13 @@ Kindly settle when convenient. Thank you for your continued business!`
                           type="button"
                           onClick={() => handleSendCreditReminder(inv)}
                           style={{
-                            background: '#25D366',
+                            background: '#128C7E',
                             color: '#ffffff',
                             border: 'none',
                             padding: '9px 10px',
                             borderRadius: 'var(--radius-sm)',
                             fontSize: '12px',
-                            fontWeight: 700,
+                            fontWeight: 600,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -1707,7 +1718,10 @@ Kindly settle when convenient. Thank you for your continued business!`
                             gap: '6px',
                           }}
                         >
-                          💬 Send WhatsApp Reminder
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                          </svg>
+                          <span>Send WhatsApp Reminder</span>
                         </button>
                       </div>
                     </div>
@@ -1746,27 +1760,33 @@ Kindly settle when convenient. Thank you for your continued business!`
               {/* Daily Register Close (Z-Report) Card */}
               <div
                 style={{
-                  background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)',
+                  background: '#ffffff',
                   borderRadius: 'var(--radius-lg)',
                   padding: '20px 22px',
-                  color: '#ffffff',
+                  color: 'var(--color-text-primary)',
                   marginBottom: '24px',
-                  boxShadow: 'var(--shadow-md)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  boxShadow: 'var(--shadow-sm)',
+                  border: '1px solid #e2e8f0',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '20px' }}>📊</span>
-                      <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.3px' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
+                      </svg>
+                      <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: '0.3px' }}>
                         Daily Register Close (Z-Report)
                       </h3>
-                      <span style={{ background: 'rgba(255,255,255,0.18)', fontSize: '11px', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 600 }}>
+                      <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '11px', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 600 }}>
                         {selectedRange === 'today' ? "Today's Close" : `Period: ${selectedRange.toUpperCase()}`}
                       </span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255, 255, 255, 0.85)' }}>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>
                       Physical drawer cash vs. M-Pesa on Till balance for Mandera African Wear
                     </p>
                   </div>
@@ -1775,71 +1795,73 @@ Kindly settle when convenient. Thank you for your continued business!`
                     type="button"
                     onClick={handleSendDailyCloseWhatsApp}
                     style={{
-                      background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                      background: '#128C7E',
                       color: '#ffffff',
                       border: 'none',
                       borderRadius: 'var(--radius-md)',
-                      padding: '10px 16px',
+                      padding: '9px 14px',
                       fontSize: '12px',
-                      fontWeight: 700,
+                      fontWeight: 600,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
                     }}
                   >
-                    <span>📲 Send Daily Close to Owner via WhatsApp</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>Send Daily Close to Owner via WhatsApp</span>
                   </button>
                 </div>
 
                 {/* Drawer Breakdown Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px' }}>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
-                    <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', color: '#86efac', display: 'block', fontWeight: 700, marginBottom: '2px' }}>
-                      💵 Physical Cash in Drawer
+                  <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#64748b', display: 'block', fontWeight: 700, marginBottom: '2px' }}>
+                      Physical Cash in Drawer
                     </span>
-                    <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
                       KES {drawerBreakdown.cash.toLocaleString()}
                     </div>
-                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.75)', display: 'block', marginTop: '2px' }}>
-                      Must match drawer cash
+                    <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
+                      Must match physical cash
                     </span>
                   </div>
 
-                  <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
-                    <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', color: '#93c5fd', display: 'block', fontWeight: 700, marginBottom: '2px' }}>
-                      📱 M-Pesa on Till
+                  <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#64748b', display: 'block', fontWeight: 700, marginBottom: '2px' }}>
+                      M-Pesa on Till
                     </span>
-                    <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
                       KES {drawerBreakdown.mpesa.toLocaleString()}
                     </div>
-                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.75)', display: 'block', marginTop: '2px' }}>
+                    <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
                       Confirmed via shop phone
                     </span>
                   </div>
 
-                  <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
-                    <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', color: '#fca5a5', display: 'block', fontWeight: 700, marginBottom: '2px' }}>
-                      💳 Customer Credit (Deyn)
+                  <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#b91c1c', display: 'block', fontWeight: 700, marginBottom: '2px' }}>
+                      Customer Credit (Deyn)
                     </span>
-                    <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 800, color: '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
                       KES {drawerBreakdown.credit.toLocaleString()}
                     </div>
-                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.75)', display: 'block', marginTop: '2px' }}>
+                    <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
                       Handed out on credit debt
                     </span>
                   </div>
 
-                  <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
-                    <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', color: 'rgba(255,255,255,0.85)', display: 'block', fontWeight: 700, marginBottom: '2px' }}>
-                      💰 Total Sales Recorded
+                  <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--color-primary)', display: 'block', fontWeight: 700, marginBottom: '2px' }}>
+                      Total Sales Recorded
                     </span>
-                    <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-primary)', fontVariantNumeric: 'tabular-nums' }}>
                       KES {(financeData?.summary.totalRevenue || 0).toLocaleString()}
                     </div>
-                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.75)', display: 'block', marginTop: '2px' }}>
-                      {financeData?.summary.totalPiecesSold || 0} total fabric pieces
+                    <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
+                      {financeData?.summary.totalPiecesSold || 0} fabric rolls sold
                     </span>
                   </div>
                 </div>
@@ -1847,32 +1869,32 @@ Kindly settle when convenient. Thank you for your continued business!`
 
               {/* Stat Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: '14px', marginBottom: '24px' }}>
-                <div style={{ background: 'var(--color-bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>Total Sales Revenue</span>
-                  <strong style={{ fontSize: '20px', color: 'var(--color-text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ background: '#ffffff', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-sm)' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>Total Sales Revenue</span>
+                  <strong style={{ fontSize: '20px', color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
                     KES {(financeData?.summary.totalRevenue || 0).toLocaleString()}
                   </strong>
-                  <span style={{ fontSize: '11px', color: 'var(--color-success)', display: 'block', marginTop: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#16a34a', display: 'block', marginTop: '4px' }}>
                     {financeData?.summary.pricedPiecesSold || 0} pieces priced
                   </span>
                 </div>
 
-                <div style={{ background: 'var(--color-bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>Wholesale Fabric Cost</span>
+                <div style={{ background: '#ffffff', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-sm)' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>Wholesale Fabric Cost</span>
                   <strong style={{ fontSize: '20px', color: '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
                     KES {(financeData?.summary.totalCost || 0).toLocaleString()}
                   </strong>
-                  <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginTop: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginTop: '4px' }}>
                     Cost of items sold
                   </span>
                 </div>
 
-                <div style={{ background: 'var(--color-bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>Shop Expenses</span>
-                  <strong style={{ fontSize: '20px', color: '#c2410c', fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ background: '#ffffff', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-sm)' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>Shop Expenses</span>
+                  <strong style={{ fontSize: '20px', color: '#475569', fontVariantNumeric: 'tabular-nums' }}>
                     KES {(financeData?.summary.totalExpenses !== undefined ? financeData.summary.totalExpenses : totalExpensesComputed).toLocaleString()}
                   </strong>
-                  <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginTop: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginTop: '4px' }}>
                     Rent, electricity, cargo, etc.
                   </span>
                 </div>
@@ -1883,16 +1905,16 @@ Kindly settle when convenient. Thank you for your continued business!`
                   const isProfit = net >= 0
                   return (
                     <div style={{
-                      background: isProfit ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                      background: isProfit ? '#f0fdf4' : '#fef2f2',
                       padding: '16px',
                       borderRadius: 'var(--radius-md)',
-                      border: `1.5px solid ${isProfit ? 'rgba(34, 197, 94, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                      border: `1px solid ${isProfit ? '#bbf7d0' : '#fecaca'}`,
                       boxShadow: 'var(--shadow-sm)',
                     }}>
                       <span style={{ fontSize: '12px', color: isProfit ? '#15803d' : '#b91c1c', display: 'block', marginBottom: '4px', fontWeight: 700 }}>
-                        🏆 Net Take-Home Profit
+                        Net Take-Home Profit
                       </span>
-                      <strong style={{ fontSize: '20px', color: isProfit ? '#16a34a' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>
+                      <strong style={{ fontSize: '20px', color: isProfit ? '#15803d' : '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
                         KES {net.toLocaleString()}
                       </strong>
                       <span style={{ fontSize: '11px', color: isProfit ? '#166534' : '#991b1b', display: 'block', marginTop: '4px' }}>
@@ -1902,20 +1924,20 @@ Kindly settle when convenient. Thank you for your continued business!`
                   )
                 })()}
 
-                <div style={{ background: 'var(--color-bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>Total Fabrics Sold</span>
-                  <strong style={{ fontSize: '20px', color: 'var(--color-text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ background: '#ffffff', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-sm)' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>Total Fabrics Sold</span>
+                  <strong style={{ fontSize: '20px', color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
                     {financeData?.summary.totalPiecesSold || 0} pcs
                   </strong>
-                  <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginTop: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginTop: '4px' }}>
                     {financeData?.summary.unpricedPiecesSold || 0} pcs sold without price
                   </span>
                 </div>
               </div>
 
               {/* Recent Sales History */}
-              <div style={{ background: 'var(--color-bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
-                <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ background: '#ffffff', borderRadius: 'var(--radius-lg)', border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>Sales History & Profits</h3>
                     <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', margin: '2px 0 0' }}>
@@ -1974,9 +1996,9 @@ Kindly settle when convenient. Thank you for your continued business!`
                               <td>{sale.quantity} pc{sale.quantity > 1 ? 's' : ''}</td>
                               <td>
                                 {sale.soldPrice !== undefined ? (
-                                  <span style={{ color: sale.isLoss ? 'var(--color-danger)' : 'var(--color-text-primary)', fontWeight: 600 }}>
+                                  <span style={{ color: sale.isLoss ? '#b91c1c' : 'var(--color-text-primary)', fontWeight: 600 }}>
                                     KES {sale.soldPrice.toLocaleString()}
-                                    {sale.isLoss && <span style={{ fontSize: '10px', marginLeft: '4px' }}>⚠️ (Below Cost)</span>}
+                                    {sale.isLoss && <span style={{ fontSize: '10px', marginLeft: '4px', color: '#b91c1c' }}>(Below Cost)</span>}
                                   </span>
                                 ) : (
                                   <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Unrecorded</span>
@@ -1987,7 +2009,7 @@ Kindly settle when convenient. Thank you for your continued business!`
                               </td>
                               <td>
                                 {sale.itemProfit !== undefined ? (
-                                  <span style={{ color: sale.itemProfit >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: 600 }}>
+                                  <span style={{ color: sale.itemProfit >= 0 ? '#16a34a' : '#b91c1c', fontWeight: 600 }}>
                                     {sale.itemProfit >= 0 ? '+' : ''}KES {sale.itemProfit.toLocaleString()}
                                   </span>
                                 ) : (
@@ -2012,7 +2034,7 @@ Kindly settle when convenient. Thank you for your continued business!`
                                       whiteSpace: 'nowrap',
                                     }}
                                   >
-                                    🧾 Receipt
+                                    Receipt
                                   </button>
                                   <button
                                     type="button"
@@ -2031,7 +2053,7 @@ Kindly settle when convenient. Thank you for your continued business!`
                                       whiteSpace: 'nowrap',
                                     }}
                                   >
-                                    {voidingSaleId === sale.id ? 'Returning...' : '↩️ Return to Shelf'}
+                                    {voidingSaleId === sale.id ? 'Returning...' : 'Return to Shelf'}
                                   </button>
                                 </div>
                               </td>
@@ -2084,27 +2106,30 @@ Kindly settle when convenient. Thank you for your continued business!`
               {/* MONTH-END PROFIT & LOSS (P&L) CALCULATION CARD */}
               <div
                 style={{
-                  background: 'linear-gradient(135deg, #1e1b4b 0%, #31103f 50%, #4a044e 100%)',
+                  background: '#ffffff',
                   borderRadius: 'var(--radius-lg)',
                   padding: '22px 24px',
-                  color: '#ffffff',
+                  color: 'var(--color-text-primary)',
                   marginBottom: '24px',
-                  boxShadow: 'var(--shadow-md)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  boxShadow: 'var(--shadow-sm)',
+                  border: '1px solid #e2e8f0',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px', marginBottom: '18px' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '22px' }}>📊</span>
-                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.3px' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                      </svg>
+                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: '0.3px' }}>
                         Month-End Calculation & Net Take-Home
                       </h3>
-                      <span style={{ background: 'rgba(255,255,255,0.2)', fontSize: '11px', padding: '3px 10px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                      <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '11px', padding: '3px 10px', borderRadius: 'var(--radius-full)', fontWeight: 600 }}>
                         {selectedRange === 'month' ? 'This Month' : selectedRange.toUpperCase()}
                       </span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255, 255, 255, 0.85)' }}>
+                    <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)' }}>
                       Complete breakdown of sales revenue minus wholesale fabric costs minus shop operating expenses.
                     </p>
                   </div>
@@ -2113,74 +2138,76 @@ Kindly settle when convenient. Thank you for your continued business!`
                     type="button"
                     onClick={handleSendDailyCloseWhatsApp}
                     style={{
-                      background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                      background: '#128C7E',
                       color: '#ffffff',
                       border: 'none',
                       borderRadius: 'var(--radius-md)',
-                      padding: '10px 16px',
+                      padding: '9px 14px',
                       fontSize: '12px',
-                      fontWeight: 700,
+                      fontWeight: 600,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
                     }}
                   >
-                    <span>📲 Send P&L Summary via WhatsApp</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>Send P&L Summary via WhatsApp</span>
                   </button>
                 </div>
 
                 {/* 5-Step P&L Flow Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '12px' }}>
                   {/* Step 1: Revenue */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
-                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#93c5fd', display: 'block', fontWeight: 700, marginBottom: '4px' }}>
+                  <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#64748b', display: 'block', fontWeight: 700, marginBottom: '4px' }}>
                       1. Sales Revenue
                     </span>
-                    <div style={{ fontSize: '19px', fontWeight: 800, color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ fontSize: '19px', fontWeight: 800, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
                       KES {(financeData?.summary.totalRevenue || 0).toLocaleString()}
                     </div>
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', display: 'block', marginTop: '3px' }}>
+                    <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
                       {financeData?.summary.totalPiecesSold || 0} fabric rolls sold
                     </span>
                   </div>
 
                   {/* Step 2: Cost of Inventory */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
-                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#fca5a5', display: 'block', fontWeight: 700, marginBottom: '4px' }}>
+                  <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#64748b', display: 'block', fontWeight: 700, marginBottom: '4px' }}>
                       2. Wholesale Cost (COGS)
                     </span>
-                    <div style={{ fontSize: '19px', fontWeight: 800, color: '#fca5a5', fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ fontSize: '19px', fontWeight: 800, color: '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
                       − KES {(financeData?.summary.totalCost || 0).toLocaleString()}
                     </div>
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', display: 'block', marginTop: '3px' }}>
+                    <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
                       Fabric purchase costs
                     </span>
                   </div>
 
                   {/* Step 3: Gross Trading Profit */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
-                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#fde047', display: 'block', fontWeight: 700, marginBottom: '4px' }}>
+                  <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#64748b', display: 'block', fontWeight: 700, marginBottom: '4px' }}>
                       3. Gross Profit
                     </span>
-                    <div style={{ fontSize: '19px', fontWeight: 800, color: '#fde047', fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ fontSize: '19px', fontWeight: 800, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
                       = KES {(financeData?.summary.estimatedProfit || 0).toLocaleString()}
                     </div>
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', display: 'block', marginTop: '3px' }}>
+                    <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
                       Margin before shop costs
                     </span>
                   </div>
 
                   {/* Step 4: Operating Expenses */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
-                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#fb923c', display: 'block', fontWeight: 700, marginBottom: '4px' }}>
+                  <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#64748b', display: 'block', fontWeight: 700, marginBottom: '4px' }}>
                       4. Shop Expenses
                     </span>
-                    <div style={{ fontSize: '19px', fontWeight: 800, color: '#fb923c', fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ fontSize: '19px', fontWeight: 800, color: '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
                       − KES {(financeData?.summary.totalExpenses !== undefined ? financeData.summary.totalExpenses : totalExpensesComputed).toLocaleString()}
                     </div>
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', display: 'block', marginTop: '3px' }}>
+                    <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
                       Rent, electricity, cargo, etc.
                     </span>
                   </div>
@@ -2193,20 +2220,20 @@ Kindly settle when convenient. Thank you for your continued business!`
                     return (
                       <div
                         style={{
-                          background: isProfit ? 'rgba(34, 197, 94, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+                          background: isProfit ? '#f0fdf4' : '#fef2f2',
                           padding: '14px',
                           borderRadius: 'var(--radius-md)',
-                          border: `2px solid ${isProfit ? '#4ade80' : '#f87171'}`,
+                          border: `1.5px solid ${isProfit ? '#86efac' : '#fca5a5'}`,
                         }}
                       >
-                        <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: isProfit ? '#86efac' : '#fca5a5', display: 'block', fontWeight: 800, marginBottom: '4px' }}>
-                          🏆 5. Net Take-Home
+                        <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: isProfit ? '#15803d' : '#b91c1c', display: 'block', fontWeight: 800, marginBottom: '4px' }}>
+                          5. Net Take-Home
                         </span>
-                        <div style={{ fontSize: '20px', fontWeight: 900, color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 900, color: isProfit ? '#15803d' : '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
                           KES {net.toLocaleString()}
                         </div>
-                        <span style={{ fontSize: '11px', color: isProfit ? '#bbf7d0' : '#fecaca', display: 'block', marginTop: '3px', fontWeight: 600 }}>
-                          {isProfit ? '✓ Clean Net Profit' : '⚠️ Net Operating Deficit'}
+                        <span style={{ fontSize: '11px', color: isProfit ? '#166534' : '#991b1b', display: 'block', marginTop: '3px', fontWeight: 600 }}>
+                          {isProfit ? 'Clean Net Profit' : 'Operating Deficit'}
                         </span>
                       </div>
                     )
@@ -2214,26 +2241,26 @@ Kindly settle when convenient. Thank you for your continued business!`
                 </div>
 
                 {/* Cash Drawer & M-Pesa Till Verification */}
-                <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.15)', display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '12px' }}>
+                <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>💵 <strong>Physical Cash in Drawer:</strong></span>
-                    <span style={{ fontVariantNumeric: 'tabular-nums', color: '#86efac', fontWeight: 700 }}>
+                    <span style={{ color: '#64748b' }}>Physical Cash in Drawer:</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums', color: '#0f172a', fontWeight: 700 }}>
                       KES {drawerBreakdown.cash.toLocaleString()}
                     </span>
                     {drawerBreakdown.cashExpenses ? (
-                      <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
+                      <span style={{ color: '#94a3b8', fontSize: '11px' }}>
                         (Gross KES {(drawerBreakdown.grossCash || drawerBreakdown.cash).toLocaleString()} − KES {drawerBreakdown.cashExpenses.toLocaleString()} paid out)
                       </span>
                     ) : null}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>📱 <strong>M-Pesa on Till:</strong></span>
-                    <span style={{ fontVariantNumeric: 'tabular-nums', color: '#93c5fd', fontWeight: 700 }}>
+                    <span style={{ color: '#64748b' }}>M-Pesa on Till:</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums', color: '#0f172a', fontWeight: 700 }}>
                       KES {drawerBreakdown.mpesa.toLocaleString()}
                     </span>
                     {drawerBreakdown.mpesaExpenses ? (
-                      <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
+                      <span style={{ color: '#94a3b8', fontSize: '11px' }}>
                         (Gross KES {(drawerBreakdown.grossMpesa || drawerBreakdown.mpesa).toLocaleString()} − KES {drawerBreakdown.mpesaExpenses.toLocaleString()} paid out)
                       </span>
                     ) : null}
@@ -2244,15 +2271,21 @@ Kindly settle when convenient. Thank you for your continued business!`
               {/* Two Column Section: Add Expense Form + Expenses Breakdown */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '20px', marginBottom: '24px' }}>
                 {/* Form: Record New Expense */}
-                <div style={{ background: 'var(--color-bg-card)', padding: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '20px' }}>💸</span>
+                <div style={{ background: '#ffffff', padding: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-sm)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(91, 26, 62, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+                        <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+                        <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+                      </svg>
+                    </div>
                     <div>
                       <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
                         Record Shop Expense
                       </h3>
                       <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                        Deducts directly from the selected drawer/till
+                        Deducts directly from the selected drawer or till
                       </p>
                     </div>
                   </div>
@@ -2321,23 +2354,19 @@ Kindly settle when convenient. Thank you for your continued business!`
                             type="button"
                             onClick={() => setExpenseCategory(cat.key)}
                             style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
                               padding: '8px 10px',
                               borderRadius: '8px',
-                              border: expenseCategory === cat.key ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-                              background: expenseCategory === cat.key ? 'var(--color-primary-soft, #fdf4ff)' : 'var(--color-bg)',
-                              color: expenseCategory === cat.key ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                              border: expenseCategory === cat.key ? '1.5px solid var(--color-primary)' : '1px solid #e2e8f0',
+                              background: expenseCategory === cat.key ? 'rgba(91, 26, 62, 0.06)' : '#ffffff',
+                              color: expenseCategory === cat.key ? 'var(--color-primary)' : '#475569',
                               fontWeight: expenseCategory === cat.key ? 700 : 500,
-                              fontSize: '11px',
+                              fontSize: '12px',
                               cursor: 'pointer',
-                              textAlign: 'left',
+                              textAlign: 'center',
                               transition: 'all 0.15s ease',
                             }}
                           >
-                            <span>{cat.icon}</span>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.label}</span>
+                            <span>{cat.shortLabel || cat.label}</span>
                           </button>
                         ))}
                       </div>
@@ -2349,9 +2378,9 @@ Kindly settle when convenient. Thank you for your continued business!`
                       </label>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                         {[
-                          { key: 'cash', label: '💵 Cash Drawer', sub: 'Deducts cash' },
-                          { key: 'mpesa', label: '📱 M-Pesa Till', sub: 'Deducts till' },
-                          { key: 'other', label: '💳 Other / Personal', sub: 'No drawer change' },
+                          { key: 'cash', label: 'Cash Drawer', sub: 'Deducts cash' },
+                          { key: 'mpesa', label: 'M-Pesa Till', sub: 'Deducts till' },
+                          { key: 'other', label: 'Other / Personal', sub: 'No drawer change' },
                         ].map(m => (
                           <button
                             key={m.key}
@@ -2360,9 +2389,9 @@ Kindly settle when convenient. Thank you for your continued business!`
                             style={{
                               padding: '10px 8px',
                               borderRadius: '8px',
-                              border: expensePaymentMethod === m.key ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-                              background: expensePaymentMethod === m.key ? 'var(--color-primary-soft, #fdf4ff)' : 'var(--color-bg)',
-                              color: expensePaymentMethod === m.key ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                              border: expensePaymentMethod === m.key ? '1.5px solid var(--color-primary)' : '1px solid #e2e8f0',
+                              background: expensePaymentMethod === m.key ? 'rgba(91, 26, 62, 0.06)' : '#ffffff',
+                              color: expensePaymentMethod === m.key ? 'var(--color-primary)' : '#475569',
                               fontWeight: expensePaymentMethod === m.key ? 700 : 500,
                               fontSize: '12px',
                               cursor: 'pointer',
@@ -2370,7 +2399,7 @@ Kindly settle when convenient. Thank you for your continued business!`
                             }}
                           >
                             <div>{m.label}</div>
-                            <div style={{ fontSize: '10px', opacity: 0.7, marginTop: '2px' }}>{m.sub}</div>
+                            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>{m.sub}</div>
                           </button>
                         ))}
                       </div>
@@ -2396,14 +2425,14 @@ Kindly settle when convenient. Thank you for your continued business!`
                       className="btn btn--primary"
                       style={{ padding: '12px', fontSize: '14px', fontWeight: 700, marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                     >
-                      {isSavingExpense ? 'Saving Expense...' : '💾 Save Shop Expense'}
+                      {isSavingExpense ? 'Saving Expense...' : 'Save Shop Expense'}
                     </button>
                   </form>
                 </div>
 
                 {/* Right Column: Category Breakdown & Summary */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ background: 'var(--color-bg-card)', padding: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+                  <div style={{ background: '#ffffff', padding: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-sm)' }}>
                     <h3 style={{ margin: '0 0 14px', fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
                       Expenses by Category
                     </h3>
@@ -2417,16 +2446,15 @@ Kindly settle when convenient. Thank you for your continued business!`
                         return (
                           <div key={cat.key} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-primary)', fontWeight: 600 }}>
-                                <span>{cat.icon}</span>
-                                <span>{cat.label}</span>
+                              <span style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>
+                                {cat.label}
                               </span>
-                              <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: amt > 0 ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
+                              <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: amt > 0 ? '#b91c1c' : '#94a3b8' }}>
                                 KES {amt.toLocaleString()} {amt > 0 ? `(${pct}%)` : ''}
                               </span>
                             </div>
-                            <div style={{ width: '100%', height: '6px', background: 'var(--color-bg-hover)', borderRadius: '3px', overflow: 'hidden' }}>
-                              <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #ec4899, #f43f5e)', borderRadius: '3px' }} />
+                            <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                              <div style={{ width: `${pct}%`, height: '100%', background: 'var(--color-primary)', borderRadius: '3px' }} />
                             </div>
                           </div>
                         )
@@ -2435,19 +2463,26 @@ Kindly settle when convenient. Thank you for your continued business!`
                   </div>
 
                   <div style={{ background: '#f8fafc', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
-                    <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>💡 How this helps the owner at end of month:</div>
+                    <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                      </svg>
+                      <span>How this helps at month-end:</span>
+                    </div>
                     <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <li>Record any rent, electricity tokens, cargo, or lunches as they happen.</li>
-                      <li>Selecting <strong>This Month</strong> instantly tells you if the shop is in profit and by exactly how much.</li>
-                      <li>Cash drawer math matches the real physical notes in your cash drawer at all times.</li>
+                      <li>Selecting <strong>This Month</strong> immediately tells you if the shop is in profit and by how much.</li>
+                      <li>Drawer cash matches real physical notes in your cash drawer at all times.</li>
                     </ul>
                   </div>
                 </div>
               </div>
 
               {/* Recorded Expenses Ledger Table */}
-              <div style={{ background: 'var(--color-bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ background: '#ffffff', borderRadius: 'var(--radius-lg)', border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
                     <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
                       Recorded Expenses Ledger ({expenses.length})
@@ -2456,7 +2491,7 @@ Kindly settle when convenient. Thank you for your continued business!`
                       All operating expenses recorded for this period
                     </p>
                   </div>
-                  <strong style={{ fontSize: '16px', color: 'var(--color-danger)', fontVariantNumeric: 'tabular-nums' }}>
+                  <strong style={{ fontSize: '16px', color: '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
                     Total: KES {totalExpensesComputed.toLocaleString()}
                   </strong>
                 </div>
@@ -2483,9 +2518,9 @@ Kindly settle when convenient. Thank you for your continued business!`
                         </tr>
                       ) : (
                         expenses.map(exp => {
-                          const catInfo = EXPENSE_CATEGORIES.find(c => c.key === exp.category) || { label: exp.category, icon: '📌' }
+                          const catInfo = EXPENSE_CATEGORIES.find(c => c.key === exp.category) || { label: exp.category, shortLabel: exp.category }
                           return (
-                            <tr key={exp._id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                            <tr key={exp._id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                               <td style={{ fontSize: '12px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
                                 {new Date(exp.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                               </td>
@@ -2496,37 +2531,35 @@ Kindly settle when convenient. Thank you for your continued business!`
                                 <span style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '4px',
-                                  background: 'var(--color-bg-hover)',
+                                  background: '#f1f5f9',
                                   padding: '3px 8px',
                                   borderRadius: '6px',
                                   fontSize: '11px',
                                   fontWeight: 600,
-                                  color: 'var(--color-text-secondary)',
+                                  color: '#475569',
                                 }}>
-                                  <span>{catInfo.icon}</span>
-                                  <span>{catInfo.label}</span>
+                                  {catInfo.label}
                                 </span>
                               </td>
                               <td>
                                 <span style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '4px',
                                   padding: '3px 8px',
                                   borderRadius: '6px',
                                   fontSize: '11px',
                                   fontWeight: 700,
-                                  background: exp.paymentMethod === 'cash' ? 'rgba(34, 197, 94, 0.1)' : exp.paymentMethod === 'mpesa' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(148, 163, 184, 0.1)',
+                                  background: exp.paymentMethod === 'cash' ? '#f0fdf4' : exp.paymentMethod === 'mpesa' ? '#eff6ff' : '#f8fafc',
                                   color: exp.paymentMethod === 'cash' ? '#16a34a' : exp.paymentMethod === 'mpesa' ? '#2563eb' : '#64748b',
+                                  border: `1px solid ${exp.paymentMethod === 'cash' ? '#bbf7d0' : exp.paymentMethod === 'mpesa' ? '#bfdbfe' : '#e2e8f0'}`,
                                 }}>
-                                  {exp.paymentMethod === 'cash' ? '💵 Cash' : exp.paymentMethod === 'mpesa' ? '📱 M-Pesa' : '💳 Other'}
+                                  {exp.paymentMethod === 'cash' ? 'Cash Drawer' : exp.paymentMethod === 'mpesa' ? 'M-Pesa Till' : 'Other'}
                                 </span>
                               </td>
                               <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                                 {exp.notes || '—'}
                               </td>
-                              <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 800, color: 'var(--color-danger)', fontSize: '14px' }}>
+                              <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 800, color: '#b91c1c', fontSize: '14px' }}>
                                 KES {Number(exp.amount).toLocaleString()}
                               </td>
                               <td style={{ textAlign: 'right' }}>
@@ -2537,15 +2570,23 @@ Kindly settle when convenient. Thank you for your continued business!`
                                   style={{
                                     background: 'none',
                                     border: 'none',
-                                    color: 'var(--color-danger)',
+                                    color: '#b91c1c',
                                     cursor: 'pointer',
-                                    fontSize: '14px',
                                     padding: '4px 8px',
                                     borderRadius: '4px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
                                   }}
                                   title="Delete this expense"
                                 >
-                                  {deletingExpenseId === exp._id ? '...' : '🗑️'}
+                                  {deletingExpenseId === exp._id ? (
+                                    <span style={{ fontSize: '11px' }}>...</span>
+                                  ) : (
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="3 6 5 6 21 6" />
+                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                    </svg>
+                                  )}
                                 </button>
                               </td>
                             </tr>
@@ -2906,7 +2947,7 @@ Kindly settle when convenient. Thank you for your continued business!`
               >
                 <div>
                   <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: selectedInvoice.paymentMethod === 'credit' ? '#fca5a5' : 'rgba(255,255,255,0.85)', display: 'block', fontWeight: 700 }}>
-                    {selectedInvoice.paymentMethod === 'credit' ? '⚠️ UNPAID BALANCE (DEYN)' : 'TOTAL AMOUNT'}
+                    {selectedInvoice.paymentMethod === 'credit' ? 'UNPAID BALANCE (DEYN)' : 'TOTAL AMOUNT'}
                   </span>
                   <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)' }}>
                     {selectedInvoice.items.reduce((acc, i) => acc + i.quantity, 0)} total fabric pieces
@@ -2920,18 +2961,16 @@ Kindly settle when convenient. Thank you for your continued business!`
               {/* Credit Settle Buttons */}
               {selectedInvoice.paymentMethod === 'credit' && (
                 <div style={{
-                  background: 'var(--color-bg-card)',
-                  border: '1px solid var(--color-border)',
-                  borderLeft: '4px solid var(--color-danger)',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
                   borderRadius: 'var(--radius-md)',
                   padding: '14px 16px',
                   marginBottom: '18px',
-                  boxShadow: 'var(--shadow-sm)',
                 }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-danger)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>⚠️ Unpaid Credit Balance: KES {selectedInvoice.totalAmount.toLocaleString()}</span>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#b91c1c', marginBottom: '6px' }}>
+                    Unpaid Credit Balance: KES {selectedInvoice.totalAmount.toLocaleString()}
                   </div>
-                  <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: '0 0 10px' }}>
+                  <p style={{ fontSize: '11px', color: '#475569', margin: '0 0 10px' }}>
                     Customer took this on credit (Deyn). Settle now when payment is received:
                   </p>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: '8px' }}>
@@ -2940,7 +2979,7 @@ Kindly settle when convenient. Thank you for your continued business!`
                       disabled={isUpdatingPayment === selectedInvoice._id}
                       onClick={() => handleMarkInvoicePaid(selectedInvoice._id, 'cash')}
                       style={{
-                        background: 'var(--color-success)',
+                        background: '#16a34a',
                         color: '#ffffff',
                         border: 'none',
                         borderRadius: 'var(--radius-sm)',
@@ -2950,7 +2989,7 @@ Kindly settle when convenient. Thank you for your continued business!`
                         cursor: 'pointer',
                       }}
                     >
-                      ✓ Settle via Cash
+                      Settle via Cash
                     </button>
                     <button
                       type="button"
@@ -2967,50 +3006,52 @@ Kindly settle when convenient. Thank you for your continued business!`
                         cursor: 'pointer',
                       }}
                     >
-                      ✓ Settle via M-Pesa
+                      Settle via M-Pesa
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Interactive WhatsApp Sender Section (Direct Delivery + Fallback Link) */}
+              {/* Interactive WhatsApp Sender Section */}
               <div
                 style={{
-                  background: 'rgba(37, 211, 102, 0.05)',
-                  border: '1px solid rgba(37, 211, 102, 0.3)',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
                   borderRadius: 'var(--radius-md)',
                   padding: '14px',
                   marginBottom: '16px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>💬</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#128C7E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
                   <div>
                     <h4 style={{ fontSize: '13px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
                       Send Receipt via WhatsApp
                     </h4>
                     <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                      Enter customer mobile number to open direct WhatsApp DM
+                      Enter customer mobile number to open direct WhatsApp chat
                     </span>
                   </div>
                 </div>
 
-                {/* Styled Kenyan Phone Input with Fixed Prefix - Fully wrapping on mobile */}
+                {/* Styled Kenyan Phone Input */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
                   <div
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      background: 'var(--color-bg-card)',
-                      border: '1px solid var(--color-border)',
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
                       borderRadius: 'var(--radius-sm)',
                       padding: '0 10px',
                       flex: '1 1 200px',
                       minWidth: 0,
                     }}
                   >
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', marginRight: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      🇰🇪 +254
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', marginRight: '8px' }}>
+                      +254
                     </span>
                     <input
                       type="tel"
@@ -3038,7 +3079,7 @@ Kindly settle when convenient. Thank you for your continued business!`
                       <button
                         type="button"
                         onClick={() => setModalPhone('')}
-                        style={{ border: 'none', background: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '13px' }}
+                        style={{ border: 'none', background: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '13px' }}
                       >
                         ✕
                       </button>
@@ -3049,13 +3090,13 @@ Kindly settle when convenient. Thank you for your continued business!`
                     type="button"
                     onClick={handleSendWhatsApp}
                     style={{
-                      background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                      background: '#128C7E',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: 'var(--radius-sm)',
                       padding: '9px 16px',
                       fontSize: '12px',
-                      fontWeight: 700,
+                      fontWeight: 600,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -3065,51 +3106,54 @@ Kindly settle when convenient. Thank you for your continued business!`
                       flex: '1 1 auto',
                     }}
                   >
-                    <span>💬 Send WhatsApp</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>Send WhatsApp</span>
                   </button>
                 </div>
 
                 {/* Live Kenyan Phone Helper */}
                 <div style={{ marginTop: '8px', fontSize: '11px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
                   {isValidKenyanPhone(modalPhone) ? (
-                    <span style={{ color: 'var(--color-success)', fontWeight: 700 }}>
-                      ✓ Ready for {formatKenyanPhoneDisplay(modalPhone)}
+                    <span style={{ color: '#16a34a', fontWeight: 600 }}>
+                      Ready for {formatKenyanPhoneDisplay(modalPhone)}
                     </span>
                   ) : modalPhone.trim() ? (
-                    <span style={{ color: 'var(--color-text-secondary)' }}>
-                      ℹ Type full 9 or 10 digits (e.g. 0725996394)
+                    <span style={{ color: '#475569' }}>
+                      Type full 9 or 10 digits (e.g. 0725996394)
                     </span>
                   ) : (
-                    <span style={{ color: 'var(--color-text-muted)' }}>
+                    <span style={{ color: '#94a3b8' }}>
                       Type Kenyan number starting with 07, 01, 7, or +254
                     </span>
                   )}
-                  <span style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>Press Enter ↵</span>
+                  <span style={{ color: '#94a3b8', fontSize: '10px' }}>Press Enter</span>
                 </div>
 
-                {/* Instant Fallback Link in case browser pop-up was blocked */}
+                {/* Instant Fallback Link */}
                 {lastWaUrl && (
                   <div
                     style={{
                       marginTop: '10px',
                       padding: '8px 12px',
-                      background: 'rgba(37, 211, 102, 0.1)',
+                      background: '#f0fdf4',
                       borderRadius: 'var(--radius-sm)',
-                      border: '1px solid rgba(37, 211, 102, 0.3)',
+                      border: '1px solid #bbf7d0',
                       fontSize: '12px',
-                      color: 'var(--color-text-primary)',
+                      color: '#166534',
                     }}
                   >
-                    <div style={{ fontWeight: 700, marginBottom: '2px' }}>✓ WhatsApp link ready!</div>
+                    <div style={{ fontWeight: 700, marginBottom: '2px' }}>WhatsApp link ready!</div>
                     <div>
-                      If the chat didn&apos;t pop up automatically,{' '}
+                      If the chat did not open automatically,{' '}
                       <a
                         href={lastWaUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{ color: '#047857', fontWeight: 700, textDecoration: 'underline' }}
                       >
-                        👉 Click here to open WhatsApp directly ↗
+                        Click here to open WhatsApp directly
                       </a>
                     </div>
                   </div>
@@ -3125,27 +3169,33 @@ Kindly settle when convenient. Thank you for your continued business!`
                   style={{
                     padding: '10px',
                     fontSize: '12px',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
                   }}
                 >
-                  <span>📄 Download PDF Invoice</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="12" y1="18" x2="12" y2="12"/>
+                    <line x1="9" y1="15" x2="15" y2="15"/>
+                  </svg>
+                  <span>Download PDF Invoice</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => window.print()}
                   style={{
-                    background: 'var(--color-bg-card)',
+                    background: '#ffffff',
                     color: 'var(--color-primary)',
-                    border: '1.5px solid var(--color-primary)',
+                    border: '1px solid var(--color-primary)',
                     borderRadius: 'var(--radius-md)',
                     padding: '10px',
                     fontSize: '12px',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -3153,12 +3203,17 @@ Kindly settle when convenient. Thank you for your continued business!`
                     gap: '6px',
                   }}
                 >
-                  <span>🖨️ Print Counter Slip</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9"/>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                    <rect width="12" height="8" x="6" y="14"/>
+                  </svg>
+                  <span>Print Counter Slip</span>
                 </button>
               </div>
 
               {/* Void Sale / Delete Action */}
-              <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <button
                   type="button"
                   disabled={isVoidingInvoice}
@@ -3166,17 +3221,21 @@ Kindly settle when convenient. Thank you for your continued business!`
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: 'var(--color-danger)',
+                    color: '#b91c1c',
                     fontSize: '12px',
                     fontWeight: 600,
                     cursor: 'pointer',
                     padding: '4px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
+                    gap: '6px',
                   }}
                 >
-                  {isVoidingInvoice ? 'Voiding transaction...' : '🗑️ Void / Cancel this Sale (Restores Stock)'}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  <span>{isVoidingInvoice ? 'Voiding transaction...' : 'Void / Cancel this Sale (Restores Stock)'}</span>
                 </button>
 
                 <button
