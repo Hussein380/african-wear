@@ -86,3 +86,26 @@ export interface AppSettings {
 }
 
 export type Category = 'PrintedC' | 'PrintedP' | 'PrintTC';
+
+export type ExpenseCategory =
+  | 'rent'
+  | 'utilities'
+  | 'wages'
+  | 'transport'
+  | 'packaging'
+  | 'food'
+  | 'maintenance'
+  | 'other';
+
+export interface Expense {
+  _id?: string;
+  title: string;
+  amount: number;
+  category: ExpenseCategory;
+  paymentMethod: 'cash' | 'mpesa' | 'other';
+  notes?: string;
+  date: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+

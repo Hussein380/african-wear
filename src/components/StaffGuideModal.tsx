@@ -304,7 +304,7 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px' }}>
                   <div style={{ fontWeight: 700, color: '#5B1A3E' }}>💰 Finance & Sales</div>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>
-                    Daily sales, total revenue, profit tracking, and customer invoice records.
+                    Daily sales, customer credit (Deyn), shop operating expenses (rent, electricity, cargo), and month-end net profit calculations.
                   </div>
                 </div>
               </div>

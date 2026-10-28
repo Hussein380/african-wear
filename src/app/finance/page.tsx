@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Colorway, Invoice } from '@/types'
+import { Colorway, Invoice, Expense, ExpenseCategory } from '@/types'
 import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadcnui'
 import Sidebar from '@/components/Sidebar'
 import {
@@ -14,6 +14,17 @@ import {
   normalizeKenyanPhone,
 } from '@/lib/pdfInvoice'
 
+const EXPENSE_CATEGORIES: { key: ExpenseCategory; label: string; icon: string }[] = [
+  { key: 'rent', label: 'Shop Rent', icon: '🏢' },
+  { key: 'utilities', label: 'Electricity & Water (KPLC)', icon: '💡' },
+  { key: 'transport', label: 'Cargo & Transport', icon: '🚚' },
+  { key: 'wages', label: 'Staff Wages & Allowances', icon: '👥' },
+  { key: 'packaging', label: 'Packaging & Bags', icon: '🛍️' },
+  { key: 'food', label: 'Meals & Refreshments', icon: '☕' },
+  { key: 'maintenance', label: 'Repairs & Maintenance', icon: '🔧' },
+  { key: 'other', label: 'Other Operating Expenses', icon: '📌' },
+]
+
 interface FinanceSummary {
   period: {
     range: string
@@ -24,6 +35,11 @@ interface FinanceSummary {
     totalRevenue: number
     totalCost: number
     estimatedProfit: number
+    totalExpenses?: number
+    netProfit?: number
+    cashExpenses?: number
+    mpesaExpenses?: number
+    expensesByCategory?: Record<string, number>
     totalPiecesSold: number
     pricedPiecesSold: number
     unpricedPiecesSold: number
@@ -31,7 +47,11 @@ interface FinanceSummary {
   }
   drawerBreakdown?: {
     cash: number
+    grossCash?: number
+    cashExpenses?: number
     mpesa: number
+    grossMpesa?: number
+    mpesaExpenses?: number
     credit: number
     other: number
   }
@@ -100,12 +120,25 @@ function formatFriendlyTime(isoString: string): { label: string; isRecent: boole
 export default function FinancePage() {
   const router = useRouter()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'invoice' | 'credit' | 'analytics' | 'prices'>('invoice')
+  const [activeTab, setActiveTab] = useState<'invoice' | 'credit' | 'analytics' | 'expenses' | 'prices'>('invoice')
 
   // Analytics state
   const [financeData, setFinanceData] = useState<FinanceSummary | null>(null)
-  const [selectedRange, setSelectedRange] = useState<string>('today')
+  const [selectedRange, setSelectedRange] = useState<string>('month')
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false)
+
+  // Expenses state
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [isLoadingExpenses, setIsLoadingExpenses] = useState(false)
+  const [expenseTitle, setExpenseTitle] = useState('')
+  const [expenseAmount, setExpenseAmount] = useState('')
+  const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory>('rent')
+  const [expensePaymentMethod, setExpensePaymentMethod] = useState<'cash' | 'mpesa' | 'other'>('cash')
+  const [expenseNotes, setExpenseNotes] = useState('')
+  const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [isSavingExpense, setIsSavingExpense] = useState(false)
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null)
+  const [expenseSuccessMsg, setExpenseSuccessMsg] = useState('')
 
   // Invoices state
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -192,11 +225,28 @@ export default function FinancePage() {
     }
   }, [])
 
+  // Load Expenses
+  const fetchExpenses = useCallback(async (range = 'month') => {
+    setIsLoadingExpenses(true)
+    try {
+      const res = await fetch(`/api/expenses?range=${range}`)
+      if (res.ok) {
+        const data = await res.json()
+        setExpenses(data.expenses || [])
+      }
+    } catch (err) {
+      console.error('Failed to load expenses:', err)
+    } finally {
+      setIsLoadingExpenses(false)
+    }
+  }, [])
+
   useEffect(() => {
     fetchFinanceAnalytics(selectedRange)
     fetchInvoices()
     fetchAllColorways()
-  }, [fetchFinanceAnalytics, fetchInvoices, fetchAllColorways, selectedRange])
+    fetchExpenses(selectedRange)
+  }, [fetchFinanceAnalytics, fetchInvoices, fetchAllColorways, fetchExpenses, selectedRange])
 
   // Sorted recent sales (Strictly Newest to Oldest)
   const sortedRecentSales = useMemo(() => {
@@ -222,12 +272,109 @@ export default function FinancePage() {
       financeData?.drawerBreakdown ||
       (financeData?.summary as any)?.drawerBreakdown || {
         cash: 0,
+        grossCash: 0,
+        cashExpenses: 0,
         mpesa: 0,
+        grossMpesa: 0,
+        mpesaExpenses: 0,
         credit: 0,
         other: 0,
       }
     )
   }, [financeData])
+
+  // Total expenses computed
+  const totalExpensesComputed = useMemo(() => {
+    return expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0)
+  }, [expenses])
+
+  // Category breakdown
+  const expensesByCategoryComputed = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const exp of expenses) {
+      const cat = exp.category || 'other'
+      map[cat] = (map[cat] || 0) + (Number(exp.amount) || 0)
+    }
+    return map
+  }, [expenses])
+
+  // Create an Expense
+  const handleCreateExpense = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!expenseTitle.trim()) {
+      alert('Please enter an expense description (e.g. Shop Rent).')
+      return
+    }
+    const amt = Number(expenseAmount)
+    if (isNaN(amt) || amt <= 0) {
+      alert('Please enter a valid amount greater than 0.')
+      return
+    }
+
+    setIsSavingExpense(true)
+    setExpenseSuccessMsg('')
+
+    try {
+      const res = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: expenseTitle.trim(),
+          amount: amt,
+          category: expenseCategory,
+          paymentMethod: expensePaymentMethod,
+          notes: expenseNotes.trim(),
+          date: expenseDate ? new Date(expenseDate).toISOString() : new Date().toISOString(),
+        }),
+      })
+
+      if (res.ok) {
+        setExpenseTitle('')
+        setExpenseAmount('')
+        setExpenseNotes('')
+        setExpenseSuccessMsg(`✓ Recorded KES ${amt.toLocaleString()} successfully!`)
+        setTimeout(() => setExpenseSuccessMsg(''), 4500)
+        fetchExpenses(selectedRange)
+        fetchFinanceAnalytics(selectedRange)
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Failed to record expense')
+      }
+    } catch (err) {
+      console.error('Error saving expense:', err)
+      alert('Network error while saving expense.')
+    } finally {
+      setIsSavingExpense(false)
+    }
+  }
+
+  // Delete an Expense
+  const handleDeleteExpense = async (exp: Expense) => {
+    if (!exp._id) return
+    const confirmed = window.confirm(
+      `Delete expense "${exp.title}" of KES ${Number(exp.amount).toLocaleString()}?\n\nThis will restore the amount back to your net profit.`
+    )
+    if (!confirmed) return
+
+    setDeletingExpenseId(exp._id)
+    try {
+      const res = await fetch(`/api/expenses/${exp._id}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        fetchExpenses(selectedRange)
+        fetchFinanceAnalytics(selectedRange)
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Failed to delete expense')
+      }
+    } catch (err) {
+      console.error('Error deleting expense:', err)
+      alert('Network error while deleting expense.')
+    } finally {
+      setDeletingExpenseId(null)
+    }
+  }
 
   // Mark an invoice debt as paid (Cash or M-Pesa)
   const handleMarkInvoicePaid = async (invoiceId: string | undefined, newMethod: 'cash' | 'mpesa') => {
@@ -289,6 +436,8 @@ Kindly settle when convenient. Thank you for your continued business!`
     const mpesa = drawerBreakdown.mpesa
     const credit = drawerBreakdown.credit
     const total = financeData?.summary.totalRevenue || 0
+    const expensesTotal = financeData?.summary.totalExpenses !== undefined ? financeData.summary.totalExpenses : totalExpensesComputed
+    const netProfit = financeData?.summary.netProfit !== undefined ? financeData.summary.netProfit : ((financeData?.summary.estimatedProfit || 0) - expensesTotal)
     const pcs = financeData?.summary.totalPiecesSold || 0
     const invoicesCount = financeData?.summary.invoicesCount || 0
     const dateFormatted = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -310,11 +459,13 @@ Kindly settle when convenient. Thank you for your continued business!`
 📊 *DAILY REGISTER CLOSE (Z-REPORT)*
 📅 Date: ${dateFormatted}
 ──────────────────────────
-💵 *Cash in Drawer:* KES ${cash.toLocaleString()}
+💵 *Net Cash in Drawer:* KES ${cash.toLocaleString()}
 📱 *M-Pesa on Till:* KES ${mpesa.toLocaleString()}
 💳 *Customer Credit (Deyn):* KES ${credit.toLocaleString()}
 ──────────────────────────
-💰 *TOTAL DAILY SALES:* KES ${total.toLocaleString()}
+💰 *TOTAL SALES REVENUE:* KES ${total.toLocaleString()}
+💸 *Shop Operating Expenses:* KES ${expensesTotal.toLocaleString()}
+🏆 *NET TAKE-HOME ESTIMATE:* KES ${netProfit.toLocaleString()}
 📦 *Fabrics Sold:* ${pcs} pieces
 🧾 *Receipts Generated:* ${invoicesCount}
 ──────────────────────────
@@ -740,6 +891,31 @@ Kindly settle when convenient. Thank you for your continued business!`
               <line x1="6" x2="6" y1="20" y2="14"/>
             </svg>
             <span>Sales & Register Close</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('expenses')}
+            className={`btn ${activeTab === 'expenses' ? 'btn--primary' : 'btn--secondary'}`}
+            style={{ fontSize: '13px', padding: '8px 16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            type="button"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+              <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+              <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+            </svg>
+            <span>Shop Expenses & P&L</span>
+            {expenses.length > 0 && (
+              <span style={{
+                background: activeTab === 'expenses' ? '#ffffff' : '#f59e0b',
+                color: activeTab === 'expenses' ? '#92400e' : '#ffffff',
+                fontSize: '11px',
+                padding: '1px 6px',
+                borderRadius: '10px',
+                fontWeight: 800,
+              }}>
+                {expenses.length}
+              </span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab('prices')}
@@ -1670,26 +1846,61 @@ Kindly settle when convenient. Thank you for your continued business!`
               </div>
 
               {/* Stat Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '14px', marginBottom: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: '14px', marginBottom: '24px' }}>
                 <div style={{ background: 'var(--color-bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
                   <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>Total Sales Revenue</span>
                   <strong style={{ fontSize: '20px', color: 'var(--color-text-primary)', fontVariantNumeric: 'tabular-nums' }}>
                     KES {(financeData?.summary.totalRevenue || 0).toLocaleString()}
                   </strong>
                   <span style={{ fontSize: '11px', color: 'var(--color-success)', display: 'block', marginTop: '4px' }}>
-                    {financeData?.summary.pricedPiecesSold || 0} pieces with recorded price
+                    {financeData?.summary.pricedPiecesSold || 0} pieces priced
                   </span>
                 </div>
 
                 <div style={{ background: 'var(--color-bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>Estimated Gross Profit</span>
-                  <strong style={{ fontSize: '20px', color: 'var(--color-success)', fontVariantNumeric: 'tabular-nums' }}>
-                    KES {(financeData?.summary.estimatedProfit || 0).toLocaleString()}
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>Wholesale Fabric Cost</span>
+                  <strong style={{ fontSize: '20px', color: '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
+                    KES {(financeData?.summary.totalCost || 0).toLocaleString()}
                   </strong>
                   <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginTop: '4px' }}>
-                    Wholesale Cost: KES {(financeData?.summary.totalCost || 0).toLocaleString()}
+                    Cost of items sold
                   </span>
                 </div>
+
+                <div style={{ background: 'var(--color-bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>Shop Expenses</span>
+                  <strong style={{ fontSize: '20px', color: '#c2410c', fontVariantNumeric: 'tabular-nums' }}>
+                    KES {(financeData?.summary.totalExpenses !== undefined ? financeData.summary.totalExpenses : totalExpensesComputed).toLocaleString()}
+                  </strong>
+                  <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginTop: '4px' }}>
+                    Rent, electricity, cargo, etc.
+                  </span>
+                </div>
+
+                {(() => {
+                  const expTotal = financeData?.summary.totalExpenses !== undefined ? financeData.summary.totalExpenses : totalExpensesComputed
+                  const net = financeData?.summary.netProfit !== undefined ? financeData.summary.netProfit : ((financeData?.summary.estimatedProfit || 0) - expTotal)
+                  const isProfit = net >= 0
+                  return (
+                    <div style={{
+                      background: isProfit ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                      padding: '16px',
+                      borderRadius: 'var(--radius-md)',
+                      border: `1.5px solid ${isProfit ? 'rgba(34, 197, 94, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                      boxShadow: 'var(--shadow-sm)',
+                    }}>
+                      <span style={{ fontSize: '12px', color: isProfit ? '#15803d' : '#b91c1c', display: 'block', marginBottom: '4px', fontWeight: 700 }}>
+                        🏆 Net Take-Home Profit
+                      </span>
+                      <strong style={{ fontSize: '20px', color: isProfit ? '#16a34a' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>
+                        KES {net.toLocaleString()}
+                      </strong>
+                      <span style={{ fontSize: '11px', color: isProfit ? '#166534' : '#991b1b', display: 'block', marginTop: '4px' }}>
+                        Gross profit minus expenses
+                      </span>
+                    </div>
+                  )
+                })()}
 
                 <div style={{ background: 'var(--color-bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
                   <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>Total Fabrics Sold</span>
@@ -1698,16 +1909,6 @@ Kindly settle when convenient. Thank you for your continued business!`
                   </strong>
                   <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginTop: '4px' }}>
                     {financeData?.summary.unpricedPiecesSold || 0} pcs sold without price
-                  </span>
-                </div>
-
-                <div style={{ background: 'var(--color-bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>Pricing Coverage</span>
-                  <strong style={{ fontSize: '20px', color: 'var(--color-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                    {financeData?.coverage.coveragePercent || 0}%
-                  </strong>
-                  <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginTop: '4px' }}>
-                    {financeData?.coverage.pricedColorways || 0} of {financeData?.coverage.totalColorways || 0} fabrics priced
                   </span>
                 </div>
               </div>
@@ -1833,6 +2034,519 @@ Kindly settle when convenient. Thank you for your continued business!`
                                     {voidingSaleId === sale.id ? 'Returning...' : '↩️ Return to Shelf'}
                                   </button>
                                 </div>
+                              </td>
+                            </tr>
+                          )
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB: SHOP EXPENSES & MONTH-END P&L */}
+          {/* ========================================================================= */}
+          {activeTab === 'expenses' && (
+            <div>
+              {/* Range Filters */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {[
+                    { key: 'today', label: 'Today' },
+                    { key: 'week', label: 'This Week' },
+                    { key: 'month', label: 'This Month' },
+                    { key: 'year', label: 'This Year' },
+                    { key: 'all', label: 'All Time' },
+                  ].map(r => (
+                    <button
+                      key={r.key}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRange(r.key)
+                        fetchFinanceAnalytics(r.key)
+                        fetchExpenses(r.key)
+                      }}
+                      className={`btn ${selectedRange === r.key ? 'btn--primary' : 'btn--secondary'}`}
+                      style={{ fontSize: '12px', padding: '6px 12px' }}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+                {isLoadingExpenses && (
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Refreshing expenses...</span>
+                )}
+              </div>
+
+              {/* MONTH-END PROFIT & LOSS (P&L) CALCULATION CARD */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #1e1b4b 0%, #31103f 50%, #4a044e 100%)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '22px 24px',
+                  color: '#ffffff',
+                  marginBottom: '24px',
+                  boxShadow: 'var(--shadow-md)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px', marginBottom: '18px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '22px' }}>📊</span>
+                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.3px' }}>
+                        Month-End Calculation & Net Take-Home
+                      </h3>
+                      <span style={{ background: 'rgba(255,255,255,0.2)', fontSize: '11px', padding: '3px 10px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                        {selectedRange === 'month' ? 'This Month' : selectedRange.toUpperCase()}
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255, 255, 255, 0.85)' }}>
+                      Complete breakdown of sales revenue minus wholesale fabric costs minus shop operating expenses.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSendDailyCloseWhatsApp}
+                    style={{
+                      background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '10px 16px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
+                    }}
+                  >
+                    <span>📲 Send P&L Summary via WhatsApp</span>
+                  </button>
+                </div>
+
+                {/* 5-Step P&L Flow Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '12px' }}>
+                  {/* Step 1: Revenue */}
+                  <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#93c5fd', display: 'block', fontWeight: 700, marginBottom: '4px' }}>
+                      1. Sales Revenue
+                    </span>
+                    <div style={{ fontSize: '19px', fontWeight: 800, color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}>
+                      KES {(financeData?.summary.totalRevenue || 0).toLocaleString()}
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', display: 'block', marginTop: '3px' }}>
+                      {financeData?.summary.totalPiecesSold || 0} fabric rolls sold
+                    </span>
+                  </div>
+
+                  {/* Step 2: Cost of Inventory */}
+                  <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#fca5a5', display: 'block', fontWeight: 700, marginBottom: '4px' }}>
+                      2. Wholesale Cost (COGS)
+                    </span>
+                    <div style={{ fontSize: '19px', fontWeight: 800, color: '#fca5a5', fontVariantNumeric: 'tabular-nums' }}>
+                      − KES {(financeData?.summary.totalCost || 0).toLocaleString()}
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', display: 'block', marginTop: '3px' }}>
+                      Fabric purchase costs
+                    </span>
+                  </div>
+
+                  {/* Step 3: Gross Trading Profit */}
+                  <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#fde047', display: 'block', fontWeight: 700, marginBottom: '4px' }}>
+                      3. Gross Profit
+                    </span>
+                    <div style={{ fontSize: '19px', fontWeight: 800, color: '#fde047', fontVariantNumeric: 'tabular-nums' }}>
+                      = KES {(financeData?.summary.estimatedProfit || 0).toLocaleString()}
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', display: 'block', marginTop: '3px' }}>
+                      Margin before shop costs
+                    </span>
+                  </div>
+
+                  {/* Step 4: Operating Expenses */}
+                  <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#fb923c', display: 'block', fontWeight: 700, marginBottom: '4px' }}>
+                      4. Shop Expenses
+                    </span>
+                    <div style={{ fontSize: '19px', fontWeight: 800, color: '#fb923c', fontVariantNumeric: 'tabular-nums' }}>
+                      − KES {(financeData?.summary.totalExpenses !== undefined ? financeData.summary.totalExpenses : totalExpensesComputed).toLocaleString()}
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', display: 'block', marginTop: '3px' }}>
+                      Rent, electricity, cargo, etc.
+                    </span>
+                  </div>
+
+                  {/* Step 5: NET TAKE HOME PROFIT */}
+                  {(() => {
+                    const expTotal = financeData?.summary.totalExpenses !== undefined ? financeData.summary.totalExpenses : totalExpensesComputed
+                    const net = financeData?.summary.netProfit !== undefined ? financeData.summary.netProfit : ((financeData?.summary.estimatedProfit || 0) - expTotal)
+                    const isProfit = net >= 0
+                    return (
+                      <div
+                        style={{
+                          background: isProfit ? 'rgba(34, 197, 94, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+                          padding: '14px',
+                          borderRadius: 'var(--radius-md)',
+                          border: `2px solid ${isProfit ? '#4ade80' : '#f87171'}`,
+                        }}
+                      >
+                        <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: isProfit ? '#86efac' : '#fca5a5', display: 'block', fontWeight: 800, marginBottom: '4px' }}>
+                          🏆 5. Net Take-Home
+                        </span>
+                        <div style={{ fontSize: '20px', fontWeight: 900, color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}>
+                          KES {net.toLocaleString()}
+                        </div>
+                        <span style={{ fontSize: '11px', color: isProfit ? '#bbf7d0' : '#fecaca', display: 'block', marginTop: '3px', fontWeight: 600 }}>
+                          {isProfit ? '✓ Clean Net Profit' : '⚠️ Net Operating Deficit'}
+                        </span>
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                {/* Cash Drawer & M-Pesa Till Verification */}
+                <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.15)', display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>💵 <strong>Physical Cash in Drawer:</strong></span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums', color: '#86efac', fontWeight: 700 }}>
+                      KES {drawerBreakdown.cash.toLocaleString()}
+                    </span>
+                    {drawerBreakdown.cashExpenses ? (
+                      <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
+                        (Gross KES {(drawerBreakdown.grossCash || drawerBreakdown.cash).toLocaleString()} − KES {drawerBreakdown.cashExpenses.toLocaleString()} paid out)
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>📱 <strong>M-Pesa on Till:</strong></span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums', color: '#93c5fd', fontWeight: 700 }}>
+                      KES {drawerBreakdown.mpesa.toLocaleString()}
+                    </span>
+                    {drawerBreakdown.mpesaExpenses ? (
+                      <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
+                        (Gross KES {(drawerBreakdown.grossMpesa || drawerBreakdown.mpesa).toLocaleString()} − KES {drawerBreakdown.mpesaExpenses.toLocaleString()} paid out)
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              {/* Two Column Section: Add Expense Form + Expenses Breakdown */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '20px', marginBottom: '24px' }}>
+                {/* Form: Record New Expense */}
+                <div style={{ background: 'var(--color-bg-card)', padding: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <span style={{ fontSize: '20px' }}>💸</span>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                        Record Shop Expense
+                      </h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                        Deducts directly from the selected drawer/till
+                      </p>
+                    </div>
+                  </div>
+
+                  {expenseSuccessMsg && (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, marginBottom: '14px' }}>
+                      {expenseSuccessMsg}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleCreateExpense} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: 'var(--color-text-primary)' }}>
+                        Expense Title / Purpose *
+                      </label>
+                      <input
+                        type="text"
+                        className="form-group__input"
+                        placeholder="e.g. October Shop Rent, Electricity Token, Nairobi Bus Cargo"
+                        value={expenseTitle}
+                        onChange={e => setExpenseTitle(e.target.value)}
+                        required
+                        style={{ fontSize: '14px' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: 'var(--color-text-primary)' }}>
+                          Amount (KES) *
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          className="form-group__input"
+                          placeholder="e.g. 5000"
+                          value={expenseAmount}
+                          onChange={e => setExpenseAmount(e.target.value)}
+                          required
+                          style={{ fontSize: '16px', fontWeight: 700 }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: 'var(--color-text-primary)' }}>
+                          Date
+                        </label>
+                        <input
+                          type="date"
+                          className="form-group__input"
+                          value={expenseDate}
+                          onChange={e => setExpenseDate(e.target.value)}
+                          style={{ fontSize: '13px' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: 'var(--color-text-primary)' }}>
+                        Category
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '6px' }}>
+                        {EXPENSE_CATEGORIES.map(cat => (
+                          <button
+                            key={cat.key}
+                            type="button"
+                            onClick={() => setExpenseCategory(cat.key)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              border: expenseCategory === cat.key ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                              background: expenseCategory === cat.key ? 'var(--color-primary-soft, #fdf4ff)' : 'var(--color-bg)',
+                              color: expenseCategory === cat.key ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                              fontWeight: expenseCategory === cat.key ? 700 : 500,
+                              fontSize: '11px',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <span>{cat.icon}</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: 'var(--color-text-primary)' }}>
+                        Paid From
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                        {[
+                          { key: 'cash', label: '💵 Cash Drawer', sub: 'Deducts cash' },
+                          { key: 'mpesa', label: '📱 M-Pesa Till', sub: 'Deducts till' },
+                          { key: 'other', label: '💳 Other / Personal', sub: 'No drawer change' },
+                        ].map(m => (
+                          <button
+                            key={m.key}
+                            type="button"
+                            onClick={() => setExpensePaymentMethod(m.key as any)}
+                            style={{
+                              padding: '10px 8px',
+                              borderRadius: '8px',
+                              border: expensePaymentMethod === m.key ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                              background: expensePaymentMethod === m.key ? 'var(--color-primary-soft, #fdf4ff)' : 'var(--color-bg)',
+                              color: expensePaymentMethod === m.key ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                              fontWeight: expensePaymentMethod === m.key ? 700 : 500,
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              textAlign: 'center',
+                            }}
+                          >
+                            <div>{m.label}</div>
+                            <div style={{ fontSize: '10px', opacity: 0.7, marginTop: '2px' }}>{m.sub}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: 'var(--color-text-primary)' }}>
+                        Notes (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        className="form-group__input"
+                        placeholder="Receipt voucher # or details..."
+                        value={expenseNotes}
+                        onChange={e => setExpenseNotes(e.target.value)}
+                        style={{ fontSize: '13px' }}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSavingExpense}
+                      className="btn btn--primary"
+                      style={{ padding: '12px', fontSize: '14px', fontWeight: 700, marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    >
+                      {isSavingExpense ? 'Saving Expense...' : '💾 Save Shop Expense'}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Right Column: Category Breakdown & Summary */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ background: 'var(--color-bg-card)', padding: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+                    <h3 style={{ margin: '0 0 14px', fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      Expenses by Category
+                    </h3>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {EXPENSE_CATEGORIES.map(cat => {
+                        const amt = expensesByCategoryComputed[cat.key] || (financeData?.summary.expensesByCategory?.[cat.key]) || 0
+                        const total = totalExpensesComputed || financeData?.summary.totalExpenses || 1
+                        const pct = Math.round((amt / (total || 1)) * 100)
+
+                        return (
+                          <div key={cat.key} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-primary)', fontWeight: 600 }}>
+                                <span>{cat.icon}</span>
+                                <span>{cat.label}</span>
+                              </span>
+                              <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: amt > 0 ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
+                                KES {amt.toLocaleString()} {amt > 0 ? `(${pct}%)` : ''}
+                              </span>
+                            </div>
+                            <div style={{ width: '100%', height: '6px', background: 'var(--color-bg-hover)', borderRadius: '3px', overflow: 'hidden' }}>
+                              <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #ec4899, #f43f5e)', borderRadius: '3px' }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#f8fafc', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
+                    <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>💡 How this helps the owner at end of month:</div>
+                    <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <li>Record any rent, electricity tokens, cargo, or lunches as they happen.</li>
+                      <li>Selecting <strong>This Month</strong> instantly tells you if the shop is in profit and by exactly how much.</li>
+                      <li>Cash drawer math matches the real physical notes in your cash drawer at all times.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recorded Expenses Ledger Table */}
+              <div style={{ background: 'var(--color-bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
+                      Recorded Expenses Ledger ({expenses.length})
+                    </h3>
+                    <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: '2px 0 0' }}>
+                      All operating expenses recorded for this period
+                    </p>
+                  </div>
+                  <strong style={{ fontSize: '16px', color: 'var(--color-danger)', fontVariantNumeric: 'tabular-nums' }}>
+                    Total: KES {totalExpensesComputed.toLocaleString()}
+                  </strong>
+                </div>
+
+                <div className="finance-table-wrapper">
+                  <table className="finance-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Description / Title</th>
+                        <th>Category</th>
+                        <th>Paid From</th>
+                        <th>Notes</th>
+                        <th style={{ textAlign: 'right' }}>Amount</th>
+                        <th style={{ textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {expenses.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                            No expenses recorded for this period. Use the form above to record rent, utilities, transport, or wages.
+                          </td>
+                        </tr>
+                      ) : (
+                        expenses.map(exp => {
+                          const catInfo = EXPENSE_CATEGORIES.find(c => c.key === exp.category) || { label: exp.category, icon: '📌' }
+                          return (
+                            <tr key={exp._id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                              <td style={{ fontSize: '12px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                                {new Date(exp.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </td>
+                              <td>
+                                <strong style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>{exp.title}</strong>
+                              </td>
+                              <td>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  background: 'var(--color-bg-hover)',
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  color: 'var(--color-text-secondary)',
+                                }}>
+                                  <span>{catInfo.icon}</span>
+                                  <span>{catInfo.label}</span>
+                                </span>
+                              </td>
+                              <td>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  background: exp.paymentMethod === 'cash' ? 'rgba(34, 197, 94, 0.1)' : exp.paymentMethod === 'mpesa' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(148, 163, 184, 0.1)',
+                                  color: exp.paymentMethod === 'cash' ? '#16a34a' : exp.paymentMethod === 'mpesa' ? '#2563eb' : '#64748b',
+                                }}>
+                                  {exp.paymentMethod === 'cash' ? '💵 Cash' : exp.paymentMethod === 'mpesa' ? '📱 M-Pesa' : '💳 Other'}
+                                </span>
+                              </td>
+                              <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                {exp.notes || '—'}
+                              </td>
+                              <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 800, color: 'var(--color-danger)', fontSize: '14px' }}>
+                                KES {Number(exp.amount).toLocaleString()}
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <button
+                                  type="button"
+                                  disabled={deletingExpenseId === exp._id}
+                                  onClick={() => handleDeleteExpense(exp)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--color-danger)',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                  }}
+                                  title="Delete this expense"
+                                >
+                                  {deletingExpenseId === exp._id ? '...' : '🗑️'}
+                                </button>
                               </td>
                             </tr>
                           )

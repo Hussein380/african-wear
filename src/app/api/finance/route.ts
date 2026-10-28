@@ -170,9 +170,61 @@ export async function GET(request: Request) {
       }
     }
 
+    // Fetch Expenses in date window
+    const expensesColl = db.collection('expenses')
+    const expensesInRange = await expensesColl
+      .find({
+        date: {
+          $gte: startIso,
+          $lte: endIso,
+        },
+      })
+      .toArray()
+
+    let totalExpenses = 0
+    let cashExpenses = 0
+    let mpesaExpenses = 0
+    const expensesByCategory: Record<string, number> = {
+      rent: 0,
+      utilities: 0,
+      wages: 0,
+      transport: 0,
+      packaging: 0,
+      food: 0,
+      maintenance: 0,
+      other: 0,
+    }
+
+    for (const exp of expensesInRange) {
+      const amt = Number(exp.amount) || 0
+      totalExpenses += amt
+
+      const cat = exp.category || 'other'
+      if (expensesByCategory[cat] !== undefined) {
+        expensesByCategory[cat] += amt
+      } else {
+        expensesByCategory[cat] = amt
+      }
+
+      if (exp.paymentMethod === 'cash') {
+        cashExpenses += amt
+      } else if (exp.paymentMethod === 'mpesa') {
+        mpesaExpenses += amt
+      }
+    }
+
+    const netProfit = estimatedProfit - totalExpenses
+
+    const grossCash = invoiceCashTotal + directCashTotal
+    const grossMpesa = invoiceMpesaTotal
+
     const drawerBreakdown = {
-      cash: invoiceCashTotal + directCashTotal,
-      mpesa: invoiceMpesaTotal,
+      cash: Math.max(0, grossCash - cashExpenses),
+      grossCash,
+      cashExpenses,
+      mpesa: Math.max(0, grossMpesa - mpesaExpenses),
+      grossMpesa,
+      mpesaExpenses,
       credit: invoiceCreditTotal,
       other: invoiceOtherTotal,
     }
@@ -195,6 +247,11 @@ export async function GET(request: Request) {
         totalRevenue,
         totalCost,
         estimatedProfit,
+        totalExpenses,
+        netProfit,
+        cashExpenses,
+        mpesaExpenses,
+        expensesByCategory,
         totalPiecesSold,
         pricedPiecesSold,
         unpricedPiecesSold,
