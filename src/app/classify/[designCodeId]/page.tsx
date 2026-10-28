@@ -425,7 +425,9 @@ export default function DesignCodeDetailPage({
           </button>
           <div>
             <h1 className="appbar__title">{designCode || 'Loading...'} Colorways</h1>
-            <p className="appbar__subtitle">Total in Stock: {totalStock}</p>
+            <p className="appbar__subtitle">
+              <strong>{filteredColorways.length}</strong> {filteredColorways.length === 1 ? 'Box (Style)' : 'Boxes (Styles)'} • <strong>{totalStock}</strong> {totalStock === 1 ? 'Piece' : 'Pieces'} in Stock
+            </p>
           </div>
         </div>
         <div className="appbar__right">
