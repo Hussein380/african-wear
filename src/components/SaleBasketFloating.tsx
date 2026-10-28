@@ -131,7 +131,11 @@ export default function SaleBasketFloating() {
           }}
           onClick={() => setIsOpen(true)}
         >
-          <span style={{ fontSize: '18px' }}>🛍️</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+            <path d="M3 6h18" />
+            <path d="M16 10a4 4 0 0 1-8 0" />
+          </svg>
           <div>
             <div style={{ fontWeight: 700, fontSize: '13px', lineHeight: 1.2 }}>
               Multi-Item Sale ({totalPieces} pc{totalPieces > 1 ? 's' : ''})
@@ -200,17 +204,23 @@ export default function SaleBasketFloating() {
                         rel="noopener noreferrer"
                         className="btn"
                         style={{
-                          background: '#25D366',
+                          background: '#128C7E',
                           color: '#ffffff',
                           textDecoration: 'none',
                           padding: '10px 22px',
                           fontSize: '14px',
                           borderRadius: '8px',
                           fontWeight: 700,
-                          boxShadow: '0 4px 12px rgba(37, 211, 102, 0.35)',
+                          boxShadow: '0 4px 12px rgba(18, 140, 126, 0.25)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
                         }}
                       >
-                        💬 Open WhatsApp Now
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.058.376-.058c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.184 1.564 5.939l-1.564 5.889 6.088-1.597c1.706.929 3.659 1.469 5.735 1.469 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12z" />
+                        </svg>
+                        <span>Open WhatsApp Now</span>
                       </a>
                     </div>
                   )}
@@ -221,17 +231,19 @@ export default function SaleBasketFloating() {
                     type="button"
                     onClick={() => generateInvoicePdf(completedSale.pdfData)}
                     className="btn btn--secondary"
-                    style={{ fontSize: '12px', padding: '10px 16px' }}
+                    style={{ fontSize: '12px', padding: '10px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   >
-                    📄 Download PDF Again
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+                    <span>Download PDF Again</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleCloseModal}
                     className="btn btn--primary"
-                    style={{ fontSize: '13px', fontWeight: 700, padding: '10px 20px' }}
+                    style={{ fontSize: '13px', fontWeight: 700, padding: '10px 20px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   >
-                    ✓ Done / New Sale
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    <span>Done / New Sale</span>
                   </button>
                 </div>
               </>
@@ -320,9 +332,9 @@ export default function SaleBasketFloating() {
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                       {[
-                        { id: 'cash', label: '💵 Cash in Drawer' },
-                        { id: 'mpesa', label: '📱 M-Pesa on Till' },
-                        { id: 'credit', label: '💳 Credit (Deyn)' },
+                        { id: 'cash', label: 'Cash in Drawer' },
+                        { id: 'mpesa', label: 'M-Pesa on Till' },
+                        { id: 'credit', label: 'Credit (Deyn)' },
                       ].map(pm => (
                         <button
                           key={pm.id}
@@ -452,7 +464,7 @@ export default function SaleBasketFloating() {
                       type="button"
                       className="btn"
                       style={{
-                        background: '#25D366',
+                        background: '#128C7E',
                         color: '#ffffff',
                         border: 'none',
                         fontWeight: 700,
@@ -463,13 +475,16 @@ export default function SaleBasketFloating() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '8px',
-                        boxShadow: '0 4px 12px rgba(37, 211, 102, 0.3)',
+                        boxShadow: '0 4px 12px rgba(18, 140, 126, 0.25)',
                         cursor: 'pointer',
                       }}
                       disabled={isSubmitting}
                       onClick={() => handleCheckoutAndShare(true)}
                     >
-                      💬 {isSubmitting ? 'Processing...' : 'Send WhatsApp & PDF'}
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.058.376-.058c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.184 1.564 5.939l-1.564 5.889 6.088-1.597c1.706.929 3.659 1.469 5.735 1.469 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12z" />
+                      </svg>
+                      <span>{isSubmitting ? 'Processing...' : 'Send WhatsApp & PDF'}</span>
                     </button>
 
                     <button
@@ -489,7 +504,8 @@ export default function SaleBasketFloating() {
                       disabled={isSubmitting}
                       onClick={() => handleCheckoutAndShare(false)}
                     >
-                      📄 {isSubmitting ? 'Processing...' : 'Download PDF Invoice'}
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+                      <span>{isSubmitting ? 'Processing...' : 'Download PDF Invoice'}</span>
                     </button>
                   </div>
 
@@ -497,9 +513,10 @@ export default function SaleBasketFloating() {
                     <button
                       type="button"
                       onClick={clearBasket}
-                      style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '12px', cursor: 'pointer', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                     >
-                      🗑️ Clear All ({items.length})
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>
+                      <span>Clear All ({items.length})</span>
                     </button>
                     <button
                       type="button"

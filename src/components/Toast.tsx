@@ -152,11 +152,25 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
           <span className="stock-toast__badge" style={{
             background: isOut ? '#fee2e2' : '#dcfce7',
             color: isOut ? '#991b1b' : '#166534',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            fontWeight: 700,
           }}>
-            {isOut ? '− Sold / Removed' : '+ Added'}
+            {isOut ? (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                <span>Sold (Stock Deducted)</span>
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                <span>Stock Added</span>
+              </>
+            )}
           </span>
           <span className="stock-toast__text">
-            <strong>{Math.abs(toast.change)}</strong> for <strong>{toast.itemCode}</strong>
+            <strong>{Math.abs(toast.change)} roll</strong> of <strong>{toast.itemCode}</strong>
           </span>
         </div>
 
@@ -170,8 +184,10 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                   className={`stock-toast__tag-btn ${activeKind === 'sold' || !activeKind ? 'stock-toast__tag-btn--active' : ''}`}
                   onClick={() => handleTag('sold')}
                   disabled={isUpdatingTag}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 >
-                  ✓ Sold
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  <span>Sold</span>
                 </button>
                 {(activeKind === 'sold' || !activeKind) && (
                   <button
@@ -183,11 +199,19 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                       color: '#2563eb',
                       fontWeight: 600,
                       background: (overridePrice !== undefined || toast.soldPrice !== undefined) ? 'rgba(37, 99, 235, 0.1)' : undefined,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
                     }}
                   >
-                    {(overridePrice !== undefined ? overridePrice : toast.soldPrice) !== undefined
-                      ? `KES ${(overridePrice !== undefined ? overridePrice : toast.soldPrice)?.toLocaleString()} ✏️`
-                      : '+ Set Price'}
+                    {(overridePrice !== undefined ? overridePrice : toast.soldPrice) !== undefined ? (
+                      <>
+                        <span>KES {(overridePrice !== undefined ? overridePrice : toast.soldPrice)?.toLocaleString()}</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                      </>
+                    ) : (
+                      <span>+ Set Price</span>
+                    )}
                   </button>
                 )}
                 <button
@@ -206,8 +230,10 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                   className={`stock-toast__tag-btn ${activeKind === 'arrived' || !activeKind ? 'stock-toast__tag-btn--active' : ''}`}
                   onClick={() => handleTag('arrived')}
                   disabled={isUpdatingTag}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 >
-                  ✓ Arrived
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  <span>Arrived</span>
                 </button>
                 <button
                   type="button"
@@ -235,10 +261,14 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
               borderColor: '#059669',
               fontWeight: 700,
               padding: '6px 12px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
             }}
             title="Generate instant WhatsApp receipt or printable slip"
           >
-            🧾 Receipt
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><line x1="8" y1="8" x2="16" y2="8" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
+            <span>Receipt</span>
           </button>
         )}
         {isUndoable && (
@@ -247,8 +277,19 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
             className="stock-toast__undo-btn"
             onClick={handleUndo}
             disabled={isUndoing}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              background: '#0f172a',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 700,
+              padding: '6px 12px',
+            }}
           >
-            {isUndoing ? 'Undoing…' : 'Undo ↺'}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg>
+            <span>{isUndoing ? 'Undoing…' : 'Undo'}</span>
           </button>
         )}
         <button
@@ -292,7 +333,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
               }}
             >
               <div style={{ fontSize: '11px', letterSpacing: '3px', color: '#E6CA65', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>
-                ⚜ Mandera African Wear ⚜
+                Mandera African Wear
               </div>
               <h2 style={{ fontSize: '18px', fontWeight: 800, margin: '2px 0 4px', letterSpacing: '0.5px' }}>
                 OFFICIAL SALES RECEIPT
@@ -346,13 +387,13 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                       style={{
                         position: 'absolute',
                         left: '8px',
-                        fontSize: '11px',
+                        fontSize: '10px',
                         fontWeight: 700,
                         color: '#6B7280',
                         pointerEvents: 'none',
                       }}
                     >
-                      🇰🇪
+                      +254
                     </span>
                     <input
                       type="tel"
@@ -371,7 +412,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                       }}
                       style={{
                         fontSize: '12px',
-                        padding: '8px 8px 8px 30px',
+                        padding: '8px 8px 8px 38px',
                         borderRadius: '8px',
                         border: isValidKenyanPhone(customerPhone)
                           ? '1.5px solid #22c55e'
@@ -470,7 +511,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                   type="button"
                   style={{
                     width: '100%',
-                    background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                    background: '#128C7E',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '10px',
@@ -478,15 +519,18 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                     fontSize: '13px',
                     fontWeight: 800,
                     cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(37, 211, 102, 0.3)',
+                    boxShadow: '0 4px 12px rgba(18, 140, 126, 0.25)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '6px',
+                    gap: '8px',
                   }}
                   onClick={handleSendWhatsApp}
                 >
-                  💬 Send WhatsApp Receipt {customerPhone.trim() ? `(${formatKenyanPhoneDisplay(customerPhone)})` : ''}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.058.376-.058c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.184 1.564 5.939l-1.564 5.889 6.088-1.597c1.706.929 3.659 1.469 5.735 1.469 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12z" />
+                  </svg>
+                  <span>Send WhatsApp Receipt {customerPhone.trim() ? `(${formatKenyanPhoneDisplay(customerPhone)})` : ''}</span>
                 </button>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -504,7 +548,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '4px',
+                      gap: '6px',
                     }}
                     onClick={() => {
                       const p = (overridePrice !== undefined ? overridePrice : toast.soldPrice) || 0
@@ -526,7 +570,8 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                       generateInvoicePdf(data)
                     }}
                   >
-                    📄 Branded PDF
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+                    <span>Branded PDF</span>
                   </button>
 
                   <button
@@ -543,11 +588,12 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '4px',
+                      gap: '6px',
                     }}
                     onClick={() => window.print()}
                   >
-                    🖨️ Print Receipt
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect width="12" height="8" x="6" y="14" /></svg>
+                    <span>Print Slip</span>
                   </button>
                 </div>
 

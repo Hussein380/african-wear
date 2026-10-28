@@ -46,8 +46,12 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
             <div style={{ fontSize: '11px', letterSpacing: '2px', color: '#E6CA65', fontWeight: 700, textTransform: 'uppercase' }}>
               Mandera African Wear
             </div>
-            <h2 style={{ fontSize: '18px', fontWeight: 800, margin: '2px 0 0' }}>
-              📖 Simple Staff Guide
+            <h2 style={{ fontSize: '18px', fontWeight: 800, margin: '2px 0 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              </svg>
+              <span>Staff Quick Guide</span>
             </h2>
           </div>
           <button
@@ -179,12 +183,12 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
 
               <div style={{ background: '#fffbeb', border: '2px solid #f59e0b', borderRadius: '12px', padding: '14px', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: '#92400e', fontSize: '14px' }}>
-                  <span style={{ background: '#f59e0b', color: 'white', padding: '2px 8px', borderRadius: '6px' }}>Undo ↺</span>
+                  <span style={{ background: '#f59e0b', color: 'white', padding: '2px 8px', borderRadius: '6px' }}>Undo</span>
                   <span>THE GOLDEN RULE: HOW TO FIX MISTAKES</span>
                 </div>
                 <p style={{ margin: '6px 0 0', color: '#78350f', fontSize: '12px' }}>
-                  ⚠️ <strong>If you tapped by accident, NEVER tap the opposite button to fix it!</strong><br />
-                  A yellow <strong>Undo ↺</strong> banner will appear at the bottom. Tap <strong>Undo ↺</strong> to cancel the mistake cleanly.
+                  <strong>If you tapped by accident, NEVER tap the opposite button to fix it!</strong><br />
+                  A dark floating <strong>Undo</strong> bar will appear at the bottom. Tap <strong>Undo</strong> to cancel the mistake cleanly without messing up records.
                 </p>
               </div>
 
@@ -202,37 +206,37 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
           {activeTab === 'numbers' && (
             <div>
               <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: 0, marginBottom: '10px' }}>
-                Why is the number different from the boxes?
+                Why is the number of boxes different from total rolls?
               </h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ background: '#fdf4ff', border: '1px solid #f0abfc', borderRadius: '12px', padding: '14px' }}>
                   <div style={{ fontWeight: 800, color: '#86198f', fontSize: '13px' }}>
-                    📦 BOXES (STYLES / PATTERNS)
+                    BOXES (COLORWAY STYLES)
                   </div>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#701a75' }}>
-                    Each card on your screen is <strong>1 Style / Box</strong> (e.g. 11 boxes). Even if a box runs out of stock, the box stays on the screen so you know the pattern exists.
+                    Each box card on your screen represents <strong>1 unique colorway design style</strong> (e.g. 11 boxes). Even if a style temporarily runs out of stock, the box stays visible with count 0 so you know that pattern exists in the catalogue.
                   </p>
                 </div>
 
                 <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '14px' }}>
                   <div style={{ fontWeight: 800, color: '#1e40af', fontSize: '13px' }}>
-                    🧵 PIECES IN STOCK
+                    TOTAL ROLLS IN STORE
                   </div>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#1e3a8a' }}>
-                    This counts the <strong>real physical fabric rolls</strong>. For example:
-                    <br />• Box 1 has <strong>2 pieces</strong>
-                    <br />• Box 2 has <strong>2 pieces</strong>
-                    <br />• Box 3 has <strong>1 piece</strong>
-                    <br />• Box 4 has <strong>0 pieces</strong> (Out of stock!)
-                    <br />👉 Total: <strong>11 Boxes, but 13 Pieces in Stock!</strong>
+                    This counts the <strong>physical rolls of fabric</strong> currently sitting on the store shelf. For example:
+                    <br />• Style 1 has <strong>2 rolls</strong>
+                    <br />• Style 2 has <strong>2 rolls</strong>
+                    <br />• Style 3 has <strong>1 roll</strong>
+                    <br />• Style 4 has <strong>0 rolls</strong> (Out of stock)
+                    <br />Total: <strong>11 Unique Styles, but 13 Physical Rolls in Stock!</strong>
                   </p>
                 </div>
 
                 <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '12px' }}>
-                  <div style={{ fontWeight: 700, color: '#334155', marginBottom: '2px' }}>⚡ Real-Time Instant Sync:</div>
+                  <div style={{ fontWeight: 700, color: '#334155', marginBottom: '2px' }}>Instant Real-Time Synchronization:</div>
                   <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
-                    Whenever you tap <strong>−</strong> or <strong>+</strong>, the pieces count updates immediately on the card, in the top header, and on the main catalog!
+                    Whenever you tap <strong>−</strong> or <strong>+</strong>, the pieces count updates immediately on the card, in the top header, and on the main catalogue page.
                   </p>
                 </div>
               </div>
@@ -252,7 +256,7 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
                     Method 1: Instant WhatsApp Receipt on 1 Item
                   </div>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#14532d' }}>
-                    When you tap <strong>−</strong>, look at the popup banner at the bottom and click <strong>🧾 Receipt</strong>.
+                    When you tap <strong>−</strong>, look at the popup banner at the bottom and click <strong>Receipt</strong>.
                     Type the customer&apos;s phone number (e.g. 0712345678) and tap <strong>Send WhatsApp Receipt</strong>. WhatsApp opens with an official boutique receipt ready to send!
                   </p>
                 </div>
@@ -263,9 +267,9 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
                   </div>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#831843' }}>
                     If a customer buys 2 or more different fabric items:
-                    <br />1. Tap <strong>🛍️ +Invoice</strong> on each item they want.
+                    <br />1. Tap <strong>+ Invoice</strong> on each item they want.
                     <br />2. Tap the floating purple <strong>Multi-Item Sale</strong> bar at the bottom.
-                    <br />3. Enter customer details, choose Cash / M-Pesa, and complete the sale!
+                    <br />3. Enter customer details, choose Cash / M-Pesa / Credit (Deyn), and complete the sale!
                   </p>
                 </div>
               </div>
@@ -281,28 +285,28 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px' }}>
-                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>🎨 Classify (Showroom)</div>
+                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>Classify (Showroom)</div>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>
                     The main visual fabric showroom. Tap any design code (like AN, AJ) to see its colorways and change stock.
                   </div>
                 </div>
 
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px' }}>
-                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>📋 Master Stock (Inventory)</div>
+                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>Master Stock (Inventory)</div>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>
                     Spreadsheet table of every fabric piece. You can search by code, sort, and download Excel/PDF reports.
                   </div>
                 </div>
 
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px' }}>
-                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>📜 Activity Log (History)</div>
+                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>Activity Log (History)</div>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>
                     Audit trail showing every movement: who sold what, when, and at what time.
                   </div>
                 </div>
 
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px' }}>
-                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>💰 Finance & Sales</div>
+                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>Finance & Sales Ledger</div>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>
                     Daily sales, customer credit (Deyn), shop operating expenses (rent, electricity, cargo), and month-end net profit calculations.
                   </div>
@@ -324,7 +328,7 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
           }}
         >
           <div style={{ fontSize: '11px', color: '#64748b' }}>
-            Tap <strong>💡 Help</strong> anytime to reopen this guide.
+            Tap <strong>Guide</strong> in the top header anytime to reopen this help.
           </div>
           <button
             type="button"
@@ -332,7 +336,7 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
             onClick={onClose}
             style={{ padding: '8px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 700 }}
           >
-            Got it, thanks! ✓
+            Got it, thanks!
           </button>
         </div>
       </div>

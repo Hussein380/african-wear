@@ -428,29 +428,49 @@ export default function DesignCodeDetailPage({
           <div>
             <h1 className="appbar__title">{designCode || 'Loading...'} Colorways</h1>
             <p className="appbar__subtitle">
-              <strong>{filteredColorways.length}</strong> {filteredColorways.length === 1 ? 'Box (Style)' : 'Boxes (Styles)'} • <strong>{totalStock}</strong> {totalStock === 1 ? 'Piece' : 'Pieces'} in Stock
+              <strong>{filteredColorways.length}</strong> {filteredColorways.length === 1 ? 'Style' : 'Styles'} • <strong>{totalStock}</strong> {totalStock === 1 ? 'Roll' : 'Total Rolls'} in Store
             </p>
           </div>
         </div>
         <div className="appbar__right">
-          <ExpandingSearchDock onSearch={(val) => setGlobalSearchTerm(val)} />
+          <ExpandingSearchDock onSearch={(val) => setGlobalSearchTerm(val)} placeholder="Search colorways..." />
           <button
             className="appbar__action-btn"
             onClick={() => setShowGuideModal(true)}
             type="button"
-            title="Simple Staff Guide"
-            style={{ fontWeight: 700, gap: '4px', padding: '6px 10px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}
+            title="Staff Guide & Quick Help"
           >
-            💡 Guide
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span className="desktop-only">Guide</span>
           </button>
           <button className="appbar__action-btn" onClick={() => setShowEditDesignModal(true)} type="button" title="Edit Design">
-            ✏️
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+            <span className="desktop-only">Edit</span>
           </button>
           <button className="appbar__action-btn" onClick={() => setShowDeleteDesignConfirm(true)} type="button" title="Delete Design">
-            🗑️
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+            </svg>
+            <span className="desktop-only">Delete</span>
           </button>
           <button className="appbar__action-btn" onClick={() => fetchColorways()} type="button" title="Refresh">
-            ↻
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 21h5v-5"/>
+            </svg>
+            <span className="desktop-only">Refresh</span>
           </button>
         </div>
       </header>
@@ -475,7 +495,11 @@ export default function DesignCodeDetailPage({
         {/* Empty State */}
         {!isLoading && colorways.length === 0 && (
           <div className="empty-state">
-            <div className="empty-state__icon">🎨</div>
+            <div className="empty-state__icon" style={{ display: 'inline-flex', padding: '16px', borderRadius: '50%', background: 'var(--color-bg-hover)', color: 'var(--color-text-muted)' }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
             <h3 className="empty-state__title">No Colorways Yet</h3>
             <p className="empty-state__text">
               Add your first colorway for {designCode} by tapping the + button below.
@@ -486,7 +510,12 @@ export default function DesignCodeDetailPage({
         {/* No search results */}
         {!isLoading && colorways.length > 0 && filteredColorways.length === 0 && (
           <div className="empty-state">
-            <div className="empty-state__icon">🔍</div>
+            <div className="empty-state__icon" style={{ display: 'inline-flex', padding: '16px', borderRadius: '50%', background: 'var(--color-bg-hover)', color: 'var(--color-text-muted)' }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+            </div>
             <h3 className="empty-state__title">No Results</h3>
             <p className="empty-state__text">No colorways match &quot;{globalSearchTerm}&quot;</p>
           </div>
@@ -514,11 +543,22 @@ export default function DesignCodeDetailPage({
                           loading="lazy"
                           decoding="async"
                         />
-                        <span className="colorway-card__zoom-hint" title="Tap to enlarge">🔍</span>
+                        <span className="colorway-card__zoom-hint" title="Tap to enlarge">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="15 3 21 3 21 9" />
+                            <polyline points="9 21 3 21 3 15" />
+                            <line x1="21" y1="3" x2="14" y2="10" />
+                            <line x1="3" y1="21" x2="10" y2="14" />
+                          </svg>
+                        </span>
                       </>
                     ) : (
                       <div className="colorway-card__placeholder">
-                        <span style={{ fontSize: '22px', opacity: 0.4 }}>📷</span>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                          <circle cx="9" cy="9" r="2" />
+                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                        </svg>
                         <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>No photo added</span>
                       </div>
                     )}
@@ -672,25 +712,42 @@ export default function DesignCodeDetailPage({
                           available: cw.quantityAvailable,
                         })
                       }}
-                      style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
                       type="button"
                       title="Add to combined customer invoice"
                     >
-                      🛍️ +Invoice
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                        <path d="M3 6h18" />
+                        <path d="M16 10a4 4 0 0 1-8 0" />
+                      </svg>
+                      <span>+ Invoice</span>
                     </button>
                     <button
                       className="btn btn--secondary btn--sm"
                       onClick={() => setEditingColorway(cw)}
                       type="button"
+                      style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
                     >
-                      ✏️ Edit
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                      <span>Edit</span>
                     </button>
                     <button
                       className="btn btn--danger btn--sm"
                       onClick={() => setDeleteTarget(cw)}
                       type="button"
+                      style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
                     >
-                      🗑️ Delete
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                      </svg>
+                      <span>Delete</span>
                     </button>
                   </div>
                 </div>

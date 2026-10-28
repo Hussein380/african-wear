@@ -191,10 +191,14 @@ function ClassifyPageInner() {
             className="appbar__action-btn"
             onClick={() => setIsGuideOpen(true)}
             type="button"
-            title="Simple Staff Guide"
-            style={{ fontWeight: 700, gap: '4px', padding: '6px 10px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}
+            title="Staff Guide & Quick Help"
           >
-            💡 Guide
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span className="desktop-only">Guide</span>
           </button>
           <button className="appbar__action-btn" onClick={() => fetchDesignCodes()} type="button" title="Refresh">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -238,9 +242,19 @@ function ClassifyPageInner() {
                 <h2 className="main-content__title">
                   {activeCategory === 'PrintedC' ? 'Printed C' : activeCategory === 'PrintedP' ? 'Printed P' : activeCategory === 'PrintTC' ? 'Print TC' : activeCategory}
                 </h2>
-                <p className="main-content__meta">
-                  <strong>{filteredDesignCodes.length}</strong> {filteredDesignCodes.length === 1 ? 'Design' : 'Designs'} • <strong>{filteredDesignCodes.reduce((sum, item) => sum + (item.colorwayCount || 0), 0)}</strong> Styles • <strong>{filteredDesignCodes.reduce((sum, item) => sum + (item.totalStock !== undefined ? item.totalStock : (item.colorwayCount || 0)), 0)}</strong> Pieces in stock
-                </p>
+                <div className="main-content__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  <span>
+                    <strong>{filteredDesignCodes.length}</strong> {filteredDesignCodes.length === 1 ? 'Design' : 'Designs'}
+                  </span>
+                  <span style={{ opacity: 0.4 }}>•</span>
+                  <span>
+                    <strong>{filteredDesignCodes.reduce((sum, item) => sum + (item.colorwayCount || 0), 0)}</strong> Colorway Styles
+                  </span>
+                  <span style={{ opacity: 0.4 }}>•</span>
+                  <span style={{ background: 'rgba(91, 26, 62, 0.08)', color: '#5B1A3E', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                    {filteredDesignCodes.reduce((sum, item) => sum + (item.totalStock !== undefined ? item.totalStock : (item.colorwayCount || 0)), 0)} Total Rolls in Store
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -322,7 +336,10 @@ function ClassifyPageInner() {
                       type="button"
                       aria-label="Edit"
                     >
-                      ✏️
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
                     </button>
                     <button
                       className="design-tile__action-btn design-tile__action-btn--delete"
@@ -334,7 +351,12 @@ function ClassifyPageInner() {
                       type="button"
                       aria-label="Delete"
                     >
-                      🗑️
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                      </svg>
                     </button>
                   </div>
 
