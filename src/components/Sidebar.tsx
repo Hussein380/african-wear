@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Category } from '@/types'
+import StaffGuideModal from '@/components/StaffGuideModal'
 
 export type ViewState = Category | 'Dashboard' | 'Inventory' | 'History' | 'Finance'
 
@@ -112,6 +114,7 @@ const categories: NavItem[] = [
 export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onClose }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const [isGuideOpen, setIsGuideOpen] = useState(false)
 
   // Prefetch data on hover so pages feel instant when clicked
   const handleHover = (cat: NavItem) => {
@@ -194,8 +197,33 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
               </li>
             )
           })}
+
+          <li
+            className="sidebar__item"
+            style={{
+              marginTop: '16px',
+              borderTop: '1px solid var(--color-border-light)',
+              paddingTop: '12px',
+              color: '#92400e',
+              background: 'rgba(245, 158, 11, 0.08)',
+              fontWeight: 600,
+              borderRadius: '8px',
+              margin: '16px 8px 8px 8px',
+            }}
+            onClick={() => {
+              setIsGuideOpen(true)
+              if (onClose) onClose()
+            }}
+            role="button"
+            tabIndex={0}
+          >
+            <span className="sidebar__item-icon" style={{ fontSize: '16px' }}>💡</span>
+            <span className="sidebar__item-label" style={{ fontWeight: 700 }}>Staff Guide (Tour)</span>
+          </li>
         </ul>
       </aside>
+
+      <StaffGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
     </>
   )
 }

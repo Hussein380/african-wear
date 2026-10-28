@@ -11,6 +11,7 @@ import { Category, DesignCode } from '@/types'
 import { CacheKeys, getCached, getCacheAge, setCached, bustCache, prefetchColorways } from '@/lib/cache'
 import { getOptimizedImageUrl } from '@/lib/cloudinary'
 import SaleBasketFloating from '@/components/SaleBasketFloating'
+import StaffGuideModal from '@/components/StaffGuideModal'
 
 function ClassifyPageInner() {
   const searchParams = useSearchParams()
@@ -25,6 +26,7 @@ function ClassifyPageInner() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [globalSearchTerm, setGlobalSearchTerm] = useState('')
+  const [isGuideOpen, setIsGuideOpen] = useState(false)
 
   const urlCat = searchParams.get('category') as ViewState
   const activeCategory = urlCat || 'Dashboard'
@@ -185,6 +187,15 @@ function ClassifyPageInner() {
         </div>
         <div className="appbar__right">
           <ExpandingSearchDock onSearch={(val) => setGlobalSearchTerm(val)} placeholder="Search designs..." />
+          <button
+            className="appbar__action-btn"
+            onClick={() => setIsGuideOpen(true)}
+            type="button"
+            title="Simple Staff Guide"
+            style={{ fontWeight: 700, gap: '4px', padding: '6px 10px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}
+          >
+            💡 Guide
+          </button>
           <button className="appbar__action-btn" onClick={() => fetchDesignCodes()} type="button" title="Refresh">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -410,6 +421,9 @@ function ClassifyPageInner() {
 
       {/* Floating Multi-Item Sale Basket */}
       <SaleBasketFloating />
+
+      {/* Staff Guide Modal */}
+      <StaffGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
     </>
   )
 }

@@ -13,6 +13,7 @@ import { CacheKeys, getCached, getCacheAge, setCached, bustCache, bustAllDesignC
 import { getOptimizedImageUrl } from '@/lib/cloudinary'
 import SaleBasketFloating from '@/components/SaleBasketFloating'
 import { useSaleBasket } from '@/lib/useSaleBasket'
+import StaffGuideModal from '@/components/StaffGuideModal'
 
 export default function DesignCodeDetailPage({
   params,
@@ -40,6 +41,7 @@ export default function DesignCodeDetailPage({
   
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [globalSearchTerm, setGlobalSearchTerm] = useState(searchParams.get('search') || '')
+  const [showGuideModal, setShowGuideModal] = useState(false)
 
   // Undo toast state
   const [undoToast, setUndoToast] = useState<{
@@ -432,6 +434,15 @@ export default function DesignCodeDetailPage({
         </div>
         <div className="appbar__right">
           <ExpandingSearchDock onSearch={(val) => setGlobalSearchTerm(val)} />
+          <button
+            className="appbar__action-btn"
+            onClick={() => setShowGuideModal(true)}
+            type="button"
+            title="Simple Staff Guide"
+            style={{ fontWeight: 700, gap: '4px', padding: '6px 10px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}
+          >
+            💡 Guide
+          </button>
           <button className="appbar__action-btn" onClick={() => setShowEditDesignModal(true)} type="button" title="Edit Design">
             ✏️
           </button>
@@ -855,6 +866,9 @@ export default function DesignCodeDetailPage({
 
       {/* Floating Multi-Item Sale Basket */}
       <SaleBasketFloating />
+
+      {/* Staff Guide Modal */}
+      <StaffGuideModal isOpen={showGuideModal} onClose={() => setShowGuideModal(false)} />
     </>
   )
 }
