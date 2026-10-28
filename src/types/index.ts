@@ -9,6 +9,7 @@ export interface DesignCode {
   createdAt: string;
   updatedAt: string;
   colorwayCount?: number; // aggregated field
+  totalStock?: number; // aggregated total pieces in stock
 }
 
 export interface Photo {

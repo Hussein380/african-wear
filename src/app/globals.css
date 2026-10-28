@@ -1021,58 +1021,94 @@ ul, ol {
 /* ---------- Colorway Cards ---------- */
 .colorway-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .colorway-list {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 
 .colorway-card {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  background: var(--color-bg-card, #ffffff);
+  border-radius: 18px;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
   overflow: hidden;
-  transition: all var(--transition-base);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
 }
 
 .colorway-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 10px 28px rgba(91, 26, 62, 0.1);
+  border-color: rgba(91, 26, 62, 0.25);
   transform: translateY(-2px);
 }
 
 .colorway-card__hero {
   position: relative;
   width: 100%;
-  aspect-ratio: 4/3;
-  background: var(--color-bg-sidebar);
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(135deg, #faf5f8 0%, #f3ebf0 100%);
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .colorway-card__hero {
+    aspect-ratio: 16 / 11;
+  }
 }
 
 .colorway-card__hero img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.colorway-card:hover .colorway-card__hero img {
+  transform: scale(1.03);
 }
 
 .colorway-card__body {
-  padding: var(--space-md);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .colorway-card__code {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-sm);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--color-text-primary, #0f172a);
+  letter-spacing: -0.01em;
+  margin-bottom: 12px;
 }
 
 .colorway-card__quantity {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-sm);
-  margin-bottom: var(--space-md);
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .colorway-card__quantity-label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #475569);
 }
 
 /* Compact layout for PrintTC */
@@ -1131,61 +1167,76 @@ ul, ol {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  height: 28px;
-  padding: 0 var(--space-sm);
-  background: var(--color-primary);
+  min-width: 38px;
+  height: 34px;
+  padding: 0 10px;
+  background: #5B1A3E;
   color: white;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  border-radius: var(--radius-full);
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(91, 26, 62, 0.25);
+  letter-spacing: -0.01em;
 }
 
 .colorway-card__quantity-controls {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 8px;
 }
 
 .colorway-card__qty-btn {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-sidebar);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  transition: all var(--transition-fast);
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .colorway-card__qty-btn:hover {
-  background: var(--color-primary);
+  background: #5B1A3E;
+  border-color: #5B1A3E;
   color: white;
+  transform: scale(1.06);
+}
+
+.colorway-card__qty-btn:active {
+  transform: scale(0.92);
 }
 
 .colorway-card__photos {
   display: flex;
-  gap: var(--space-xs);
+  gap: 8px;
   overflow-x: auto;
-  padding-bottom: var(--space-xs);
+  padding-bottom: 6px;
+  margin-top: 10px;
 }
 
 .colorway-card__photo-thumb {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-sm);
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
   overflow: hidden;
   flex-shrink: 0;
   border: 2px solid var(--color-border-light);
   cursor: pointer;
-  transition: border-color var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .colorway-card__photo-thumb:hover {
-  border-color: var(--color-primary);
+  border-color: #5B1A3E;
+  transform: scale(1.06);
 }
 
 .colorway-card__photo-thumb img {
@@ -1196,10 +1247,31 @@ ul, ol {
 
 .colorway-card__footer {
   display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-md);
-  padding-top: var(--space-md);
-  border-top: 1px solid var(--color-border-light);
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  flex-wrap: wrap;
+}
+
+.colorway-card__footer .btn {
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.colorway-card__footer .btn:hover {
+  transform: translateY(-1px);
+}
+
+.colorway-card__footer .btn:active {
+  transform: scale(0.96);
 }
 
 /* ---------- Buttons ---------- */

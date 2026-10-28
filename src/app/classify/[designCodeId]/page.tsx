@@ -9,7 +9,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadcnui'
 import Toast, { ToastData } from '@/components/Toast'
 import { Colorway, DesignCode } from '@/types'
-import { CacheKeys, getCached, getCacheAge, setCached, bustCache } from '@/lib/cache'
+import { CacheKeys, getCached, getCacheAge, setCached, bustCache, bustAllDesignCodesCache } from '@/lib/cache'
 import { getOptimizedImageUrl } from '@/lib/cloudinary'
 import SaleBasketFloating from '@/components/SaleBasketFloating'
 import { useSaleBasket } from '@/lib/useSaleBasket'
@@ -169,6 +169,7 @@ export default function DesignCodeDetailPage({
     })
     if (res.ok) {
       bustCache(CacheKeys.colorways(designCodeId))
+      bustAllDesignCodesCache()
       fetchColorways()
     }
   }
@@ -190,6 +191,7 @@ export default function DesignCodeDetailPage({
     if (res.ok) {
       setEditingColorway(null)
       bustCache(CacheKeys.colorways(designCodeId))
+      bustAllDesignCodesCache()
       fetchColorways()
     }
   }
@@ -202,6 +204,7 @@ export default function DesignCodeDetailPage({
       if (res.ok) {
         setDeleteTarget(null)
         bustCache(CacheKeys.colorways(designCodeId))
+        bustAllDesignCodesCache()
         fetchColorways()
       }
     } catch (error) {
@@ -262,6 +265,7 @@ export default function DesignCodeDetailPage({
               : item
           )
           setCached(CacheKeys.colorways(designCodeId), updated)
+          bustAllDesignCodesCache()
           return updated
         })
 
@@ -290,6 +294,7 @@ export default function DesignCodeDetailPage({
               }),
             })
             bustCache(CacheKeys.colorways(designCodeId))
+            bustAllDesignCodesCache()
             fetchColorways()
           },
         })
@@ -386,6 +391,7 @@ export default function DesignCodeDetailPage({
         setDirectCountTarget(null)
         setDirectCountInput('')
         bustCache(CacheKeys.colorways(designCodeId))
+        bustAllDesignCodesCache()
         fetchColorways()
       } else {
         alert(data.error || 'Failed to save count')

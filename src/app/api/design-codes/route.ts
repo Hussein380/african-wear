@@ -28,6 +28,7 @@ export async function GET(request: Request) {
       {
         $addFields: {
           colorwayCount: { $size: '$colorways' },
+          totalStock: { $ifNull: [{ $sum: '$colorways.quantityAvailable' }, 0] },
         },
       },
       {
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
       thumbnailUrl: thumbnailUrl || '',
       thumbnailPublicId: thumbnailPublicId || '',
       colorwayCount: 0,
+      totalStock: 0,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     }, { status: 201 })

@@ -8,7 +8,7 @@ import DesignCodeModal from '@/components/DesignCodeModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadcnui'
 import { Category, DesignCode } from '@/types'
-import { CacheKeys, getCached, getCacheAge, setCached, bustCache } from '@/lib/cache'
+import { CacheKeys, getCached, getCacheAge, setCached, bustCache, prefetchColorways } from '@/lib/cache'
 import { getOptimizedImageUrl } from '@/lib/cloudinary'
 import SaleBasketFloating from '@/components/SaleBasketFloating'
 
@@ -226,10 +226,7 @@ function ClassifyPageInner() {
               <div>
                 <h2 className="main-content__title">{activeCategory}</h2>
                 <p className="main-content__meta">
-                  {filteredDesignCodes.length} {filteredDesignCodes.length === 1 ? 'Design' : 'Designs'}
-                  {filteredDesignCodes.length > 0 && (
-                    <> • {filteredDesignCodes.reduce((sum, item) => sum + (item.colorwayCount || 0), 0)} colorways available</>
-                  )}
+                  <strong>{filteredDesignCodes.length}</strong> {filteredDesignCodes.length === 1 ? 'Design' : 'Designs'} • <strong>{filteredDesignCodes.reduce((sum, item) => sum + (item.colorwayCount || 0), 0)}</strong> Styles • <strong>{filteredDesignCodes.reduce((sum, item) => sum + (item.totalStock !== undefined ? item.totalStock : (item.colorwayCount || 0)), 0)}</strong> Pieces in stock
                 </p>
               </div>
             </div>
@@ -283,11 +280,21 @@ function ClassifyPageInner() {
           <div className={`design-grid ${activeCategory === 'PrintTC' ? 'design-grid--compact' : ''}`}>
             {filteredDesignCodes.map(dc => {
               const isPrintTC = activeCategory === 'PrintTC'
+              const stockPieces = dc.totalStock !== undefined ? dc.totalStock : (dc.colorwayCount || 0)
+              const stylesCount = dc.colorwayCount || 0
               return (
                 <div
                   key={dc._id}
                   className={`design-tile ${isPrintTC ? 'design-tile--compact' : ''}`}
                   onClick={() => router.push(`/classify/${dc._id}`)}
+                  onPointerEnter={() => {
+                    router.prefetch(`/classify/${dc._id}`)
+                    prefetchColorways(dc._id)
+                  }}
+                  onTouchStart={() => {
+                    router.prefetch(`/classify/${dc._id}`)
+                    prefetchColorways(dc._id)
+                  }}
                 >
                   <div className="design-tile__actions">
                     <button
@@ -331,20 +338,20 @@ function ClassifyPageInner() {
                           <img src="/mandera-logo.png" alt="Placeholder" style={{ width: '60%', height: '60%', objectFit: 'contain', opacity: 0.25 }} />
                         </div>
                       )}
-                      <span className="design-tile__badge" title={`${dc.colorwayCount || 0} colorways`}>
-                        {dc.colorwayCount || 0}
+                      <span className="design-tile__badge" title={`${stockPieces} pieces in stock`}>
+                        {stockPieces}
                       </span>
                     </div>
                   )}
 
                   <span className="design-tile__code">{dc.code}</span>
                   <span className="design-tile__sub">
-                    {dc.colorwayCount === 1 ? '1 colorway' : `${dc.colorwayCount || 0} colorways`}
+                    {stockPieces} in stock • {stylesCount} {stylesCount === 1 ? 'style' : 'styles'}
                   </span>
 
                   {isPrintTC && !dc.thumbnailUrl && (
                     <span style={{ order: 3, padding: '0 8px', fontWeight: 'bold', color: 'var(--color-accent)' }}>
-                      {dc.colorwayCount || 0}
+                      {stockPieces} in stock
                     </span>
                   )}
                 </div>
