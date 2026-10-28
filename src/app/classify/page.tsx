@@ -235,7 +235,9 @@ function ClassifyPageInner() {
           <>
             <div className="main-content__header">
               <div>
-                <h2 className="main-content__title">{activeCategory}</h2>
+                <h2 className="main-content__title">
+                  {activeCategory === 'PrintedC' ? 'Printed C' : activeCategory === 'PrintedP' ? 'Printed P' : activeCategory === 'PrintTC' ? 'Print TC' : activeCategory}
+                </h2>
                 <p className="main-content__meta">
                   <strong>{filteredDesignCodes.length}</strong> {filteredDesignCodes.length === 1 ? 'Design' : 'Designs'} • <strong>{filteredDesignCodes.reduce((sum, item) => sum + (item.colorwayCount || 0), 0)}</strong> Styles • <strong>{filteredDesignCodes.reduce((sum, item) => sum + (item.totalStock !== undefined ? item.totalStock : (item.colorwayCount || 0)), 0)}</strong> Pieces in stock
                 </p>
@@ -287,16 +289,18 @@ function ClassifyPageInner() {
         )}
 
         {/* Design Code Grid */}
+        {/* Design Code Grid */}
         {!isLoading && filteredDesignCodes.length > 0 && (
-          <div className={`design-grid ${activeCategory === 'PrintTC' ? 'design-grid--compact' : ''}`}>
+          <div className="design-grid">
             {filteredDesignCodes.map(dc => {
-              const isPrintTC = activeCategory === 'PrintTC'
               const stockPieces = dc.totalStock !== undefined ? dc.totalStock : (dc.colorwayCount || 0)
               const stylesCount = dc.colorwayCount || 0
+              const isOutOfStock = stockPieces === 0
+
               return (
                 <div
                   key={dc._id}
-                  className={`design-tile ${isPrintTC ? 'design-tile--compact' : ''}`}
+                  className="design-tile"
                   onClick={() => router.push(`/classify/${dc._id}`)}
                   onPointerEnter={() => {
                     router.prefetch(`/classify/${dc._id}`)
@@ -334,37 +338,80 @@ function ClassifyPageInner() {
                     </button>
                   </div>
 
-                  {(!isPrintTC || dc.thumbnailUrl) && (
-                    <div className="design-tile__image-wrapper">
-                      {dc.thumbnailUrl ? (
-                        <img
-                          className="design-tile__image"
-                          src={getOptimizedImageUrl(dc.thumbnailUrl, { width: 340, quality: 'auto' })}
-                          alt={dc.code}
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="design-tile__placeholder">
-                          <img src="/mandera-logo.png" alt="Placeholder" style={{ width: '60%', height: '60%', objectFit: 'contain', opacity: 0.25 }} />
+                  <div className="design-tile__image-wrapper">
+                    {dc.thumbnailUrl ? (
+                      <img
+                        className="design-tile__image"
+                        src={getOptimizedImageUrl(dc.thumbnailUrl, { width: 340, quality: 'auto' })}
+                        alt={dc.code}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div
+                        className="design-tile__placeholder"
+                        style={{
+                          background: 'linear-gradient(135deg, #FAF5EB 0%, #F3EAE0 60%, #E9DECE 100%)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          width: '100%',
+                          height: '100%',
+                          opacity: 1,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '52px',
+                            height: '52px',
+                            borderRadius: '50%',
+                            background: 'rgba(91, 26, 62, 0.08)',
+                            border: '2px solid rgba(212, 175, 55, 0.4)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '20px',
+                            fontWeight: 900,
+                            color: '#5B1A3E',
+                            letterSpacing: '0.5px',
+                          }}
+                        >
+                          {dc.code.slice(0, 3)}
                         </div>
-                      )}
-                      <span className="design-tile__badge" title={`${stockPieces} pieces in stock`}>
-                        {stockPieces}
-                      </span>
-                    </div>
-                  )}
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            color: '#78350F',
+                            fontWeight: 700,
+                            letterSpacing: '0.5px',
+                            textTransform: 'uppercase',
+                            background: 'rgba(212, 175, 55, 0.15)',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                          }}
+                        >
+                          African Fabric
+                        </span>
+                      </div>
+                    )}
+
+                    <span
+                      className="design-tile__badge"
+                      style={{
+                        background: isOutOfStock ? '#dc2626' : 'rgba(91, 26, 62, 0.95)',
+                      }}
+                      title={`${stockPieces} pieces in stock`}
+                    >
+                      {stockPieces} {stockPieces === 1 ? 'pc' : 'pcs'}
+                    </span>
+                  </div>
 
                   <span className="design-tile__code">{dc.code}</span>
                   <span className="design-tile__sub">
                     {stockPieces} in stock • {stylesCount} {stylesCount === 1 ? 'style' : 'styles'}
                   </span>
-
-                  {isPrintTC && !dc.thumbnailUrl && (
-                    <span style={{ order: 3, padding: '0 8px', fontWeight: 'bold', color: 'var(--color-accent)' }}>
-                      {stockPieces} in stock
-                    </span>
-                  )}
                 </div>
               )
             })}
