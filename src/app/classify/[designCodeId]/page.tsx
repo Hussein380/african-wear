@@ -10,6 +10,7 @@ import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadc
 import Toast, { ToastData } from '@/components/Toast'
 import { Colorway, DesignCode } from '@/types'
 import { CacheKeys, getCached, getCacheAge, setCached, bustCache } from '@/lib/cache'
+import { getOptimizedImageUrl } from '@/lib/cloudinary'
 import SaleBasketFloating from '@/components/SaleBasketFloating'
 import { useSaleBasket } from '@/lib/useSaleBasket'
 
@@ -487,7 +488,12 @@ export default function DesignCodeDetailPage({
                     style={{ cursor: cw.photos?.[0] ? 'pointer' : 'default' }}
                   >
                     {cw.photos?.[0] ? (
-                      <img src={cw.photos[0].url} alt={cw.fullCode} loading="lazy" decoding="async" />
+                      <img
+                        src={getOptimizedImageUrl(cw.photos[0].url, { width: 520, quality: 'auto' })}
+                        alt={cw.fullCode}
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : (
                       <div style={{
                         display: 'flex',
@@ -625,7 +631,12 @@ export default function DesignCodeDetailPage({
                           className="colorway-card__photo-thumb"
                           onClick={() => setExpandedPhoto(photo.url)}
                         >
-                          <img src={photo.url} alt={`${cw.fullCode} photo ${i + 1}`} loading="lazy" decoding="async" />
+                          <img
+                            src={getOptimizedImageUrl(photo.url, { width: 140, quality: 'auto' })}
+                            alt={`${cw.fullCode} photo ${i + 1}`}
+                            loading="lazy"
+                            decoding="async"
+                          />
                         </div>
                       ))}
                     </div>
