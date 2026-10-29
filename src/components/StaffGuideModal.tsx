@@ -167,7 +167,7 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
                   <span>MINUS BUTTON = ITEM SOLD</span>
                 </div>
                 <p style={{ margin: '6px 0 0', color: '#7f1d1d', fontSize: '12px' }}>
-                  Tap <strong>−</strong> whenever a customer buys a piece. It takes 1 piece off the shelf and records an official sale.
+                  Tap <strong>−</strong> whenever a customer buys a bale. It takes 1 bale off the shelf and records an official sale.
                 </p>
               </div>
 
@@ -177,7 +177,7 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
                   <span>PLUS BUTTON = NEW STOCK ARRIVAL</span>
                 </div>
                 <p style={{ margin: '6px 0 0', color: '#14532d', fontSize: '12px' }}>
-                  Tap <strong>+</strong> when supplier brings new fabric delivery to add to the shelf.
+                  Tap <strong>+</strong> when supplier brings a new fabric delivery of bales to add to the shelf.
                 </p>
               </div>
 
@@ -195,8 +195,8 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px' }}>
                 <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>Special Tags in the Popup:</div>
                 <ul style={{ margin: '0', paddingLeft: '18px', fontSize: '12px' }}>
-                  <li><strong>Customer Return</strong>: If a customer returns an item, tap <strong>+</strong>, then tap <em>Customer Return</em> on the popup.</li>
-                  <li><strong>Own Use</strong>: If an item was taken for yourself or shop display, tap <strong>−</strong>, then tap <em>Own Use</em> on the popup.</li>
+                  <li><strong>Customer Return</strong>: If a customer returns a fabric, tap <strong>+</strong>, then tap <em>Customer Return</em> on the popup.</li>
+                  <li><strong>Own Use</strong>: If an item was taken for personal or shop display, tap <strong>−</strong>, then tap <em>Own Use</em> on the popup.</li>
                 </ul>
               </div>
             </div>
@@ -206,37 +206,37 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
           {activeTab === 'numbers' && (
             <div>
               <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: 0, marginBottom: '10px' }}>
-                Why is the number of boxes different from total rolls?
+                Why is the number of boxes different from total bales?
               </h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ background: '#fdf4ff', border: '1px solid #f0abfc', borderRadius: '12px', padding: '14px' }}>
                   <div style={{ fontWeight: 800, color: '#86198f', fontSize: '13px' }}>
-                    BOXES (COLORWAY STYLES)
+                    BOXES (COLORWAY STYLES & COLORS)
                   </div>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#701a75' }}>
-                    Each box card on your screen represents <strong>1 unique colorway design style</strong> (e.g. 11 boxes). Even if a style temporarily runs out of stock, the box stays visible with count 0 so you know that pattern exists in the catalogue.
+                    Each box card on your screen represents <strong>1 unique colorway design / color</strong> (for Print TC, these are individual colors). Even if a style temporarily runs out of stock, the box stays visible with count 0 so you know that color pattern exists in the catalogue.
                   </p>
                 </div>
 
                 <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '14px' }}>
                   <div style={{ fontWeight: 800, color: '#1e40af', fontSize: '13px' }}>
-                    TOTAL ROLLS IN STORE
+                    TOTAL BALES IN STORE
                   </div>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#1e3a8a' }}>
-                    This counts the <strong>physical rolls of fabric</strong> currently sitting on the store shelf. For example:
-                    <br />• Style 1 has <strong>2 rolls</strong>
-                    <br />• Style 2 has <strong>2 rolls</strong>
-                    <br />• Style 3 has <strong>1 roll</strong>
-                    <br />• Style 4 has <strong>0 rolls</strong> (Out of stock)
-                    <br />Total: <strong>11 Unique Styles, but 13 Physical Rolls in Stock!</strong>
+                    This counts the <strong>physical bales of fabric</strong> currently sitting on the store shelf. For example:
+                    <br />• Color 1 has <strong>2 bales</strong>
+                    <br />• Color 2 has <strong>2 bales</strong>
+                    <br />• Color 3 has <strong>1 bale</strong>
+                    <br />• Color 4 has <strong>0 bales</strong> (Out of stock)
+                    <br />Total: <strong>4 Colors, but 5 Physical Bales in Stock!</strong>
                   </p>
                 </div>
 
                 <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '12px' }}>
                   <div style={{ fontWeight: 700, color: '#334155', marginBottom: '2px' }}>Instant Real-Time Synchronization:</div>
                   <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
-                    Whenever you tap <strong>−</strong> or <strong>+</strong>, the pieces count updates immediately on the card, in the top header, and on the main catalogue page.
+                    Whenever you tap <strong>−</strong> or <strong>+</strong>, the bales count updates immediately on the card, in the top header, and on the master stock inventory page.
                   </p>
                 </div>
               </div>
@@ -247,29 +247,29 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
           {activeTab === 'receipts' && (
             <div>
               <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: 0, marginBottom: '10px' }}>
-                How to give a customer a receipt
+                How to give a customer a PDF receipt
               </h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '12px', padding: '14px' }}>
                   <div style={{ fontWeight: 800, color: '#166534', fontSize: '13px' }}>
-                    Method 1: Instant WhatsApp Receipt on 1 Item
+                    Method 1: Instant WhatsApp PDF Receipt on 1 Item
                   </div>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#14532d' }}>
                     When you tap <strong>−</strong>, look at the popup banner at the bottom and click <strong>Receipt</strong>.
-                    Type the customer&apos;s phone number (e.g. 0712345678) and tap <strong>Send WhatsApp Receipt</strong>. WhatsApp opens with an official boutique receipt ready to send!
+                    Type the customer&apos;s phone number (e.g. 0712345678) and tap <strong>Send PDF Receipt via WhatsApp</strong>. An official branded PDF receipt is automatically downloaded, and WhatsApp opens ready to share!
                   </p>
                 </div>
 
                 <div style={{ background: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: '12px', padding: '14px' }}>
                   <div style={{ fontWeight: 800, color: '#9d174d', fontSize: '13px' }}>
-                    Method 2: Multi-Item Sale (+Invoice)
+                    Method 2: Multi-Item Sale (+Receipt)
                   </div>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#831843' }}>
-                    If a customer buys 2 or more different fabric items:
-                    <br />1. Tap <strong>+ Invoice</strong> on each item they want.
+                    If a customer buys 2 or more different fabric bales:
+                    <br />1. Tap <strong>+ Receipt</strong> on each item they want.
                     <br />2. Tap the floating purple <strong>Multi-Item Sale</strong> bar at the bottom.
-                    <br />3. Enter customer details, choose Cash / M-Pesa / Credit (Deyn), and complete the sale!
+                    <br />3. Enter customer details, choose Cash or M-Pesa, and tap Send WhatsApp & PDF Receipt!
                   </p>
                 </div>
               </div>
@@ -280,35 +280,28 @@ export default function StaffGuideModal({ isOpen, onClose }: StaffGuideModalProp
           {activeTab === 'pages' && (
             <div>
               <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: 0, marginBottom: '10px' }}>
-                Quick Map of the Entire System
+                Quick Map of the Stock Management System
               </h3>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px' }}>
-                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>Classify (Showroom)</div>
+                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>Classify (Visual Fabric Showroom)</div>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>
-                    The main visual fabric showroom. Tap any design code (like AN, AJ) to see its colorways and change stock.
+                    The main visual fabric catalogue. Tap any design code (like AN, AJ, Print TC) to see its colors and manage physical stock levels.
                   </div>
                 </div>
 
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px' }}>
-                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>Master Stock (Inventory)</div>
+                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>Master Stock (Inventory Ledger)</div>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>
-                    Spreadsheet table of every fabric piece. You can search by code, sort, and download Excel/PDF reports.
+                    Real-time spreadsheet table of every fabric bale in store. You can search by code, sort, and review stock across all categories.
                   </div>
                 </div>
 
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px' }}>
-                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>Activity Log (History)</div>
+                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>Activity Log (Stock Audit Trail)</div>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>
-                    Audit trail showing every movement: who sold what, when, and at what time.
-                  </div>
-                </div>
-
-                <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px' }}>
-                  <div style={{ fontWeight: 700, color: '#5B1A3E' }}>Finance & Sales Ledger</div>
-                  <div style={{ fontSize: '12px', color: '#64748b' }}>
-                    Daily sales, customer credit (Deyn), shop operating expenses (rent, electricity, cargo), and month-end net profit calculations.
+                    Audit trail showing every movement: who added or sold what bales, when, and at what time.
                   </div>
                 </div>
               </div>

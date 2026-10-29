@@ -194,11 +194,11 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
     const itemsText = activeItems
       .map((item, idx) => {
         const qty = reorderSelections[item._id]?.qty || 10
-        return `${idx + 1}. *${item.fullCode}* — ${qty} rolls (Current shop stock: ${item.quantityAvailable} pcs)`
+        return `${idx + 1}. *${item.fullCode}* — ${qty} bales (Current shop stock: ${item.quantityAvailable} bales)`
       })
       .join('\n')
 
-    const totalRolls = activeItems.reduce((acc, item) => acc + (reorderSelections[item._id]?.qty || 10), 0)
+    const totalBales = activeItems.reduce((acc, item) => acc + (reorderSelections[item._id]?.qty || 10), 0)
 
     const message =
 `Assalaam Alaykum / Hello, this is *Mandera African Wear* (Mandera Town).
@@ -210,10 +210,10 @@ ${itemsText}
 
 ───────────────────
 *TOTAL DESIGNS:* ${activeItems.length}
-*TOTAL ROLLS REQUESTED:* ${totalRolls} rolls
+*TOTAL BALES REQUESTED:* ${totalBales} bales
 ───────────────────
 
-Kindly confirm availability, current roll wholesale prices, and dispatch schedule to Mandera. Thank you!`
+Kindly confirm availability, current bale wholesale prices, and dispatch schedule to Mandera. Thank you!`
 
     if (phoneClean) {
       const waUrl = `https://wa.me/${phoneClean}?text=${encodeURIComponent(message)}`
@@ -242,11 +242,11 @@ Kindly confirm availability, current roll wholesale prices, and dispatch schedul
     const itemsText = activeItems
       .map((item, idx) => {
         const qty = reorderSelections[item._id]?.qty || 10
-        return `${idx + 1}. *${item.fullCode}* — ${qty} rolls (Current shop stock: ${item.quantityAvailable} pcs)`
+        return `${idx + 1}. *${item.fullCode}* — ${qty} bales (Current shop stock: ${item.quantityAvailable} bales)`
       })
       .join('\n')
 
-    const totalRolls = activeItems.reduce((acc, item) => acc + (reorderSelections[item._id]?.qty || 10), 0)
+    const totalBales = activeItems.reduce((acc, item) => acc + (reorderSelections[item._id]?.qty || 10), 0)
 
     const message =
 `Assalaam Alaykum / Hello, this is *Mandera African Wear* (Mandera Town).
@@ -258,10 +258,10 @@ ${itemsText}
 
 ───────────────────
 *TOTAL DESIGNS:* ${activeItems.length}
-*TOTAL ROLLS REQUESTED:* ${totalRolls} rolls
+*TOTAL BALES REQUESTED:* ${totalBales} bales
 ───────────────────
 
-Kindly confirm availability, current roll wholesale prices, and dispatch schedule to Mandera. Thank you!`
+Kindly confirm availability, current bale wholesale prices, and dispatch schedule to Mandera. Thank you!`
 
     navigator.clipboard.writeText(message)
     setCopiedOrder(true)
@@ -323,7 +323,7 @@ Kindly confirm availability, current roll wholesale prices, and dispatch schedul
                 <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
               </div>
               <div className="dashboard-card__content">
-                <span className="dashboard-card__label">Total Stock in Store</span>
+                <span className="dashboard-card__label">Total Bales in Store</span>
                 <span className="dashboard-card__value" style={{ color: '#ffffff' }}>
                   {metrics?.totalStock ? metrics.totalStock.toLocaleString() : 0}
                 </span>
@@ -333,7 +333,7 @@ Kindly confirm availability, current roll wholesale prices, and dispatch schedul
               </div>
             </div>
 
-            {/* Sold Stats (Pieces only, no money) */}
+            {/* Sold Stats (Bales only, no money) */}
             <div className="dashboard-card" style={{ borderLeft: '5px solid #16a34a' }}>
               <div className="dashboard-card__icon" style={{ background: '#ecfdf5', color: '#16a34a' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -344,7 +344,7 @@ Kindly confirm availability, current roll wholesale prices, and dispatch schedul
               </div>
               <div className="dashboard-card__content">
                 <span className="dashboard-card__label" style={{ color: '#15803d' }}>
-                  Pieces Sold ({dashboardPeriod === 'today' ? 'Today' : dashboardPeriod === 'week' ? 'This Week' : 'Past 30 Days'})
+                  Bales Sold ({dashboardPeriod === 'today' ? 'Today' : dashboardPeriod === 'week' ? 'This Week' : 'Past 30 Days'})
                 </span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
                   <span className="dashboard-card__value" style={{ color: '#16a34a' }}>
@@ -355,11 +355,11 @@ Kindly confirm availability, current roll wholesale prices, and dispatch schedul
                       : metrics?.insights?.totals.sold.month ?? 0}
                   </span>
                   <span style={{ fontSize: '14px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-                    pcs
+                    bales
                   </span>
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: 'auto', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border-light)', paddingTop: '8px' }}>
-                  <span>{metrics?.insights?.totals.sold.month ?? 0} sold in 30 days</span>
+                  <span>{metrics?.insights?.totals.sold.month ?? 0} bales sold in 30 days</span>
                   <span style={{ color: '#92400e', fontWeight: 600 }}>{metrics?.insights?.totals.returned.month ?? 0} returns</span>
                 </div>
               </div>
@@ -377,7 +377,7 @@ Kindly confirm availability, current roll wholesale prices, and dispatch schedul
               </div>
               <div className="dashboard-card__content">
                 <span className="dashboard-card__label" style={{ color: '#1d4ed8' }}>
-                  Stock Arrived ({dashboardPeriod === 'today' ? 'Today' : dashboardPeriod === 'week' ? 'This Week' : 'Past 30 Days'})
+                  Bales Arrived ({dashboardPeriod === 'today' ? 'Today' : dashboardPeriod === 'week' ? 'This Week' : 'Past 30 Days'})
                 </span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
                   <span className="dashboard-card__value" style={{ color: '#2563eb' }}>
@@ -388,42 +388,12 @@ Kindly confirm availability, current roll wholesale prices, and dispatch schedul
                       : metrics?.insights?.totals.arrived.month ?? 0}
                   </span>
                   <span style={{ fontSize: '14px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-                    pcs
+                    bales
                   </span>
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: 'auto', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border-light)', paddingTop: '8px' }}>
-                  <span>+{metrics?.insights?.totals.arrived.month ?? 0} arrived in 30 days</span>
+                  <span>+{metrics?.insights?.totals.arrived.month ?? 0} bales arrived in 30 days</span>
                   <span style={{ color: '#6b7280' }}>{metrics?.insights?.totals.ownUse.month ?? 0} own use</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Finance & Invoices (Hybrid Link) */}
-            <div 
-              className="dashboard-card" 
-              style={{ borderLeft: '5px solid #8b5cf6', cursor: 'pointer' }}
-              onClick={() => router.push('/finance')}
-              title="Open Finance & Invoices"
-            >
-              <div className="dashboard-card__icon" style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/>
-                  <path d="M16 8h-8"/>
-                  <path d="M16 12h-8"/>
-                </svg>
-              </div>
-              <div className="dashboard-card__content">
-                <span className="dashboard-card__label" style={{ color: '#6d28d9' }}>
-                  Finance & Invoices
-                </span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
-                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#6d28d9' }}>
-                    Sales & Invoices
-                  </span>
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: 'auto', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border-light)', paddingTop: '8px' }}>
-                  <span>Track receipts & profit</span>
-                  <span style={{ color: '#8b5cf6', fontWeight: 600 }}>Manage →</span>
                 </div>
               </div>
             </div>
@@ -685,7 +655,7 @@ Kindly confirm availability, current roll wholesale prices, and dispatch schedul
                             )}
                           </div>
                           <div className="activity-item__context">
-                            <strong style={{ fontSize: '15px' }}>{activity.quantityChange} pcs</strong> of <strong style={{ color: 'var(--color-primary)' }}>{activity.fullCode}</strong>
+                            <strong style={{ fontSize: '15px' }}>{activity.quantityChange} {Math.abs(activity.quantityChange) === 1 ? 'bale' : 'bales'}</strong> of <strong style={{ color: 'var(--color-primary)' }}>{activity.fullCode}</strong>
                             {activity.subVariantLabel && (
                               <span style={{ color: 'var(--color-text-secondary)', marginLeft: '6px', fontSize: '13px' }}>
                                 (Variant: {activity.subVariantLabel})
@@ -818,12 +788,12 @@ Kindly confirm availability, current roll wholesale prices, and dispatch schedul
                             fontWeight: 700,
                             color: item.quantityAvailable === 0 ? '#dc2626' : '#d97706',
                           }}>
-                            {item.quantityAvailable} pcs
+                            {item.quantityAvailable} {item.quantityAvailable === 1 ? 'bale' : 'bales'}
                           </span>
                         </div>
 
                         <div>
-                          <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>Reorder Rolls</span>
+                          <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>Reorder Bales</span>
                           <input
                             type="number"
                             min="1"

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   generateInvoicePdf,
   openWhatsAppInvoice,
+  shareInvoicePdfViaWhatsApp,
   InvoicePdfData,
   isValidKenyanPhone,
   formatKenyanPhoneDisplay,
@@ -78,32 +79,6 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
     }
   }
 
-  const handlePriceClick = async () => {
-    const currentP = overridePrice !== undefined ? overridePrice : toast.soldPrice
-    const val = prompt(
-      `Agreed sold price for ${toast.itemCode} (KES):`,
-      currentP !== undefined ? String(currentP) : ''
-    )
-    if (val !== null) {
-      const num = val.trim() !== '' ? parseFloat(val) : undefined
-      if (toast.costPrice !== undefined && num !== undefined && num < toast.costPrice) {
-        const confirmLoss = confirm(
-          `⚠️ Warning: Selling at KES ${num.toLocaleString()} is below buying cost (KES ${toast.costPrice.toLocaleString()}). Proceed with this discount?`
-        )
-        if (!confirmLoss) return
-      }
-      setOverridePrice(num)
-      if (toast.activityId) {
-        await fetch(`/api/activities/${toast.activityId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ soldPrice: num !== undefined ? num : null }),
-        })
-        toast.onPriceUpdate?.(num)
-      }
-    }
-  }
-
   const handleUndo = async () => {
     if (isUndoing || !toast.onUndo) return
     setIsUndoing(true)
@@ -115,7 +90,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
     }
   }
 
-  const handleSendWhatsApp = () => {
+  const handleSendWhatsApp = async () => {
     const p = (overridePrice !== undefined ? overridePrice : toast.soldPrice) || 0
     const total = p * Math.abs(toast.change)
     const phoneToUse = customerPhone.trim()
@@ -140,9 +115,8 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
       totalAmount: total,
     }
 
-    const waUrl = getWhatsAppInvoiceUrl(phoneToUse, data)
-    setLastWaUrl(waUrl)
-    openWhatsAppInvoice(phoneToUse, data)
+    const result = await shareInvoicePdfViaWhatsApp(phoneToUse, data)
+    setLastWaUrl(result.waUrl)
   }
 
   return (
@@ -170,7 +144,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
             )}
           </span>
           <span className="stock-toast__text">
-            <strong>{Math.abs(toast.change)} roll</strong> of <strong>{toast.itemCode}</strong>
+            <strong>{Math.abs(toast.change)} {Math.abs(toast.change) === 1 ? 'bale' : 'bales'}</strong> of <strong>{toast.itemCode}</strong>
           </span>
         </div>
 
@@ -189,31 +163,6 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                   <span>Sold</span>
                 </button>
-                {(activeKind === 'sold' || !activeKind) && (
-                  <button
-                    type="button"
-                    className="stock-toast__tag-btn"
-                    onClick={handlePriceClick}
-                    style={{
-                      borderColor: '#3b82f6',
-                      color: '#2563eb',
-                      fontWeight: 600,
-                      background: (overridePrice !== undefined || toast.soldPrice !== undefined) ? 'rgba(37, 99, 235, 0.1)' : undefined,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    {(overridePrice !== undefined ? overridePrice : toast.soldPrice) !== undefined ? (
-                      <>
-                        <span>KES {(overridePrice !== undefined ? overridePrice : toast.soldPrice)?.toLocaleString()}</span>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                      </>
-                    ) : (
-                      <span>+ Set Price</span>
-                    )}
-                  </button>
-                )}
                 <button
                   type="button"
                   className={`stock-toast__tag-btn ${activeKind === 'own_use' ? 'stock-toast__tag-btn--active' : ''}`}
@@ -448,11 +397,11 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                       borderRadius: '12px',
                     }}
                   >
-                    Qty: {Math.abs(toast.change)} pc{Math.abs(toast.change) > 1 ? 's' : ''}
+                    Qty: {Math.abs(toast.change)} {Math.abs(toast.change) === 1 ? 'bale' : 'bales'}
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6B7280', paddingTop: '6px', borderTop: '1px dashed #E5E7EB' }}>
-                  <span>Price per pc</span>
+                  <span>Price per bale</span>
                   <span style={{ fontWeight: 600, color: '#374151' }}>
                     {(overridePrice !== undefined ? overridePrice : toast.soldPrice) !== undefined
                       ? `KES ${(overridePrice !== undefined ? overridePrice : toast.soldPrice)?.toLocaleString()}`
@@ -493,14 +442,14 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                     fontSize: '12px',
                   }}
                 >
-                  <span style={{ color: '#166534', fontWeight: 600 }}>WhatsApp opened in new tab.</span>{' '}
+                  <span style={{ color: '#166534', fontWeight: 600 }}>PDF Receipt downloaded & WhatsApp opened.</span>{' '}
                   <a
                     href={lastWaUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ color: '#15803D', fontWeight: 800, textDecoration: 'underline' }}
                   >
-                    Click here if blocked ↗
+                    Click here if WhatsApp didn&apos;t open ↗
                   </a>
                 </div>
               )}
@@ -530,7 +479,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.058.376-.058c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.184 1.564 5.939l-1.564 5.889 6.088-1.597c1.706.929 3.659 1.469 5.735 1.469 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12z" />
                   </svg>
-                  <span>Send WhatsApp Receipt {customerPhone.trim() ? `(${formatKenyanPhoneDisplay(customerPhone)})` : ''}</span>
+                  <span>Send PDF Receipt via WhatsApp {customerPhone.trim() ? `(${formatKenyanPhoneDisplay(customerPhone)})` : ''}</span>
                 </button>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>

@@ -172,7 +172,7 @@ export async function GET(request: Request) {
 
       suggestions.push({
         id: act._id.toString(),
-        title: `${actionLabel} ${act.quantityChange} pcs of ${act.fullCode}`,
+        title: `${actionLabel} ${act.quantityChange} ${Math.abs(act.quantityChange) === 1 ? 'bale' : 'bales'} of ${act.fullCode}`,
         subtitle: `${formattedDate} · In store: ${act.newQuantity ?? '—'} (Stock Log)`,
         category: parent?.category || 'History',
         type: 'activity',

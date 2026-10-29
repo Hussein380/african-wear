@@ -248,11 +248,11 @@ function ClassifyPageInner() {
                   </span>
                   <span style={{ opacity: 0.4 }}>•</span>
                   <span>
-                    <strong>{filteredDesignCodes.reduce((sum, item) => sum + (item.colorwayCount || 0), 0)}</strong> Colorway Styles
+                    <strong>{filteredDesignCodes.reduce((sum, item) => sum + (item.colorwayCount || 0), 0)}</strong> {activeCategory === 'PrintTC' ? 'Colors' : 'Colorway Styles'}
                   </span>
                   <span style={{ opacity: 0.4 }}>•</span>
                   <span style={{ background: 'rgba(91, 26, 62, 0.08)', color: '#5B1A3E', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                    {filteredDesignCodes.reduce((sum, item) => sum + (item.totalStock !== undefined ? item.totalStock : (item.colorwayCount || 0)), 0)} Total Rolls in Store
+                    {filteredDesignCodes.reduce((sum, item) => sum + (item.totalStock !== undefined ? item.totalStock : (item.colorwayCount || 0)), 0)} Total Bales in Store
                   </span>
                 </div>
               </div>
@@ -424,15 +424,15 @@ function ClassifyPageInner() {
                       style={{
                         background: isOutOfStock ? '#dc2626' : 'rgba(91, 26, 62, 0.95)',
                       }}
-                      title={`${stockPieces} pieces in stock`}
+                      title={`${stockPieces} ${stockPieces === 1 ? 'bale' : 'bales'} in stock`}
                     >
-                      {stockPieces} {stockPieces === 1 ? 'pc' : 'pcs'}
+                      {stockPieces} {stockPieces === 1 ? 'bale' : 'bales'}
                     </span>
                   </div>
 
                   <span className="design-tile__code">{dc.code}</span>
                   <span className="design-tile__sub">
-                    {stockPieces} in stock • {stylesCount} {stylesCount === 1 ? 'style' : 'styles'}
+                    {stockPieces} in stock • {stylesCount} {activeCategory === 'PrintTC' ? (stylesCount === 1 ? 'color' : 'colors') : (stylesCount === 1 ? 'style' : 'styles')}
                   </span>
                 </div>
               )

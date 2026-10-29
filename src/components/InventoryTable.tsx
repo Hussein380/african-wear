@@ -153,7 +153,7 @@ export default function InventoryTable({ data, externalSearchTerm }: Props) {
                 onClick={() => handleSort('quantityAvailable')}
                 style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
-                Stock {sortField === 'quantityAvailable' && (sortOrder === 'asc' ? '↑' : '↓')}
+                Stock (Bales) {sortField === 'quantityAvailable' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th>Action</th>
             </tr>

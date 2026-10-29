@@ -426,9 +426,9 @@ export default function DesignCodeDetailPage({
             Back
           </button>
           <div>
-            <h1 className="appbar__title">{designCode || 'Loading...'} Colorways</h1>
+            <h1 className="appbar__title">{designCode || 'Loading...'} {isPrintTC ? 'Colors' : 'Colorways'}</h1>
             <p className="appbar__subtitle">
-              <strong>{filteredColorways.length}</strong> {filteredColorways.length === 1 ? 'Style' : 'Styles'} • <strong>{totalStock}</strong> {totalStock === 1 ? 'Roll' : 'Total Rolls'} in Store
+              <strong>{filteredColorways.length}</strong> {filteredColorways.length === 1 ? (isPrintTC ? 'Color' : 'Style') : (isPrintTC ? 'Colors' : 'Styles')} • <strong>{totalStock}</strong> {totalStock === 1 ? 'Bale' : 'Total Bales'} in Store
             </p>
           </div>
         </div>
@@ -612,7 +612,7 @@ export default function DesignCodeDetailPage({
                       ))}
                       <div className="colorway-card__quantity" style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--color-border)', opacity: 0.8 }}>
                         <span className="colorway-card__quantity-label">Total in Stock:</span>
-                        <span className="colorway-card__quantity-value">{cw.quantityAvailable}</span>
+                        <span className="colorway-card__quantity-value">{cw.quantityAvailable} {cw.quantityAvailable === 1 ? 'bale' : 'bales'}</span>
                       </div>
                     </div>
                   ) : (
@@ -654,29 +654,6 @@ export default function DesignCodeDetailPage({
                     </div>
                   )}
 
-                  {/* Optional Price Display (Only if set) */}
-                  {(cw.sellingPrice !== undefined || cw.buyingPrice !== undefined) && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '4px 8px',
-                      background: 'var(--color-surface, #f9fafb)',
-                      borderRadius: '6px',
-                      border: '1px solid var(--color-border, #e5e7eb)',
-                      marginTop: '8px',
-                      fontSize: '11px',
-                    }}>
-                      <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
-                        {cw.sellingPrice !== undefined ? `KES ${cw.sellingPrice.toLocaleString()}` : 'Price not set'}
-                      </span>
-                      {cw.buyingPrice !== undefined && (
-                        <span style={{ color: 'var(--color-text-secondary, #6b7280)' }}>
-                          Cost: {cw.buyingPrice.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                  )}
 
                   {/* Photo Thumbnails */}
                   {cw.photos && cw.photos.length > 1 && (
@@ -714,14 +691,14 @@ export default function DesignCodeDetailPage({
                       }}
                       style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
                       type="button"
-                      title="Add to combined customer invoice"
+                      title="Add to combined customer sale receipt"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
                         <path d="M3 6h18" />
                         <path d="M16 10a4 4 0 0 1-8 0" />
                       </svg>
-                      <span>+ Invoice</span>
+                      <span>+ Receipt</span>
                     </button>
                     <button
                       className="btn btn--secondary btn--sm"

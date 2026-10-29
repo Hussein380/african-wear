@@ -5,6 +5,7 @@ import { useSaleBasket } from '@/lib/useSaleBasket'
 import {
   generateInvoicePdf,
   openWhatsAppInvoice,
+  shareInvoicePdfViaWhatsApp,
   InvoicePdfData,
   isValidKenyanPhone,
   formatKenyanPhoneDisplay,
@@ -16,7 +17,7 @@ export default function SaleBasketFloating() {
   const [isOpen, setIsOpen] = useState(false)
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mpesa' | 'credit'>('cash')
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mpesa'>('cash')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [lastWaUrl, setLastWaUrl] = useState<string | null>(null)
@@ -84,14 +85,12 @@ export default function SaleBasketFloating() {
           pdfData,
         }
 
-        // 1. Generate and download branded PDF invoice
-        await generateInvoicePdf(pdfData)
-
-        // 2. Open WhatsApp DM if requested
+        // 1. Generate & download branded PDF and share via WhatsApp if requested
         if (openWhatsApp && customerPhone.trim()) {
-          const waUrl = getWhatsAppInvoiceUrl(customerPhone.trim(), pdfData)
-          setLastWaUrl(waUrl)
-          openWhatsAppInvoice(customerPhone.trim(), pdfData)
+          const result = await shareInvoicePdfViaWhatsApp(customerPhone.trim(), pdfData)
+          setLastWaUrl(result.waUrl)
+        } else {
+          await generateInvoicePdf(pdfData)
         }
 
         setCompletedSale(saleInfo)
@@ -138,10 +137,10 @@ export default function SaleBasketFloating() {
           </svg>
           <div>
             <div style={{ fontWeight: 700, fontSize: '13px', lineHeight: 1.2 }}>
-              Multi-Item Sale ({totalPieces} pc{totalPieces > 1 ? 's' : ''})
+              Multi-Item Sale ({totalPieces} {totalPieces === 1 ? 'bale' : 'bales'})
             </div>
             <div style={{ fontSize: '11px', opacity: 0.9 }}>
-              Total: KES {totalAmount.toLocaleString()} • Tap to Invoice
+              Total: KES {totalAmount.toLocaleString()} • Tap to Sale Receipt
             </div>
           </div>
         </div>
@@ -330,11 +329,10 @@ export default function SaleBasketFloating() {
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>
                       Payment Method:
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                       {[
                         { id: 'cash', label: 'Cash in Drawer' },
                         { id: 'mpesa', label: 'M-Pesa on Till' },
-                        { id: 'credit', label: 'Credit (Deyn)' },
                       ].map(pm => (
                         <button
                           key={pm.id}
@@ -446,8 +444,8 @@ export default function SaleBasketFloating() {
                     }}
                   >
                     <div>
-                      <span style={{ fontSize: '11px', color: '#7c2d12', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Total Pieces</span>
-                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#431407' }}>{totalPieces} pcs</div>
+                      <span style={{ fontSize: '11px', color: '#7c2d12', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Total Bales</span>
+                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#431407' }}>{totalPieces} {totalPieces === 1 ? 'bale' : 'bales'}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: '11px', color: '#7c2d12', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Grand Total</span>
@@ -484,7 +482,7 @@ export default function SaleBasketFloating() {
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.058.376-.058c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.184 1.564 5.939l-1.564 5.889 6.088-1.597c1.706.929 3.659 1.469 5.735 1.469 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12z" />
                       </svg>
-                      <span>{isSubmitting ? 'Processing...' : 'Send WhatsApp & PDF'}</span>
+                      <span>{isSubmitting ? 'Processing...' : 'Send WhatsApp & PDF Receipt'}</span>
                     </button>
 
                     <button
@@ -505,7 +503,7 @@ export default function SaleBasketFloating() {
                       onClick={() => handleCheckoutAndShare(false)}
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
-                      <span>{isSubmitting ? 'Processing...' : 'Download PDF Invoice'}</span>
+                      <span>{isSubmitting ? 'Processing...' : 'Download PDF Receipt'}</span>
                     </button>
                   </div>
 

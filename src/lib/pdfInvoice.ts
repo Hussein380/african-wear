@@ -65,13 +65,11 @@ export function getWhatsAppInvoiceUrl(phone: string, data: InvoicePdfData): stri
   let itemsList = ''
   data.items.forEach((item, idx) => {
     const desc = item.subVariantLabel ? `${item.fullCode} (${item.subVariantLabel})` : item.fullCode
-    itemsList += `${idx + 1}. *${desc}* — ${item.quantity} pc${item.quantity > 1 ? 's' : ''} @ KES ${item.unitPrice.toLocaleString()} = KES ${item.subtotal.toLocaleString()}\n`
+    itemsList += `${idx + 1}. *${desc}* — ${item.quantity} ${item.quantity === 1 ? 'bale' : 'bales'}${item.unitPrice > 0 ? ` @ KES ${item.unitPrice.toLocaleString()} = KES ${item.subtotal.toLocaleString()}` : ''}\n`
   })
 
-  const totalPieces = data.items.reduce((acc, i) => acc + i.quantity, 0)
-  const isCredit = data.paymentMethod === 'credit'
-  const paymentText = isCredit ? 'CREDIT (DEYN - OUTSTANDING)' : (data.paymentMethod || 'CASH').toUpperCase()
-  const totalSuffix = isCredit ? '*(UNPAID BALANCE)*' : '*(PAID)*'
+  const totalBales = data.items.reduce((acc, i) => acc + i.quantity, 0)
+  const paymentText = (data.paymentMethod || 'CASH').toUpperCase()
 
   const message = `✨ *MANDERA AFRICAN WEAR* ✨
 *Official Receipt: ${data.invoiceNumber}*
@@ -81,9 +79,8 @@ export function getWhatsAppInvoiceUrl(phone: string, data: InvoicePdfData): stri
 
 *Items Purchased:*
 ${itemsList}────────────────────────
-*TOTAL PIECES:* ${totalPieces} pcs
-*TOTAL AMOUNT:* *KES ${data.totalAmount.toLocaleString()}* ${totalSuffix}
-────────────────────────
+*TOTAL BALES:* ${totalBales} ${totalBales === 1 ? 'bale' : 'bales'}
+${data.totalAmount > 0 ? `*TOTAL PAID:* *KES ${data.totalAmount.toLocaleString()}*\n────────────────────────\n` : ''}📄 *Official PDF receipt has been generated & downloaded for your records.*
 Thank you for shopping with Mandera African Wear!
 _Quality African Fabric & Authentic Prints Specialist_`
 
@@ -110,9 +107,9 @@ async function getBase64ImageFromUrl(url: string): Promise<string | null> {
 }
 
 /**
- * Generates and downloads a branded PDF invoice for Mandera African Wear
+ * Builds the jsPDF document object for an invoice
  */
-export async function generateInvoicePdf(data: InvoicePdfData) {
+export async function buildInvoicePdfDoc(data: InvoicePdfData): Promise<jsPDF> {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -207,7 +204,7 @@ export async function generateInvoicePdf(data: InvoicePdfData) {
 
   autoTable(doc, {
     startY: currentY,
-    head: [['#', 'Fabric Code / Description', 'Qty', 'Unit Price', 'Subtotal']],
+    head: [['#', 'Fabric Code / Description', 'Bales', 'Unit Price', 'Subtotal']],
     body: tableBody,
     theme: 'striped',
     headStyles: {
@@ -239,21 +236,20 @@ export async function generateInvoicePdf(data: InvoicePdfData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const finalY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 8 : currentY + 40
 
-  const totalPieces = data.items.reduce((acc, i) => acc + i.quantity, 0)
+  const totalBales = data.items.reduce((acc, i) => acc + i.quantity, 0)
 
   // Total Summary Box
-  const isCredit = data.paymentMethod === 'credit'
-  doc.setFillColor(...(isCredit ? [153, 27, 27] as [number, number, number] : primaryColor))
+  doc.setFillColor(...primaryColor)
   doc.roundedRect(120, finalY, 76, 22, 2, 2, 'F')
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(255, 255, 255)
-  doc.text(`Total Pieces: ${totalPieces} pcs`, 124, finalY + 7)
+  doc.text(`Total Bales: ${totalBales} ${totalBales === 1 ? 'bale' : 'bales'}`, 124, finalY + 7)
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(12)
-  doc.text(isCredit ? 'BALANCE DUE:' : 'TOTAL PAID:', 124, finalY + 16)
+  doc.text('TOTAL PAID:', 124, finalY + 16)
   doc.text(`KES ${data.totalAmount.toLocaleString()}`, 192, finalY + 16, { align: 'right' })
 
   // 8. Footer & Terms
@@ -263,8 +259,52 @@ export async function generateInvoicePdf(data: InvoicePdfData) {
   doc.text('Goods once sold in good condition cannot be returned or exchanged.', 14, 280)
   doc.text('Thank you for choosing Mandera African Wear! Quality fabric is our tradition.', 14, 284)
 
-  // Save the PDF
+  return doc
+}
+
+/**
+ * Generates and downloads a branded PDF invoice for Mandera African Wear
+ */
+export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
+  const doc = await buildInvoicePdfDoc(data)
   doc.save(`${data.invoiceNumber}_ManderaWear.pdf`)
+  return doc
+}
+
+/**
+ * Automatically generates the official branded PDF invoice, downloads it for the customer,
+ * and shares/opens it directly via WhatsApp.
+ */
+export async function shareInvoicePdfViaWhatsApp(phone: string, data: InvoicePdfData): Promise<{ sharedViaNative: boolean; waUrl: string }> {
+  const doc = await buildInvoicePdfDoc(data)
+  let sharedViaNative = false
+
+  try {
+    const pdfBlob = doc.output('blob')
+    const fileName = `${data.invoiceNumber}_ManderaWear.pdf`
+    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' })
+
+    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      await navigator.share({
+        files: [pdfFile],
+        title: `Official Receipt ${data.invoiceNumber} - Mandera African Wear`,
+        text: `Official Receipt ${data.invoiceNumber} from Mandera African Wear`,
+      })
+      sharedViaNative = true
+    }
+  } catch (err) {
+    // Sharing cancelled or not supported on this platform
+  }
+
+  // Always save/download PDF directly if not natively handled by OS share sheet
+  if (!sharedViaNative) {
+    doc.save(`${data.invoiceNumber}_ManderaWear.pdf`)
+  }
+
+  const waUrl = getWhatsAppInvoiceUrl(phone, data)
+  window.open(waUrl, '_blank')
+
+  return { sharedViaNative, waUrl }
 }
 
 export interface ZReportPdfData {

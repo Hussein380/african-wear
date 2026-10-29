@@ -340,7 +340,7 @@ export default function HistoryPage() {
           </button>
           <div>
             <h1 className="appbar__title">Activity History</h1>
-            <p className="appbar__subtitle">Audit trail of sales, roll arrivals, and stock updates</p>
+            <p className="appbar__subtitle">Audit trail of sales, bale arrivals, and stock updates</p>
           </div>
         </div>
         <div className="appbar__right">
