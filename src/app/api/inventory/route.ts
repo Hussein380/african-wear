@@ -35,6 +35,7 @@ export async function GET() {
           breakdown: 1,
           photos: 1,
           designCodeId: 1,
+          location: 1,
           category: { $ifNull: ["$design.category", "Uncategorized"] },
           designCodeName: { $ifNull: ["$design.code", "$fullCode"] },
           thumbnailUrl: { $ifNull: ["$design.thumbnailUrl", ""] }

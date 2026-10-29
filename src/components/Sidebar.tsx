@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { Category } from '@/types'
 import StaffGuideModal from '@/components/StaffGuideModal'
 
-export type ViewState = Category | 'Dashboard' | 'Inventory' | 'History' | 'Finance'
+export type ViewState = Category | 'Dashboard' | 'Inventory' | 'History' | 'Receipts' | 'Finance'
 
 interface SidebarProps {
   activeCategory: ViewState
@@ -87,6 +87,19 @@ const categories: NavItem[] = [
     ),
   },
   {
+    key: 'Receipts',
+    label: 'Sales Receipts',
+    isSpecial: true,
+    route: '/receipts',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/>
+        <line x1="8" y1="8" x2="16" y2="8"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+      </svg>
+    ),
+  },
+  {
     key: 'History',
     label: 'Activity Log',
     isSpecial: true,
@@ -128,6 +141,8 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
       url = '/api/dashboard'
     } else if (cat.key === 'Inventory') {
       url = '/api/inventory'
+    } else if (cat.key === 'Receipts') {
+      url = '/api/invoices?page=1&limit=50'
     } else {
       url = `/api/design-codes?category=${cat.key}`
     }
@@ -149,6 +164,8 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
             let isActive = false
             if (cat.key === 'Inventory') {
               isActive = pathname.startsWith('/inventory')
+            } else if (cat.key === 'Receipts') {
+              isActive = pathname.startsWith('/receipts')
             } else if (cat.key === 'History') {
               isActive = pathname.startsWith('/history')
             } else if (cat.key === 'Finance') {
@@ -166,6 +183,8 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
                 onClick={() => {
                   if (cat.key === 'History') {
                     router.push('/history')
+                  } else if (cat.key === 'Receipts') {
+                    router.push('/receipts')
                   } else if (cat.key === 'Finance') {
                     router.push('/finance')
                   } else if (cat.key === 'Inventory') {

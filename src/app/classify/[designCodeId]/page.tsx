@@ -161,8 +161,7 @@ export default function DesignCodeDetailPage({
     photos: { url: string; publicId: string }[]
     quantityAvailable: number
     breakdown?: { id: string; label: string; quantity: number }[]
-    buyingPrice?: number
-    sellingPrice?: number
+    location?: string
   }) => {
     const res = await fetch('/api/colorways', {
       method: 'POST',
@@ -181,8 +180,7 @@ export default function DesignCodeDetailPage({
     photos: { url: string; publicId: string }[]
     quantityAvailable: number
     breakdown?: { id: string; label: string; quantity: number }[]
-    buyingPrice?: number
-    sellingPrice?: number
+    location?: string
   }) => {
     if (!editingColorway) return
     const res = await fetch(`/api/colorways/${editingColorway._id}`, {
@@ -569,6 +567,17 @@ export default function DesignCodeDetailPage({
                 <div className="colorway-card__body">
                   <h3 className="colorway-card__code">{cw.fullCode}</h3>
 
+                  {/* Location Badge */}
+                  {cw.location && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                      <span style={{ fontSize: '12px', color: 'var(--color-primary)', fontWeight: 600, letterSpacing: '0.01em' }}>{cw.location}</span>
+                    </div>
+                  )}
+
                   {cw.breakdown && cw.breakdown.length > 0 ? (
                     <div className="colorway-card__breakdowns">
                       {cw.breakdown.map(item => (
@@ -762,8 +771,7 @@ export default function DesignCodeDetailPage({
             photos: editingColorway.photos,
             quantityAvailable: editingColorway.quantityAvailable,
             breakdown: editingColorway.breakdown,
-            buyingPrice: editingColorway.buyingPrice,
-            sellingPrice: editingColorway.sellingPrice,
+            location: editingColorway.location,
           }}
         />
       )}

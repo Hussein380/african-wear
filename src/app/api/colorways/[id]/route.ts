@@ -11,7 +11,7 @@ export async function PUT(
   try {
     const { id } = await ctx.params
     const body = await request.json()
-    const { fullCode, photos, quantityAvailable, breakdown, buyingPrice, sellingPrice } = body
+    const { fullCode, photos, quantityAvailable, breakdown, buyingPrice, sellingPrice, location } = body
 
     const db = await getDb()
     const objectId = new ObjectId(id)
@@ -37,6 +37,13 @@ export async function PUT(
     if (photos !== undefined) updateData.photos = photos
     if (quantityAvailable !== undefined) updateData.quantityAvailable = quantityAvailable
     if (breakdown !== undefined) updateData.breakdown = breakdown
+    if (location !== undefined) {
+      if (!location || !location.trim()) {
+        unsetData.location = ''
+      } else {
+        updateData.location = location.trim()
+      }
+    }
 
     if (buyingPrice !== undefined) {
       if (buyingPrice === null || buyingPrice === '' || isNaN(Number(buyingPrice))) {

@@ -19,6 +19,7 @@ interface InventoryItem {
   designCodeName: string
   designCodeId: string
   thumbnailUrl?: string
+  location?: string
 }
 
 interface Props {
@@ -53,13 +54,13 @@ export default function InventoryTable({ data, externalSearchTerm }: Props) {
       result = result.filter(item => item.category === categoryFilter)
     }
 
-    // Search
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter(item => 
         item.fullCode.toLowerCase().includes(q) ||
         item.designCodeName.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q)
+        item.category.toLowerCase().includes(q) ||
+        (item.location || '').toLowerCase().includes(q)
       )
     }
 
@@ -192,6 +193,15 @@ export default function InventoryTable({ data, externalSearchTerm }: Props) {
                     </div>
                   ) : (
                     <span className="text-muted">-</span>
+                  )}
+                  {item.location && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                      <span style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 600 }}>{item.location}</span>
+                    </div>
                   )}
                 </td>
                 

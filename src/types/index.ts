@@ -24,6 +24,7 @@ export interface Colorway {
   photos: Photo[];
   quantityAvailable: number;
   breakdown?: { id: string; label: string; quantity: number }[];
+  location?: string;
   buyingPrice?: number;
   sellingPrice?: number;
   createdAt: string;
