@@ -176,10 +176,23 @@ export async function buildInvoicePdfDoc(data: InvoicePdfData): Promise<jsPDF> {
   // 6. Itemized Table (Combining All Items)
   currentY += 26
 
+  // Same fabric, colour and price print as one line ("3 bales") instead of three
+  const lines: InvoicePdfData['items'] = []
+  for (const item of data.items) {
+    const same = lines.find(l => l.fullCode === item.fullCode && (l.subVariantLabel || '') === (item.subVariantLabel || '') && (l.unitPrice || 0) === (item.unitPrice || 0))
+    const subtotal = item.subtotal ?? (item.unitPrice || 0) * item.quantity
+    if (same) {
+      same.quantity += item.quantity
+      same.subtotal = (same.subtotal || 0) + subtotal
+    } else {
+      lines.push({ ...item, subtotal })
+    }
+  }
+
   // Price columns only appear when a selling price was typed for the receipt
-  const hasPrices = data.items.some(i => (i.unitPrice || 0) > 0)
+  const hasPrices = lines.some(i => (i.unitPrice || 0) > 0)
   const kes = (n: number) => `KES ${n.toLocaleString()}`
-  const tableBody = data.items.map((item, idx) => [
+  const tableBody = lines.map((item, idx) => [
     (idx + 1).toString(),
     item.subVariantLabel ? `${item.fullCode} (${item.subVariantLabel})` : item.fullCode,
     item.quantity.toString(),

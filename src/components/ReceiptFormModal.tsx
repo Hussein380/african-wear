@@ -28,19 +28,56 @@ interface ReceiptFormModalProps {
   onSaved: () => void
 }
 
+/**
+ * One line on the form per fabric + colour (+ price, for saved receipts), so 3 bales of the
+ * same colour show as "3 bales" with one price box. Each sale stays its own receipt item
+ * underneath, so undoing one sale in History still works.
+ */
 interface FormLine {
   fullCode: string
   subVariantLabel?: string
   quantity: number
   price: string
+  /** Sales in this line (new receipts) */
+  activityIds: string[]
+  /** Positions of this line's items in the saved receipt */
+  itemIndexes: number[]
 }
+
+type ReceiptItemLike = { fullCode: string; subVariantLabel?: string; quantity: number; unitPrice?: number; activityId?: string }
 
 const kes = (n: number) => `KES ${n.toLocaleString()}`
 
+function groupLines(
+  rows: { fullCode: string; subVariantLabel?: string; quantity: number; activityId?: string; unitPrice?: number }[]
+): FormLine[] {
+  const lines: FormLine[] = []
+  rows.forEach((r, idx) => {
+    const price = r.unitPrice ? String(r.unitPrice) : ''
+    const key = `${r.fullCode}::${r.subVariantLabel || ''}::${price}`
+    const line = lines.find(l => `${l.fullCode}::${l.subVariantLabel || ''}::${l.price}` === key)
+    if (line) {
+      line.quantity += r.quantity
+      if (r.activityId) line.activityIds.push(r.activityId)
+      line.itemIndexes.push(idx)
+    } else {
+      lines.push({
+        fullCode: r.fullCode,
+        subVariantLabel: r.subVariantLabel,
+        quantity: r.quantity,
+        price,
+        activityIds: r.activityId ? [r.activityId] : [],
+        itemIndexes: [idx],
+      })
+    }
+  })
+  return lines
+}
+
 export default function ReceiptFormModal({ sales, invoiceId, onClose, onSaved }: ReceiptFormModalProps) {
-  const [lines, setLines] = useState<FormLine[]>(
-    () => (sales || []).map(s => ({ fullCode: s.fullCode, subVariantLabel: s.subVariantLabel, quantity: s.quantity, price: '' }))
-  )
+  const [lines, setLines] = useState<FormLine[]>(() => groupLines(sales || []))
+  // Number of items in the saved receipt (prices are sent per item)
+  const [itemCount, setItemCount] = useState(0)
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null)
@@ -63,12 +100,9 @@ export default function ReceiptFormModal({ sales, invoiceId, onClose, onSaved }:
         setInvoiceNumber(inv.invoiceNumber)
         setCustomerName(inv.customerName || '')
         setCustomerPhone(inv.customerPhone || '')
-        setLines((inv.items || []).map((i: { fullCode: string; subVariantLabel?: string; quantity: number; unitPrice?: number }) => ({
-          fullCode: i.fullCode,
-          subVariantLabel: i.subVariantLabel,
-          quantity: i.quantity,
-          price: i.unitPrice ? String(i.unitPrice) : '',
-        })))
+        const items: ReceiptItemLike[] = inv.items || []
+        setLines(groupLines(items))
+        setItemCount(items.length)
       })
       .catch(() => !cancelled && setError('Could not open this receipt. Check the connection and try again.'))
       .finally(() => !cancelled && setIsLoading(false))
@@ -87,6 +121,13 @@ export default function ReceiptFormModal({ sales, invoiceId, onClose, onSaved }:
     () => typeof navigator !== 'undefined' && !!navigator.canShare && canSharePdfFile(new File([''], 'x.pdf', { type: 'application/pdf' })),
     []
   )
+
+  // One price per saved receipt item, taken from the line it belongs to
+  const itemPrices = () => {
+    const prices = new Array<number>(itemCount).fill(0)
+    lines.forEach(l => l.itemIndexes.forEach(i => { prices[i] = priceOf(l) }))
+    return prices
+  }
 
   const setPrice = (idx: number, value: string) => {
     setLines(prev => prev.map((l, i) => (i === idx ? { ...l, price: value.replace(/[^0-9.]/g, '') } : l)))
@@ -109,11 +150,11 @@ export default function ReceiptFormModal({ sales, invoiceId, onClose, onSaved }:
         res = await fetch(`/api/invoices/${savedId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ customerName, customerPhone, prices: lines.map(priceOf) }),
+          body: JSON.stringify({ customerName, customerPhone, prices: itemPrices() }),
         })
       } else {
         const prices: Record<string, number> = {}
-        sales!.forEach((s, idx) => { prices[s.activityId] = priceOf(lines[idx]) })
+        lines.forEach(l => l.activityIds.forEach(id => { prices[id] = priceOf(l) }))
         res = await fetch('/api/receipts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -127,6 +168,12 @@ export default function ReceiptFormModal({ sales, invoiceId, onClose, onSaved }:
       }
       setInvoiceNumber(inv.invoiceNumber)
       setSavedId(inv._id)
+      // Remember where each line's sales sit in the saved receipt, for later price changes
+      const savedItems: ReceiptItemLike[] = inv.items || []
+      setItemCount(savedItems.length)
+      setLines(prev => prev.map(l => l.activityIds.length
+        ? { ...l, itemIndexes: savedItems.flatMap((it, i) => (it.activityId && l.activityIds.includes(it.activityId) ? [i] : [])) }
+        : l))
       onSaved()
       setPrepared(await prepareReceiptPdf({
         invoiceNumber: inv.invoiceNumber,
