@@ -3030,6 +3030,11 @@ ul, ol {
   gap: 16px;
 }
 
+/* The body scrolls; its parts must keep their height instead of being squashed */
+.receipt-form__body > * {
+  flex-shrink: 0;
+}
+
 .receipt-form__error {
   padding: 12px 14px;
   border-radius: 10px;
@@ -3268,9 +3273,40 @@ ul, ol {
     grid-template-columns: 1fr;
   }
 
+  /* Narrow phones: fabric on its own line, then bales | price | amount */
   .receipt-sheet__row {
-    grid-template-columns: minmax(0, 1fr) 44px 104px 88px;
+    grid-template-columns: 52px minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "code code code"
+      "qty price amount";
     font-size: 14px;
+  }
+
+  .receipt-sheet__row > span {
+    border-right: none;
+  }
+
+  .receipt-sheet__row > .code { grid-area: code; padding-bottom: 0; }
+  .receipt-sheet__row > .qty { grid-area: qty; }
+  .receipt-sheet__row > .price { grid-area: price; }
+  .receipt-sheet__row > .amount { grid-area: amount; }
+
+  .receipt-sheet__row--head,
+  .receipt-sheet__row--total {
+    grid-template-areas: "qty price amount";
+  }
+
+  .receipt-sheet__row--head > .code {
+    display: none;
+  }
+
+  .receipt-sheet__row--total > .code {
+    grid-area: price;
+    text-align: right;
+  }
+
+  .receipt-sheet__row--total > .price {
+    display: none;
   }
 
   .receipt-form__doc {

@@ -210,10 +210,10 @@ export default function ReceiptFormModal({ sales, invoiceId, onClose, onSaved }:
               {/* Spreadsheet-style item grid */}
               <div className="receipt-sheet" role="table">
                 <div className="receipt-sheet__row receipt-sheet__row--head" role="row">
-                  <span role="columnheader">Fabric</span>
-                  <span role="columnheader" className="num">Bales</span>
-                  <span role="columnheader" className="num">Price / bale (KES)</span>
-                  <span role="columnheader" className="num">Amount</span>
+                  <span role="columnheader" className="code">Fabric</span>
+                  <span role="columnheader" className="num qty">Bales</span>
+                  <span role="columnheader" className="num price">Price / bale (KES)</span>
+                  <span role="columnheader" className="num amount">Amount</span>
                 </div>
                 {lines.map((l, idx) => (
                   <div className="receipt-sheet__row" role="row" key={idx}>
@@ -221,8 +221,8 @@ export default function ReceiptFormModal({ sales, invoiceId, onClose, onSaved }:
                       {l.fullCode}
                       {l.subVariantLabel && <small>{l.subVariantLabel}</small>}
                     </span>
-                    <span role="cell" className="num">{l.quantity}</span>
-                    <span role="cell" className="num">
+                    <span role="cell" className="num qty">{l.quantity}</span>
+                    <span role="cell" className="num price">
                       <input
                         type="text"
                         inputMode="decimal"
@@ -237,9 +237,9 @@ export default function ReceiptFormModal({ sales, invoiceId, onClose, onSaved }:
                   </div>
                 ))}
                 <div className="receipt-sheet__row receipt-sheet__row--total" role="row">
-                  <span role="cell">TOTAL</span>
-                  <span role="cell" className="num">{totalBales}</span>
-                  <span role="cell" />
+                  <span role="cell" className="code">TOTAL</span>
+                  <span role="cell" className="num qty">{totalBales}</span>
+                  <span role="cell" className="price" />
                   <span role="cell" className="num amount">{kes(total)}</span>
                 </div>
               </div>
