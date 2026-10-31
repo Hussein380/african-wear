@@ -8,9 +8,11 @@ import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadc
 import SaleBasketFloating from '@/components/SaleBasketFloating'
 import StocktakeModal from '@/components/StocktakeModal'
 import { generateStockSnapshotPdf, buildWhatsAppStockSummary } from '@/lib/stockReportPdf'
+import { useGoBack } from '@/lib/useGoBack'
 
 export default function InventoryPage() {
   const router = useRouter()
+  const goBack = useGoBack()
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -73,7 +75,7 @@ export default function InventoryPage() {
           </button>
           <button
             className="appbar__back-btn"
-            onClick={() => router.push('/classify')}
+            onClick={goBack}
             type="button"
             aria-label="Go back"
           >

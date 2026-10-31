@@ -11,7 +11,7 @@ export async function PUT(
   try {
     const { id } = await ctx.params
     const body = await request.json()
-    const { fullCode, photos, quantityAvailable, breakdown, buyingPrice, sellingPrice, location } = body
+    const { fullCode, photos, quantityAvailable, breakdown, location } = body
 
     const db = await getDb()
     const objectId = new ObjectId(id)
@@ -42,22 +42,6 @@ export async function PUT(
         unsetData.location = ''
       } else {
         updateData.location = location.trim()
-      }
-    }
-
-    if (buyingPrice !== undefined) {
-      if (buyingPrice === null || buyingPrice === '' || isNaN(Number(buyingPrice))) {
-        unsetData.buyingPrice = ''
-      } else {
-        updateData.buyingPrice = Number(buyingPrice)
-      }
-    }
-
-    if (sellingPrice !== undefined) {
-      if (sellingPrice === null || sellingPrice === '' || isNaN(Number(sellingPrice))) {
-        unsetData.sellingPrice = ''
-      } else {
-        updateData.sellingPrice = Number(sellingPrice)
       }
     }
 
@@ -152,7 +136,7 @@ export async function PUT(
   }
 }
 
-// PATCH /api/colorways/:id — quick update quantity or price
+// PATCH /api/colorways/:id — quick update quantity
 export async function PATCH(
   request: Request,
   ctx: RouteContext<'/api/colorways/[id]'>
@@ -160,7 +144,7 @@ export async function PATCH(
   try {
     const { id } = await ctx.params
     const body = await request.json()
-    const { quantityAvailable, buyingPrice, sellingPrice } = body
+    const { quantityAvailable } = body
 
     const db = await getDb()
     const objectId = new ObjectId(id)
@@ -175,22 +159,6 @@ export async function PATCH(
 
     if (quantityAvailable !== undefined && typeof quantityAvailable === 'number') {
       updateData.quantityAvailable = quantityAvailable
-    }
-
-    if (buyingPrice !== undefined) {
-      if (buyingPrice === null || buyingPrice === '' || isNaN(Number(buyingPrice))) {
-        unsetData.buyingPrice = ''
-      } else {
-        updateData.buyingPrice = Number(buyingPrice)
-      }
-    }
-
-    if (sellingPrice !== undefined) {
-      if (sellingPrice === null || sellingPrice === '' || isNaN(Number(sellingPrice))) {
-        unsetData.sellingPrice = ''
-      } else {
-        updateData.sellingPrice = Number(sellingPrice)
-      }
     }
 
     const updateOp: Record<string, unknown> = { $set: updateData }

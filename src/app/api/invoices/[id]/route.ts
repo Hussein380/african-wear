@@ -53,6 +53,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
+    // A receipt made later from sales never took stock, so just unlink it from those sales
+    if (invoice.source === 'sales') {
+      await activitiesColl.updateMany({ invoiceId: id }, { $unset: { invoiceId: '' } })
+      await invoicesColl.deleteOne({ _id: invoice._id })
+      return NextResponse.json({ success: true, message: `Receipt ${invoice.invoiceNumber} deleted.` })
+    }
+
     // 1. Return stock for each item in the invoice
     if (Array.isArray(invoice.items)) {
       for (const item of invoice.items) {
@@ -65,25 +72,14 @@ export async function DELETE(
           cw = await colorwaysColl.findOne({ fullCode: item.fullCode })
         }
         if (cw) {
-          const newQty = (cw.quantityAvailable || 0) + qtyToReturn
-          const updateDoc: Record<string, unknown> = {
-            quantityAvailable: newQty,
-            updatedAt: new Date(),
+          const filter: Record<string, unknown> = { _id: cw._id }
+          const inc: Record<string, number> = { quantityAvailable: qtyToReturn }
+          if (item.subVariantLabel && Array.isArray(cw.breakdown) &&
+              cw.breakdown.some((b: { label: string }) => b.label === item.subVariantLabel)) {
+            filter['breakdown.label'] = item.subVariantLabel
+            inc['breakdown.$.quantity'] = qtyToReturn
           }
-
-          if (item.subVariantLabel && Array.isArray(cw.breakdown)) {
-            updateDoc.breakdown = cw.breakdown.map((b: { id: string; label: string; quantity: number }) => {
-              if (b.label === item.subVariantLabel) {
-                return { ...b, quantity: b.quantity + qtyToReturn }
-              }
-              return b
-            })
-          }
-
-          await colorwaysColl.updateOne(
-            { _id: cw._id },
-            { $set: updateDoc }
-          )
+          await colorwaysColl.updateOne(filter, { $inc: inc, $set: { updatedAt: new Date() } })
         }
       }
     }
@@ -109,7 +105,8 @@ export async function DELETE(
   }
 }
 
-// PATCH /api/invoices/:id — update invoice status, payment method, or settle credit debt
+// PATCH /api/invoices/:id — edit customer details and selling prices before (re)sending
+// Body: { customerName?, customerPhone?, notes?, prices?: number[] } (prices by item position)
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -119,34 +116,32 @@ export async function PATCH(
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid invoice ID' }, { status: 400 })
     }
-    const body = await request.json()
-    const { paymentMethod, status, notes } = body
-
-    const nowIso = new Date().toISOString()
-    const updateDoc: Record<string, unknown> = {
-      updatedAt: nowIso,
-    }
-    if (paymentMethod) {
-      updateDoc.paymentMethod = paymentMethod
-      if (paymentMethod === 'cash' || paymentMethod === 'mpesa') {
-        updateDoc.settledAt = nowIso
-        updateDoc.settledMethod = paymentMethod
-      }
-    }
-    if (status) updateDoc.status = status
-    if (notes !== undefined) updateDoc.notes = notes
+    const { customerName, customerPhone, notes, prices } = await request.json()
 
     const db = await getDb()
-    const result = await db.collection('invoices').updateOne(
-      { _id: new ObjectId(id) },
-      { $set: updateDoc }
-    )
-
-    if (result.matchedCount === 0) {
+    const invoice = await db.collection('invoices').findOne({ _id: new ObjectId(id) })
+    if (!invoice) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
-    const updated = await db.collection('invoices').findOne({ _id: new ObjectId(id) })
+    const updateDoc: Record<string, unknown> = { updatedAt: new Date().toISOString() }
+    if (customerName !== undefined) updateDoc.customerName = String(customerName).trim() || null
+    if (customerPhone !== undefined) updateDoc.customerPhone = String(customerPhone).trim() || null
+    if (notes !== undefined) updateDoc.notes = notes
+
+    if (Array.isArray(prices) && Array.isArray(invoice.items)) {
+      const items = invoice.items.map((item: { quantity: number }, idx: number) => {
+        const n = Number(prices[idx])
+        const unitPrice = Number.isFinite(n) && n > 0 ? n : 0
+        return { ...item, unitPrice, subtotal: unitPrice * item.quantity }
+      })
+      updateDoc.items = items
+      updateDoc.totalAmount = items.reduce((sum: number, i: { subtotal: number }) => sum + i.subtotal, 0)
+    }
+
+    await db.collection('invoices').updateOne({ _id: invoice._id }, { $set: updateDoc })
+
+    const updated = await db.collection('invoices').findOne({ _id: invoice._id })
     return NextResponse.json({ ...updated, _id: updated?._id.toString() })
   } catch (error) {
     console.error('Error updating invoice:', error)

@@ -14,6 +14,7 @@ import { getOptimizedImageUrl } from '@/lib/cloudinary'
 import SaleBasketFloating from '@/components/SaleBasketFloating'
 import { useSaleBasket } from '@/lib/useSaleBasket'
 import StaffGuideModal from '@/components/StaffGuideModal'
+import { useGoBack } from '@/lib/useGoBack'
 
 export default function DesignCodeDetailPage({
   params,
@@ -37,6 +38,7 @@ export default function DesignCodeDetailPage({
   const [showDeleteDesignConfirm, setShowDeleteDesignConfirm] = useState(false)
   
   const router = useRouter()
+  const goBack = useGoBack()
   const searchParams = useSearchParams()
   
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -280,8 +282,6 @@ export default function DesignCodeDetailPage({
           change: delta,
           subVariantId,
           currentKind: data.kind,
-          soldPrice: data.soldPrice !== undefined ? data.soldPrice : cw.sellingPrice,
-          costPrice: data.costPrice !== undefined ? data.costPrice : cw.buyingPrice,
           onUndo: async () => {
             await fetch('/api/stock', {
               method: 'POST',
@@ -416,7 +416,7 @@ export default function DesignCodeDetailPage({
         <div className="appbar__left">
           <button
             className="appbar__back-btn"
-            onClick={() => router.back()}
+            onClick={goBack}
             type="button"
             aria-label="Go back"
           >
@@ -693,8 +693,6 @@ export default function DesignCodeDetailPage({
                           colorwayId: cw._id,
                           designCodeId,
                           fullCode: cw.fullCode,
-                          unitPrice: cw.sellingPrice || 0,
-                          costPrice: cw.buyingPrice,
                           available: cw.quantityAvailable,
                         })
                       }}

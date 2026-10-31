@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Category } from '@/types'
 import StaffGuideModal from '@/components/StaffGuideModal'
+import { historyPresetRange } from '@/lib/stockRules'
 
-export type ViewState = Category | 'Dashboard' | 'Inventory' | 'History' | 'Receipts' | 'Finance'
+export type ViewState = Category | 'Dashboard' | 'Inventory' | 'History' | 'Receipts'
 
 interface SidebarProps {
   activeCategory: ViewState
@@ -88,7 +89,7 @@ const categories: NavItem[] = [
   },
   {
     key: 'Receipts',
-    label: 'Sales Receipts',
+    label: 'Sales & Receipts',
     isSpecial: true,
     route: '/receipts',
     icon: (
@@ -133,16 +134,15 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
 
     let url = ''
     if (cat.key === 'History') {
-      const today = new Date()
-      const start = new Date()
-      start.setDate(today.getDate() - 7)
-      url = `/api/activities?page=1&limit=20&startDate=${start.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`
+      // Same range as the History page's default "This week" preset, so the prefetch is reused
+      const { start, end } = historyPresetRange('this_week')
+      url = `/api/activities?page=1&limit=20&startDate=${start}&endDate=${end}`
     } else if (cat.key === 'Dashboard') {
       url = '/api/dashboard'
     } else if (cat.key === 'Inventory') {
       url = '/api/inventory'
     } else if (cat.key === 'Receipts') {
-      url = '/api/invoices?page=1&limit=50'
+      url = '/api/activities?sold=1&page=1&limit=50'
     } else {
       url = `/api/design-codes?category=${cat.key}`
     }
@@ -168,8 +168,6 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
               isActive = pathname.startsWith('/receipts')
             } else if (cat.key === 'History') {
               isActive = pathname.startsWith('/history')
-            } else if (cat.key === 'Finance') {
-              isActive = pathname.startsWith('/finance')
             } else if (cat.key === 'Dashboard') {
               isActive = pathname === '/classify' && (activeCategory === 'Dashboard' || !activeCategory)
             } else {
@@ -185,8 +183,6 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
                     router.push('/history')
                   } else if (cat.key === 'Receipts') {
                     router.push('/receipts')
-                  } else if (cat.key === 'Finance') {
-                    router.push('/finance')
                   } else if (cat.key === 'Inventory') {
                     router.push('/inventory')
                   } else {

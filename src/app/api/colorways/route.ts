@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { designCodeId, fullCode, photos, quantityAvailable, breakdown, location, buyingPrice, sellingPrice } = body
+    const { designCodeId, fullCode, photos, quantityAvailable, breakdown, location } = body
 
     if (!designCodeId || !fullCode) {
       return NextResponse.json({ error: 'designCodeId and fullCode are required' }, { status: 400 })
@@ -67,13 +67,6 @@ export async function POST(request: Request) {
 
     if (location && typeof location === 'string') {
       newDoc.location = location.trim()
-    }
-
-    if (buyingPrice !== undefined && buyingPrice !== null && buyingPrice !== '' && !isNaN(Number(buyingPrice))) {
-      newDoc.buyingPrice = Number(buyingPrice)
-    }
-    if (sellingPrice !== undefined && sellingPrice !== null && sellingPrice !== '' && !isNaN(Number(sellingPrice))) {
-      newDoc.sellingPrice = Number(sellingPrice)
     }
 
     const result = await db.collection('colorways').insertOne(newDoc)

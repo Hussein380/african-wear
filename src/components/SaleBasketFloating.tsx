@@ -4,26 +4,23 @@ import React, { useState } from 'react'
 import { useSaleBasket } from '@/lib/useSaleBasket'
 import {
   generateInvoicePdf,
-  openWhatsAppInvoice,
   shareInvoicePdfViaWhatsApp,
   InvoicePdfData,
   isValidKenyanPhone,
   formatKenyanPhoneDisplay,
-  getWhatsAppInvoiceUrl,
 } from '@/lib/pdfInvoice'
 
 export default function SaleBasketFloating() {
-  const { items, updateItem, removeItem, clearBasket, totalPieces, totalAmount } = useSaleBasket()
+  const { items, updateItem, removeItem, clearBasket, totalPieces } = useSaleBasket()
   const [isOpen, setIsOpen] = useState(false)
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mpesa'>('cash')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [lastWaUrl, setLastWaUrl] = useState<string | null>(null)
+  const [shareError, setShareError] = useState<string | null>(null)
   const [completedSale, setCompletedSale] = useState<{
     invoiceNumber: string
-    totalAmount: number
     totalPieces: number
     pdfData: InvoicePdfData
   } | null>(null)
@@ -32,6 +29,7 @@ export default function SaleBasketFloating() {
     setIsOpen(false)
     setCompletedSale(null)
     setLastWaUrl(null)
+    setShareError(null)
     setCustomerName('')
     setCustomerPhone('')
     setCheckoutError(null)
@@ -40,13 +38,16 @@ export default function SaleBasketFloating() {
   if (items.length === 0 && !completedSale) return null
 
   const handleCheckoutAndShare = async (openWhatsApp: boolean) => {
+    if (isSubmitting) return
     setCheckoutError(null)
+    setShareError(null)
     if (openWhatsApp && !customerPhone.trim()) {
       setCheckoutError('Please enter a WhatsApp phone number for the customer (e.g. 0712345678).')
       return
     }
 
     setIsSubmitting(true)
+    let data
     try {
       const res = await fetch('/api/invoices', {
         method: 'POST',
@@ -54,56 +55,54 @@ export default function SaleBasketFloating() {
         body: JSON.stringify({
           customerName: customerName.trim() || undefined,
           customerPhone: customerPhone.trim() || undefined,
-          paymentMethod,
           items: items.map(i => ({
             colorwayId: i.colorwayId,
             fullCode: i.fullCode,
             quantity: i.quantity,
-            unitPrice: i.unitPrice,
-            costPrice: i.costPrice,
             subVariantLabel: i.subVariantLabel,
           })),
         }),
       })
-
-      const data = await res.json()
-      if (res.ok) {
-        const pdfData: InvoicePdfData = {
-          invoiceNumber: data.invoiceNumber,
-          createdAt: data.createdAt,
-          customerName: data.customerName,
-          customerPhone: data.customerPhone,
-          paymentMethod: data.paymentMethod,
-          items: data.items,
-          totalAmount: data.totalAmount,
-        }
-
-        const saleInfo = {
-          invoiceNumber: data.invoiceNumber,
-          totalAmount: data.totalAmount,
-          totalPieces: items.reduce((acc, i) => acc + i.quantity, 0),
-          pdfData,
-        }
-
-        // 1. Generate & download branded PDF and share via WhatsApp if requested
-        if (openWhatsApp && customerPhone.trim()) {
-          const result = await shareInvoicePdfViaWhatsApp(customerPhone.trim(), pdfData)
-          setLastWaUrl(result.waUrl)
-        } else {
-          await generateInvoicePdf(pdfData)
-        }
-
-        setCompletedSale(saleInfo)
-        clearBasket()
-        setIsSubmitting(false)
-      } else {
+      data = await res.json()
+      if (!res.ok) {
         setCheckoutError(data.error || 'Failed to complete sale')
         setIsSubmitting(false)
+        return
       }
     } catch (err) {
       console.error('Checkout error:', err)
       setCheckoutError('Network error completing sale. Please try again.')
       setIsSubmitting(false)
+      return
+    }
+
+    // The sale is saved and stock is deducted. From here on nothing may send it again,
+    // so clear the basket before the PDF/WhatsApp step, which can fail on its own.
+    const pdfData: InvoicePdfData = {
+      invoiceNumber: data.invoiceNumber,
+      createdAt: data.createdAt,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      items: data.items,
+    }
+    setCompletedSale({
+      invoiceNumber: data.invoiceNumber,
+      totalPieces: items.reduce((acc, i) => acc + i.quantity, 0),
+      pdfData,
+    })
+    clearBasket()
+    setIsSubmitting(false)
+
+    try {
+      if (openWhatsApp) {
+        const result = await shareInvoicePdfViaWhatsApp(customerPhone.trim(), pdfData)
+        setLastWaUrl(result.waUrl)
+      } else {
+        await generateInvoicePdf(pdfData)
+      }
+    } catch (err) {
+      console.error('Receipt share error:', err)
+      setShareError('Sale saved, but the receipt could not be shared. Use "Download PDF Again" below or the Receipts page.')
     }
   }
 
@@ -140,7 +139,7 @@ export default function SaleBasketFloating() {
               Multi-Item Sale ({totalPieces} {totalPieces === 1 ? 'bale' : 'bales'})
             </div>
             <div style={{ fontSize: '11px', opacity: 0.9 }}>
-              Total: KES {totalAmount.toLocaleString()} • Tap to Sale Receipt
+              Tap to make receipt
             </div>
           </div>
         </div>
@@ -176,12 +175,18 @@ export default function SaleBasketFloating() {
                   </div>
                   <div>
                     <div style={{ fontSize: '20px', fontWeight: 800, color: '#111827' }}>
-                      KES {completedSale.totalAmount.toLocaleString()}
+                      {completedSale.totalPieces} {completedSale.totalPieces === 1 ? 'bale' : 'bales'}
                     </div>
                     <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '3px' }}>
-                      {completedSale.totalPieces} fabric piece{completedSale.totalPieces > 1 ? 's' : ''} sold & removed from store shelves
+                      sold & removed from store shelves
                     </div>
                   </div>
+
+                  {shareError && (
+                    <div style={{ padding: '10px 14px', background: '#fef3c7', border: '1px solid #fde68a', color: '#92400e', borderRadius: '8px', fontSize: '13px', fontWeight: 500 }}>
+                      {shareError}
+                    </div>
+                  )}
 
                   {lastWaUrl && (
                     <div style={{
@@ -251,7 +256,7 @@ export default function SaleBasketFloating() {
                 <div className="modal__header">
                   <div>
                     <h3 className="modal__title" style={{ fontSize: '17px' }}>
-                      Combine & Invoice Multiple Items
+                      Multi-Item Sale Receipt
                     </h3>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>
                       Mandera African Wear • {items.length} different fabrics selected
@@ -324,38 +329,6 @@ export default function SaleBasketFloating() {
                     </div>
                   </div>
 
-                  {/* Payment Method */}
-                  <div>
-                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>
-                      Payment Method:
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                      {[
-                        { id: 'cash', label: 'Cash in Drawer' },
-                        { id: 'mpesa', label: 'M-Pesa on Till' },
-                      ].map(pm => (
-                        <button
-                          key={pm.id}
-                          type="button"
-                          onClick={() => setPaymentMethod(pm.id as any)}
-                          style={{
-                            padding: '8px 10px',
-                            borderRadius: '8px',
-                            border: `1.5px solid ${paymentMethod === pm.id ? 'var(--color-primary, #4A1032)' : '#e5e7eb'}`,
-                            background: paymentMethod === pm.id ? 'rgba(74, 16, 50, 0.08)' : '#ffffff',
-                            color: paymentMethod === pm.id ? 'var(--color-primary, #4A1032)' : '#4b5563',
-                            fontWeight: paymentMethod === pm.id ? 700 : 500,
-                            fontSize: '12px',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          {pm.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* Combined Items Table */}
                   <div style={{ background: '#fafaf9', borderRadius: '10px', border: '1px solid #e7e5e4', padding: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -373,7 +346,7 @@ export default function SaleBasketFloating() {
                           key={`${item.colorwayId}_${item.subVariantId || ''}`}
                           style={{
                             display: 'grid',
-                            gridTemplateColumns: '2fr 1fr 1.2fr auto',
+                            gridTemplateColumns: '2fr 1fr auto',
                             gap: '8px',
                             alignItems: 'center',
                             fontSize: '12px',
@@ -406,23 +379,11 @@ export default function SaleBasketFloating() {
                             />
                           </div>
 
-                          <div>
-                            <span style={{ fontSize: '10px', color: '#78716c', display: 'block' }}>Price (KES)</span>
-                            <input
-                              type="number"
-                              className="form-group__input"
-                              min="0"
-                              value={item.unitPrice}
-                              onChange={e => updateItem(idx, item.quantity, parseFloat(e.target.value) || 0)}
-                              style={{ padding: '6px 8px', fontSize: '12px', borderRadius: '6px' }}
-                            />
-                          </div>
-
                           <button
                             type="button"
                             onClick={() => removeItem(idx)}
                             style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px', padding: '4px 6px' }}
-                            title="Remove from invoice"
+                            title="Remove from receipt"
                           >
                             ✕
                           </button>
@@ -446,12 +407,6 @@ export default function SaleBasketFloating() {
                     <div>
                       <span style={{ fontSize: '11px', color: '#7c2d12', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Total Bales</span>
                       <div style={{ fontSize: '16px', fontWeight: 800, color: '#431407' }}>{totalPieces} {totalPieces === 1 ? 'bale' : 'bales'}</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '11px', color: '#7c2d12', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Grand Total</span>
-                      <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--color-primary, #4A1032)' }}>
-                        KES {totalAmount.toLocaleString()}
-                      </div>
                     </div>
                   </div>
                 </div>

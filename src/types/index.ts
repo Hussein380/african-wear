@@ -25,8 +25,6 @@ export interface Colorway {
   quantityAvailable: number;
   breakdown?: { id: string; label: string; quantity: number }[];
   location?: string;
-  buyingPrice?: number;
-  sellingPrice?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,8 +40,6 @@ export interface ActivityLog {
   newQuantity: number;
   subVariantLabel?: string;
   kind?: 'sold' | 'own_use' | 'arrived' | 'returned' | 'count_diff' | 'deleted' | 'new';
-  soldPrice?: number;
-  costPrice?: number;
   invoiceId?: string;
   edited?: boolean;
   timestamp: string;
@@ -55,11 +51,11 @@ export interface InvoiceItem {
   fullCode: string;
   subVariantLabel?: string;
   quantity: number;
-  unitPrice: number;
-  costPrice?: number;
-  subtotal: number;
-  skipDeduction?: boolean;
-  recentSaleActivityId?: string;
+  /** Selling price per bale, typed when the receipt is made (receipts only, never stored on stock). */
+  unitPrice?: number;
+  subtotal?: number;
+  /** The sold history row this line was made from. */
+  activityId?: string;
 }
 
 export interface Invoice {
@@ -67,13 +63,10 @@ export interface Invoice {
   invoiceNumber: string;
   customerName?: string;
   customerPhone?: string;
-  paymentMethod: 'cash' | 'mpesa' | 'credit' | 'other';
-  settledAt?: string;
-  settledMethod?: 'cash' | 'mpesa';
   items: InvoiceItem[];
-  totalAmount: number;
-  totalCost?: number;
-  estimatedProfit?: number;
+  totalAmount?: number;
+  /** 'sales' = made later from already-sold stock (no stock change); otherwise made by the sale basket. */
+  source?: 'sales' | 'basket';
   notes?: string;
   status: 'completed' | 'cancelled';
   createdAt: string;
@@ -87,26 +80,3 @@ export interface AppSettings {
 }
 
 export type Category = 'PrintedC' | 'PrintedP' | 'PrintTC';
-
-export type ExpenseCategory =
-  | 'rent'
-  | 'utilities'
-  | 'wages'
-  | 'transport'
-  | 'packaging'
-  | 'food'
-  | 'maintenance'
-  | 'other';
-
-export interface Expense {
-  _id?: string;
-  title: string;
-  amount: number;
-  category: ExpenseCategory;
-  paymentMethod: 'cash' | 'mpesa' | 'other';
-  notes?: string;
-  date: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-

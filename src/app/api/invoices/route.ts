@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
-import { Invoice, InvoiceItem } from '@/types'
+import { InvoiceItem } from '@/types'
+import { nextReceiptNumber } from '@/lib/receiptNumber'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,20 +41,16 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/invoices — create new invoice and atomically deduct stock
+type BreakdownEntry = { id: string; label: string; quantity: number }
+
+// POST /api/invoices — create a receipt and atomically deduct stock
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const {
-      customerName,
-      customerPhone,
-      paymentMethod = 'cash',
-      items,
-      notes,
-    } = body
+    const { customerName, customerPhone, items, notes } = body
 
     if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: 'Invoice must have at least one item' }, { status: 400 })
+      return NextResponse.json({ error: 'Receipt must have at least one item' }, { status: 400 })
     }
 
     const db = await getDb()
@@ -61,104 +58,111 @@ export async function POST(request: Request) {
     const activitiesColl = db.collection('activities')
     const invoicesColl = db.collection('invoices')
 
-    const now = new Date()
-
-    // 1. Validate stock availability for each item (unless already deducted in recent sale)
+    // 1. Merge repeated lines (same colour + same bale) so stock is checked against the combined quantity
+    const merged = new Map<string, { colorwayId: string; fullCode?: string; subVariantLabel?: string; quantity: number }>()
     for (const item of items) {
-      if (!item.colorwayId || !item.quantity || item.quantity <= 0) {
-        return NextResponse.json({ error: 'Invalid item quantity or colorway' }, { status: 400 })
+      const quantity = Number(item.quantity)
+      if (!item.colorwayId || !Number.isInteger(quantity) || quantity <= 0) {
+        return NextResponse.json({ error: 'Invalid item quantity or colour' }, { status: 400 })
       }
-      if (item.skipDeduction) {
-        // Item was already deducted from shelf when recorded as recent sale
-        continue
+      const key = `${item.colorwayId}::${item.subVariantLabel || ''}`
+      const existing = merged.get(key)
+      if (existing) {
+        existing.quantity += quantity
+      } else {
+        merged.set(key, {
+          colorwayId: String(item.colorwayId),
+          fullCode: item.fullCode,
+          subVariantLabel: item.subVariantLabel || undefined,
+          quantity,
+        })
       }
+    }
+
+    // 2. Deduct each line atomically; on any failure put back what was already taken
+    const now = new Date()
+    const deducted: { cw: Record<string, unknown> & { _id: ObjectId }; item: InvoiceItem; newQty: number }[] = []
+
+    const rollback = async () => {
+      for (const d of deducted) {
+        const inc: Record<string, number> = { quantityAvailable: d.item.quantity }
+        const filter: Record<string, unknown> = { _id: d.cw._id }
+        if (d.item.subVariantLabel) {
+          filter['breakdown.label'] = d.item.subVariantLabel
+          inc['breakdown.$.quantity'] = d.item.quantity
+        }
+        await colorwaysColl.updateOne(filter, { $inc: inc })
+      }
+    }
+
+    for (const line of merged.values()) {
       let cw = null
-      if (ObjectId.isValid(item.colorwayId)) {
-        cw = await colorwaysColl.findOne({ _id: new ObjectId(item.colorwayId) })
+      if (ObjectId.isValid(line.colorwayId)) {
+        cw = await colorwaysColl.findOne({ _id: new ObjectId(line.colorwayId) })
       }
-      if (!cw && item.fullCode) {
-        cw = await colorwaysColl.findOne({ fullCode: item.fullCode })
+      if (!cw && line.fullCode) {
+        cw = await colorwaysColl.findOne({ fullCode: line.fullCode })
       }
       if (!cw) {
-        return NextResponse.json({ error: `Item ${item.fullCode || item.colorwayId} not found` }, { status: 404 })
+        await rollback()
+        return NextResponse.json({ error: `Item ${line.fullCode || line.colorwayId} not found` }, { status: 404 })
       }
 
-      if (item.subVariantLabel && Array.isArray(cw.breakdown)) {
-        const sub = cw.breakdown.find((b: { id: string; label: string; quantity: number }) => b.label === item.subVariantLabel)
-        if (sub && sub.quantity < item.quantity) {
+      const filter: Record<string, unknown> = { _id: cw._id, quantityAvailable: { $gte: line.quantity } }
+      const inc: Record<string, number> = { quantityAvailable: -line.quantity }
+
+      if (line.subVariantLabel) {
+        const breakdown: BreakdownEntry[] = Array.isArray(cw.breakdown) ? cw.breakdown : []
+        if (!breakdown.some(b => b.label === line.subVariantLabel)) {
+          await rollback()
           return NextResponse.json(
-            { error: `Insufficient stock for ${cw.fullCode} (${item.subVariantLabel}). Available: ${sub.quantity}, Requested: ${item.quantity}` },
-            { status: 409 }
+            { error: `${cw.fullCode} has no bale called "${line.subVariantLabel}"` },
+            { status: 400 }
           )
         }
+        filter.breakdown = { $elemMatch: { label: line.subVariantLabel, quantity: { $gte: line.quantity } } }
+        inc['breakdown.$.quantity'] = -line.quantity
       }
 
-      if (cw.quantityAvailable < item.quantity) {
+      const updated = await colorwaysColl.findOneAndUpdate(
+        filter,
+        { $inc: inc, $set: { updatedAt: now } },
+        { returnDocument: 'after' }
+      )
+
+      if (!updated) {
+        await rollback()
+        const label = line.subVariantLabel ? ` (${line.subVariantLabel})` : ''
         return NextResponse.json(
-          { error: `Insufficient stock for ${cw.fullCode}. Available: ${cw.quantityAvailable}, Requested: ${item.quantity}` },
+          { error: `Not enough stock for ${cw.fullCode}${label}. Requested: ${line.quantity}` },
           { status: 409 }
         )
       }
-    }
 
-    // Generate Invoice Number: INV-YYYYMMDD-XXXX
-    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '')
-    const countToday = await invoicesColl.countDocuments({
-      createdAt: { $gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString() },
-    })
-    const invoiceNumber = `INV-${dateStr}-${String(countToday + 1).padStart(3, '0')}`
-
-    let totalAmount = 0
-    let totalCost = 0
-    let hasCostData = false
-
-    const processedItems: InvoiceItem[] = []
-
-    for (const item of items) {
-      let cw = null
-      try {
-        cw = await colorwaysColl.findOne({ _id: new ObjectId(item.colorwayId) })
-      } catch {
-        // If colorwayId was invalid ObjectId, attempt search by fullCode
-        if (item.fullCode) {
-          cw = await colorwaysColl.findOne({ fullCode: item.fullCode })
-        }
-      }
-
-      const unitPrice = Number(item.unitPrice) || 0
-      const costPrice = item.costPrice !== undefined ? Number(item.costPrice) : cw?.buyingPrice
-      const subtotal = unitPrice * item.quantity
-
-      totalAmount += subtotal
-      if (costPrice !== undefined) {
-        totalCost += costPrice * item.quantity
-        hasCostData = true
-      }
-
-      processedItems.push({
-        colorwayId: cw ? cw._id.toString() : item.colorwayId,
-        designCodeId: cw?.designCodeId,
-        fullCode: cw?.fullCode || item.fullCode,
-        subVariantLabel: item.subVariantLabel,
-        quantity: item.quantity,
-        unitPrice,
-        costPrice,
-        subtotal,
-        skipDeduction: !!item.skipDeduction,
-        recentSaleActivityId: item.recentSaleActivityId,
+      deducted.push({
+        cw,
+        newQty: updated.quantityAvailable ?? 0,
+        item: {
+          activityId: new ObjectId().toString(),
+          colorwayId: cw._id.toString(),
+          designCodeId: cw.designCodeId,
+          fullCode: cw.fullCode || line.fullCode || '',
+          subVariantLabel: line.subVariantLabel,
+          quantity: line.quantity,
+        },
       })
     }
 
+    const invoiceNumber = await nextReceiptNumber(db, now)
+
+    const processedItems = deducted.map(d => d.item)
     const invoiceDoc = {
       invoiceNumber,
       customerName: customerName?.trim() || undefined,
       customerPhone: customerPhone?.trim() || undefined,
-      paymentMethod,
       items: processedItems,
-      totalAmount,
-      totalCost: hasCostData ? totalCost : undefined,
-      estimatedProfit: hasCostData ? totalAmount - totalCost : undefined,
       notes: notes?.trim() || undefined,
+      source: 'basket' as const,
       status: 'completed' as const,
       createdAt: now.toISOString(),
     }
@@ -166,72 +170,23 @@ export async function POST(request: Request) {
     const insertResult = await invoicesColl.insertOne(invoiceDoc)
     const invoiceId = insertResult.insertedId.toString()
 
-    // Deduct stock and record activity logs (skip already deducted items)
-    for (const item of processedItems) {
-      if (item.skipDeduction) {
-        // Stock was ALREADY deducted when minus (−) was tapped in the shop!
-        // Link invoiceId and update recorded soldPrice on the existing activity
-        if (item.recentSaleActivityId) {
-          try {
-            await activitiesColl.updateOne(
-              { _id: new ObjectId(item.recentSaleActivityId) },
-              { $set: { invoiceId, soldPrice: item.unitPrice } }
-            )
-          } catch (err) {
-            console.error('Failed to link existing sale activity to invoice:', err)
-          }
-        }
-        continue
-      }
-
-      let cw = null
-      if (item.colorwayId && ObjectId.isValid(item.colorwayId)) {
-        cw = await colorwaysColl.findOne({ _id: new ObjectId(item.colorwayId) })
-      }
-      if (!cw && item.fullCode) {
-        cw = await colorwaysColl.findOne({ fullCode: item.fullCode })
-      }
-
-      if (cw) {
-        const updateDoc: Record<string, unknown> = {
-          $inc: { quantityAvailable: -item.quantity },
-          $set: { updatedAt: now },
-        }
-
-        if (item.subVariantLabel && Array.isArray(cw.breakdown)) {
-          const updatedBreakdown = cw.breakdown.map((b: { id: string; label: string; quantity: number }) => {
-            if (b.label === item.subVariantLabel) {
-              return { ...b, quantity: Math.max(0, b.quantity - item.quantity) }
-            }
-            return b
-          })
-          updateDoc.$set = { updatedAt: now, breakdown: updatedBreakdown }
-        }
-
-        await colorwaysColl.updateOne({ _id: cw._id }, updateDoc)
-
-        // Fetch new balance
-        const updatedCw = await colorwaysColl.findOne({ _id: cw._id })
-        const newQty = updatedCw?.quantityAvailable ?? 0
-
-        // Log movement as sold with price snapshot and invoice reference
-        await activitiesColl.insertOne({
-          type: 'OUT',
-          kind: 'sold',
-          quantityChange: item.quantity,
-          colorwayId: cw._id.toString(),
-          designCodeId: cw.designCodeId || item.designCodeId,
-          fullCode: cw.fullCode || item.fullCode,
-          previousQuantity: newQty + item.quantity,
-          newQuantity: newQty,
-          subVariantLabel: item.subVariantLabel,
-          soldPrice: item.unitPrice,
-          costPrice: item.costPrice,
-          invoiceId,
-          timestamp: now.toISOString(),
-        })
-      }
-    }
+    // 4. Log each movement as sold, linked to the receipt
+    await activitiesColl.insertMany(
+      deducted.map(d => ({
+        _id: new ObjectId(d.item.activityId),
+        type: 'OUT',
+        kind: 'sold',
+        quantityChange: d.item.quantity,
+        colorwayId: d.item.colorwayId,
+        designCodeId: d.item.designCodeId,
+        fullCode: d.item.fullCode,
+        previousQuantity: d.newQty + d.item.quantity,
+        newQuantity: d.newQty,
+        subVariantLabel: d.item.subVariantLabel,
+        invoiceId,
+        timestamp: now.toISOString(),
+      }))
+    )
 
     return NextResponse.json({
       ...invoiceDoc,
@@ -239,6 +194,6 @@ export async function POST(request: Request) {
     }, { status: 201 })
   } catch (error) {
     console.error('Error creating invoice:', error)
-    return NextResponse.json({ error: 'Failed to create invoice' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create receipt' }, { status: 500 })
   }
 }

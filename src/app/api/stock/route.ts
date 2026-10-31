@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(request: Request) {
   try {
-    const { colorwayId, change, subVariantId, undoOf, soldPrice, costPrice, kind: requestedKind } = await request.json()
+    const { colorwayId, change, subVariantId, undoOf, kind: requestedKind } = await request.json()
 
     if (
       typeof colorwayId !== 'string' ||
@@ -134,25 +134,7 @@ export async function POST(request: Request) {
         return respond({ corrected: true })
       }
 
-      // Determine final soldPrice and costPrice snapshots
-      let finalSoldPrice: number | undefined = undefined
-      let finalCostPrice: number | undefined = undefined
-
       const effectiveKind = requestedKind || (type === 'OUT' ? 'sold' : 'arrived')
-
-      if (type === 'OUT' && effectiveKind === 'sold') {
-        if (soldPrice !== undefined && soldPrice !== null && soldPrice !== '' && !isNaN(Number(soldPrice))) {
-          finalSoldPrice = Number(soldPrice)
-        } else if (existing.sellingPrice !== undefined) {
-          finalSoldPrice = existing.sellingPrice
-        }
-
-        if (costPrice !== undefined && costPrice !== null && costPrice !== '' && !isNaN(Number(costPrice))) {
-          finalCostPrice = Number(costPrice)
-        } else if (existing.buyingPrice !== undefined) {
-          finalCostPrice = existing.buyingPrice
-        }
-      }
 
       // ---- 3. Record the movement ----
       const doc = {
@@ -166,8 +148,6 @@ export async function POST(request: Request) {
         newQuantity,
         ...(variantLabel ? { subVariantLabel: variantLabel } : {}),
         ...(cancelled > 0 ? { edited: true } : {}),
-        ...(finalSoldPrice !== undefined ? { soldPrice: finalSoldPrice } : {}),
-        ...(finalCostPrice !== undefined ? { costPrice: finalCostPrice } : {}),
         timestamp: now.toISOString(),
       }
       const inserted = await activities.insertOne(doc)
@@ -176,8 +156,6 @@ export async function POST(request: Request) {
         activityId: inserted.insertedId.toString(), 
         type, 
         kind: doc.kind,
-        soldPrice: finalSoldPrice,
-        costPrice: finalCostPrice,
       })
     } catch (logError) {
       // History could not be written: undo the stock change so the two never disagree.

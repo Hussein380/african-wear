@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import InstallPrompt from '@/components/InstallPrompt'
+import { NavigationTracker } from '@/lib/useGoBack'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -31,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <NavigationTracker />
         {children}
         <InstallPrompt />
       </body>

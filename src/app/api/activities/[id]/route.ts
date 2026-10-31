@@ -13,7 +13,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await ctx.params
-    const { kind, soldPrice } = await request.json()
+    const { kind } = await request.json()
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
@@ -33,14 +33,6 @@ export async function PATCH(
         return NextResponse.json({ error: 'Not allowed for this entry' }, { status: 400 })
       }
       updateFields.kind = kind
-    }
-
-    if (soldPrice !== undefined) {
-      if (soldPrice === null || soldPrice === '' || isNaN(Number(soldPrice))) {
-        await db.collection('activities').updateOne({ _id: activity._id }, { $unset: { soldPrice: '' } })
-      } else {
-        updateFields.soldPrice = Number(soldPrice)
-      }
     }
 
     if (Object.keys(updateFields).length > 0) {
@@ -124,17 +116,15 @@ export async function DELETE(
           await invoicesColl.deleteOne({ _id: invoice._id })
         } else {
           const items = Array.isArray(invoice.items) ? [...invoice.items] : []
-          let removedSubtotal = (activity.soldPrice || 0) * (activity.quantityChange || 1)
-
-          const matchIndex = items.findIndex((it: { recentSaleActivityId?: string; colorwayId: string; subVariantLabel?: string; subtotal?: number }) => {
-            if (it.recentSaleActivityId && it.recentSaleActivityId === activity._id.toString()) return true
+          const matchIndex = items.findIndex((it: { activityId?: string; recentSaleActivityId?: string; colorwayId: string; subVariantLabel?: string }) => {
+            const linkedId = it.activityId || it.recentSaleActivityId
+            if (linkedId) return linkedId === activity._id.toString()
             const sameCw = String(it.colorwayId) === String(activity.colorwayId)
             const sameSub = (it.subVariantLabel || null) === (activity.subVariantLabel || null)
             return sameCw && sameSub
           })
 
           if (matchIndex > -1) {
-            removedSubtotal = items[matchIndex].subtotal || removedSubtotal
             items.splice(matchIndex, 1)
           }
 
@@ -144,8 +134,10 @@ export async function DELETE(
             await invoicesColl.updateOne(
               { _id: invoice._id },
               {
-                $inc: { totalAmount: -removedSubtotal },
-                $set: { items },
+                $set: {
+                  items,
+                  totalAmount: items.reduce((sum: number, i: { subtotal?: number }) => sum + (i.subtotal || 0), 0),
+                },
               }
             )
           }

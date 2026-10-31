@@ -54,3 +54,36 @@ export function shopDaysAgo(days: number): Date {
 export function shopDayBoundary(dateStr: string, end: boolean): Date {
   return new Date(`${dateStr}T${end ? '23:59:59.999' : '00:00:00.000'}+03:00`)
 }
+
+/** The shop-local calendar date of `d` as yyyy-mm-dd (e.g. for date inputs and receipt numbers). */
+export function shopDateString(d: Date = new Date()): string {
+  return new Date(d.getTime() + EAT_OFFSET_MS).toISOString().slice(0, 10)
+}
+
+export type HistoryPreset = 'this_week' | '7days' | 'this_month' | 'last_month' | 'this_year'
+
+/** yyyy-mm-dd start/end of a History date preset, in shop-local calendar days. */
+export function historyPresetRange(preset: HistoryPreset, now: Date = new Date()): { start: string; end: string } {
+  // Work on the shop-local calendar date using UTC fields so the device time zone never matters.
+  const today = new Date(`${shopDateString(now)}T00:00:00Z`)
+  const y = today.getUTCFullYear()
+  const m = today.getUTCMonth()
+  const fmt = (d: Date) => d.toISOString().slice(0, 10)
+  let start = today
+  let end = today
+
+  if (preset === 'this_week') {
+    const day = today.getUTCDay() // 0 = Sunday; weeks start on Monday
+    start = new Date(Date.UTC(y, m, today.getUTCDate() - (day === 0 ? 6 : day - 1)))
+  } else if (preset === '7days') {
+    start = new Date(Date.UTC(y, m, today.getUTCDate() - 7))
+  } else if (preset === 'this_month') {
+    start = new Date(Date.UTC(y, m, 1))
+  } else if (preset === 'last_month') {
+    start = new Date(Date.UTC(y, m - 1, 1))
+    end = new Date(Date.UTC(y, m, 0))
+  } else if (preset === 'this_year') {
+    start = new Date(Date.UTC(y, 0, 1))
+  }
+  return { start: fmt(start), end: fmt(end) }
+}

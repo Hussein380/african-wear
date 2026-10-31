@@ -1,4 +1,5 @@
 ﻿import jsPDF from 'jspdf'
+import { shopDateString } from './stockRules'
 
 // Colour palette matching the app brand
 const PLUM = '#5B1A3E'
@@ -160,7 +161,7 @@ export async function generateStockSnapshotPdf({ items, storeName = 'MANDERA AFR
   }
 
   // ── Footer ──────────────────────────────────────────────────────────────────
-  const pageCount = (doc.internal as { getNumberOfPages: () => number }).getNumberOfPages()
+  const pageCount = doc.getNumberOfPages()
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
     doc.setFillColor(pr, pg, pb)
@@ -172,7 +173,7 @@ export async function generateStockSnapshotPdf({ items, storeName = 'MANDERA AFR
     doc.text(`Page ${i} of ${pageCount}`, pageW - margin, 295, { align: 'right' })
   }
 
-  doc.save(`Stock_Snapshot_${now.toISOString().slice(0, 10)}.pdf`)
+  doc.save(`Stock_Snapshot_${shopDateString(now)}.pdf`)
 }
 
 export function buildWhatsAppStockSummary({ items, storeName = 'MANDERA AFRICAN WEAR' }: StoreSnapshot): string {

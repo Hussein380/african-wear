@@ -6,9 +6,12 @@ import * as XLSX from 'xlsx'
 import { ActivityLog } from '@/types'
 import Sidebar from '@/components/Sidebar'
 import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadcnui'
+import { useGoBack } from '@/lib/useGoBack'
+import { historyPresetRange } from '@/lib/stockRules'
 
 export default function HistoryPage() {
   const router = useRouter()
+  const goBack = useGoBack()
   const [activities, setActivities] = useState<ActivityLog[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
@@ -36,35 +39,14 @@ export default function HistoryPage() {
   // Helper to set dates based on calendar periods
   const applyPreset = (preset: 'this_week' | '7days' | 'this_month' | 'last_month' | 'this_year' | 'all') => {
     setDatePreset(preset)
-    const today = new Date()
-    let start = new Date()
-    let end = new Date()
-    
-    if (preset === 'this_week') {
-      // Start of current week (Monday)
-      const day = today.getDay()
-      const diff = today.getDate() - day + (day === 0 ? -6 : 1)
-      start = new Date(today.getFullYear(), today.getMonth(), diff)
-      end = new Date()
-    } else if (preset === '7days') {
-      start.setDate(today.getDate() - 7)
-    } else if (preset === 'this_month') {
-      start = new Date(today.getFullYear(), today.getMonth(), 1)
-      end = new Date()
-    } else if (preset === 'last_month') {
-      start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-      end = new Date(today.getFullYear(), today.getMonth(), 0) // last day of prev month
-    } else if (preset === 'this_year') {
-      start = new Date(today.getFullYear(), 0, 1)
-      end = new Date()
-    } else if (preset === 'all') {
+    if (preset === 'all') {
       setStartDate('')
       setEndDate('')
       return
     }
-    
-    setStartDate(start.toISOString().split('T')[0])
-    setEndDate(end.toISOString().split('T')[0])
+    const { start, end } = historyPresetRange(preset)
+    setStartDate(start)
+    setEndDate(end)
   }
 
   // Initial load: default to This Week
@@ -102,7 +84,7 @@ export default function HistoryPage() {
           setHasMore(data.pagination.page < data.pagination.totalPages)
           setPage(1)
           // Update cache after fresh fetch
-          if (datePreset === '7days') {
+          if (datePreset === 'this_week') {
             sessionStorage.setItem('prefetch_History', JSON.stringify({ data, ts: Date.now() }))
           }
         }
@@ -114,7 +96,7 @@ export default function HistoryPage() {
     }
 
     // Stale-while-revalidate: show cached data instantly, refresh in background
-    if (datePreset === '7days') {
+    if (datePreset === 'this_week') {
       const cached = sessionStorage.getItem('prefetch_History')
       if (cached) {
         try {
@@ -193,11 +175,9 @@ export default function HistoryPage() {
           'Colorway Code': activity.fullCode || '-',
           'Sub-Variant': activity.subVariantLabel || '-',
           'Quantity Changed': activity.type === 'OUT' ? -activity.quantityChange : activity.quantityChange,
-          'Unit Price (KES)': activity.soldPrice !== undefined ? activity.soldPrice : '-',
-          'Total Revenue (KES)': activity.soldPrice !== undefined ? activity.soldPrice * activity.quantityChange : '-',
           'Final Stock': activity.newQuantity,
           'Previous Stock': activity.previousQuantity,
-          'Invoice ID': activity.invoiceId ? String(activity.invoiceId) : '-',
+          'Receipt ID': activity.invoiceId ? String(activity.invoiceId) : '-',
           'Corrected': activity.edited ? 'Yes' : 'No',
         }
       })
@@ -331,7 +311,7 @@ export default function HistoryPage() {
           </button>
           <button
             className="appbar__back-btn"
-            onClick={() => router.push('/classify')}
+            onClick={goBack}
             type="button"
             aria-label="Go back"
           >

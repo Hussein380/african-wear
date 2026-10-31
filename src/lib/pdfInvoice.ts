@@ -1,20 +1,27 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
+/** Shop details printed on every receipt. Edit here to change them everywhere. */
+export const SHOP_DETAILS = {
+  name: 'MANDERA AFRICAN WEAR',
+  tagline: 'Specialists in Quality African Fabrics & Authentic Prints',
+  address: 'Mandera Town, Kenya',
+  phone: '+254 700 000 000',
+}
+
 export interface InvoicePdfData {
   invoiceNumber: string
   createdAt?: string
   customerName?: string
   customerPhone?: string
-  paymentMethod?: string
   items: {
     fullCode: string
     subVariantLabel?: string
     quantity: number
-    unitPrice: number
-    subtotal: number
+    unitPrice?: number
+    subtotal?: number
   }[]
-  totalAmount: number
+  totalAmount?: number
   notes?: string
 }
 
@@ -57,33 +64,10 @@ export function formatKenyanPhoneDisplay(phone: string): string {
  */
 export function getWhatsAppInvoiceUrl(phone: string, data: InvoicePdfData): string {
   const normPhone = normalizeKenyanPhone(phone)
-  const clientName = data.customerName?.trim() ? `\n*Customer:* ${data.customerName.trim()}` : ''
-  const dateStr = data.createdAt
-    ? new Date(data.createdAt).toLocaleDateString()
-    : new Date().toLocaleDateString()
-
-  let itemsList = ''
-  data.items.forEach((item, idx) => {
-    const desc = item.subVariantLabel ? `${item.fullCode} (${item.subVariantLabel})` : item.fullCode
-    itemsList += `${idx + 1}. *${desc}* — ${item.quantity} ${item.quantity === 1 ? 'bale' : 'bales'}${item.unitPrice > 0 ? ` @ KES ${item.unitPrice.toLocaleString()} = KES ${item.subtotal.toLocaleString()}` : ''}\n`
-  })
-
-  const totalBales = data.items.reduce((acc, i) => acc + i.quantity, 0)
-  const paymentText = (data.paymentMethod || 'CASH').toUpperCase()
-
-  const message = `✨ *MANDERA AFRICAN WEAR* ✨
-*Official Receipt: ${data.invoiceNumber}*
-────────────────────────${clientName}
-*Date:* ${dateStr}
-*Payment:* ${paymentText}
-
-*Items Purchased:*
-${itemsList}────────────────────────
-*TOTAL BALES:* ${totalBales} ${totalBales === 1 ? 'bale' : 'bales'}
-${data.totalAmount > 0 ? `*TOTAL PAID:* *KES ${data.totalAmount.toLocaleString()}*\n────────────────────────\n` : ''}📄 *Official PDF receipt has been generated & downloaded for your records.*
-Thank you for shopping with Mandera African Wear!
-_Quality African Fabric & Authentic Prints Specialist_`
-
+  const greeting = data.customerName?.trim() ? `Hello ${data.customerName.trim()},` : 'Hello,'
+  const message = `${greeting}
+Here is your receipt ${data.invoiceNumber} from Mandera African Wear (PDF attached).
+Thank you for shopping with us!`
   const encoded = encodeURIComponent(message)
   return normPhone ? `https://wa.me/${normPhone}?text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`
 }
@@ -145,28 +129,27 @@ export async function buildInvoicePdfDoc(data: InvoicePdfData): Promise<jsPDF> {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(20)
   doc.setTextColor(...primaryColor)
-  doc.text('MANDERA AFRICAN WEAR', textStartX, currentY + 7)
+  doc.text(SHOP_DETAILS.name, textStartX, currentY + 7)
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(100, 116, 139)
-  doc.text('Specialists in Quality African Fabrics & Authentic Prints', textStartX, currentY + 13)
-  doc.text('Mandera Town, Kenya  •  Phone/WhatsApp: +254 700 000 000', textStartX, currentY + 18)
+  doc.text(SHOP_DETAILS.tagline, textStartX, currentY + 13)
+  doc.text(`${SHOP_DETAILS.address}  •  Phone/WhatsApp: ${SHOP_DETAILS.phone}`, textStartX, currentY + 18)
 
   // 3. Invoice Badge & Metadata (Top Right)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(18)
   doc.setTextColor(...primaryColor)
-  doc.text('TAX INVOICE', 196, currentY + 7, { align: 'right' })
+  doc.text('RECEIPT', 196, currentY + 7, { align: 'right' })
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(71, 85, 105)
-  doc.text(`Invoice No: ${data.invoiceNumber}`, 196, currentY + 13, { align: 'right' })
+  doc.text(`Receipt No: ${data.invoiceNumber}`, 196, currentY + 13, { align: 'right' })
 
   const invoiceDate = data.createdAt ? new Date(data.createdAt) : new Date()
   doc.text(`Date: ${invoiceDate.toLocaleDateString()} ${invoiceDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, 196, currentY + 18, { align: 'right' })
-  doc.text(`Payment Method: ${(data.paymentMethod || 'CASH').toUpperCase()}`, 196, currentY + 23, { align: 'right' })
 
   // 4. Divider Line
   currentY += 32
@@ -182,7 +165,7 @@ export async function buildInvoicePdfDoc(data: InvoicePdfData): Promise<jsPDF> {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(10)
   doc.setTextColor(...primaryColor)
-  doc.text('BILLED TO:', 18, currentY + 6)
+  doc.text('CUSTOMER:', 18, currentY + 6)
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
@@ -194,17 +177,21 @@ export async function buildInvoicePdfDoc(data: InvoicePdfData): Promise<jsPDF> {
   // 6. Itemized Table (Combining All Items)
   currentY += 26
 
+  // Price columns only appear when a selling price was typed for the receipt
+  const hasPrices = data.items.some(i => (i.unitPrice || 0) > 0)
+  const kes = (n: number) => `KES ${n.toLocaleString()}`
   const tableBody = data.items.map((item, idx) => [
     (idx + 1).toString(),
     item.subVariantLabel ? `${item.fullCode} (${item.subVariantLabel})` : item.fullCode,
     item.quantity.toString(),
-    `KES ${item.unitPrice.toLocaleString()}`,
-    `KES ${item.subtotal.toLocaleString()}`,
+    ...(hasPrices ? [kes(item.unitPrice || 0), kes(item.subtotal ?? (item.unitPrice || 0) * item.quantity)] : []),
   ])
 
   autoTable(doc, {
     startY: currentY,
-    head: [['#', 'Fabric Code / Description', 'Bales', 'Unit Price', 'Subtotal']],
+    head: [hasPrices
+      ? ['#', 'Fabric Code / Description', 'Bales', 'Price / Bale', 'Amount']
+      : ['#', 'Fabric Code / Description', 'Bales']],
     body: tableBody,
     theme: 'striped',
     headStyles: {
@@ -217,9 +204,10 @@ export async function buildInvoicePdfDoc(data: InvoicePdfData): Promise<jsPDF> {
     columnStyles: {
       0: { cellWidth: 12, halign: 'center' },
       1: { cellWidth: 'auto', fontStyle: 'bold' },
-      2: { cellWidth: 20, halign: 'center' },
-      3: { cellWidth: 35, halign: 'right' },
-      4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' },
+      2: { cellWidth: hasPrices ? 18 : 30, halign: 'center', fontStyle: 'bold' },
+      ...(hasPrices
+        ? { 3: { cellWidth: 34, halign: 'right' as const }, 4: { cellWidth: 36, halign: 'right' as const, fontStyle: 'bold' as const } }
+        : {}),
     },
     styles: {
       fontSize: 9,
@@ -239,25 +227,34 @@ export async function buildInvoicePdfDoc(data: InvoicePdfData): Promise<jsPDF> {
   const totalBales = data.items.reduce((acc, i) => acc + i.quantity, 0)
 
   // Total Summary Box
+  const grandTotal = data.totalAmount ?? data.items.reduce((sum, i) => sum + (i.subtotal ?? (i.unitPrice || 0) * i.quantity), 0)
+  const boxHeight = hasPrices ? 24 : 14
   doc.setFillColor(...primaryColor)
-  doc.roundedRect(120, finalY, 76, 22, 2, 2, 'F')
+  doc.roundedRect(120, finalY, 76, boxHeight, 2, 2, 'F')
 
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
   doc.setTextColor(255, 255, 255)
-  doc.text(`Total Bales: ${totalBales} ${totalBales === 1 ? 'bale' : 'bales'}`, 124, finalY + 7)
-
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(12)
-  doc.text('TOTAL PAID:', 124, finalY + 16)
-  doc.text(`KES ${data.totalAmount.toLocaleString()}`, 192, finalY + 16, { align: 'right' })
+  if (hasPrices) {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.text('Total bales:', 124, finalY + 8)
+    doc.text(`${totalBales}`, 192, finalY + 8, { align: 'right' })
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(12)
+    doc.text('TOTAL:', 124, finalY + 18)
+    doc.text(kes(grandTotal), 192, finalY + 18, { align: 'right' })
+  } else {
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(12)
+    doc.text('TOTAL BALES:', 124, finalY + 9)
+    doc.text(`${totalBales}`, 192, finalY + 9, { align: 'right' })
+  }
 
   // 8. Footer & Terms
   doc.setFont('helvetica', 'italic')
   doc.setFontSize(8)
   doc.setTextColor(148, 163, 184)
   doc.text('Goods once sold in good condition cannot be returned or exchanged.', 14, 280)
-  doc.text('Thank you for choosing Mandera African Wear! Quality fabric is our tradition.', 14, 284)
+  doc.text(`Thank you for choosing Mandera African Wear!  •  ${SHOP_DETAILS.phone}`, 14, 284)
 
   return doc
 }
@@ -275,287 +272,55 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
  * Automatically generates the official branded PDF invoice, downloads it for the customer,
  * and shares/opens it directly via WhatsApp.
  */
-export async function shareInvoicePdfViaWhatsApp(phone: string, data: InvoicePdfData): Promise<{ sharedViaNative: boolean; waUrl: string }> {
+export interface PreparedReceiptPdf {
+  doc: jsPDF
+  file: File
+  data: InvoicePdfData
+}
+
+/** Builds the receipt PDF ahead of time, so sharing can run straight from a tap. */
+export async function prepareReceiptPdf(data: InvoicePdfData): Promise<PreparedReceiptPdf> {
   const doc = await buildInvoicePdfDoc(data)
-  let sharedViaNative = false
-
-  try {
-    const pdfBlob = doc.output('blob')
-    const fileName = `${data.invoiceNumber}_ManderaWear.pdf`
-    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' })
-
-    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-      await navigator.share({
-        files: [pdfFile],
-        title: `Official Receipt ${data.invoiceNumber} - Mandera African Wear`,
-        text: `Official Receipt ${data.invoiceNumber} from Mandera African Wear`,
-      })
-      sharedViaNative = true
-    }
-  } catch (err) {
-    // Sharing cancelled or not supported on this platform
-  }
-
-  // Always save/download PDF directly if not natively handled by OS share sheet
-  if (!sharedViaNative) {
-    doc.save(`${data.invoiceNumber}_ManderaWear.pdf`)
-  }
-
-  const waUrl = getWhatsAppInvoiceUrl(phone, data)
-  window.open(waUrl, '_blank')
-
-  return { sharedViaNative, waUrl }
+  const file = new File([doc.output('blob')], `${data.invoiceNumber}_ManderaWear.pdf`, { type: 'application/pdf' })
+  return { doc, file, data }
 }
 
-export interface ZReportPdfData {
-  reportNumber: string
-  dateStr: string
-  periodLabel: string
-  drawer: {
-    cash: number
-    mpesa: number
-    credit: number
-    totalCollections: number
-  }
-  summary: {
-    totalRevenue: number
-    wholesaleCost?: number
-    estimatedGrossProfit?: number
-    totalExpenses: number
-    netProfit: number
-    totalPiecesSold: number
-    invoicesCount: number
-  }
-  expensesList?: {
-    category: string
-    description?: string
-    amount: number
-  }[]
+/** True when this device can hand the PDF file to WhatsApp through the share sheet (phones). */
+export function canSharePdfFile(file: File): boolean {
+  return typeof navigator !== 'undefined' && !!navigator.canShare && navigator.canShare({ files: [file] })
 }
 
 /**
- * Generates and downloads an Executive Branded Z-Report (Daily Register Close) PDF
+ * Sends the receipt as a PDF file. Call it directly from a button tap: phones only
+ * open the share sheet during a user action.
+ * - Phones: the share sheet opens with the PDF attached; staff pick WhatsApp and the customer.
+ * - Computers (no file sharing): the PDF downloads and the customer's WhatsApp chat opens,
+ *   ready for staff to attach the downloaded file.
  */
-export async function generateZReportPdf(data: ZReportPdfData) {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  })
-
-  const primaryColor: [number, number, number] = [91, 26, 62] // #5B1A3E
-  const goldColor: [number, number, number] = [212, 175, 55] // #D4AF37
-  const darkTextColor: [number, number, number] = [15, 23, 42] // #0F172A
-  const greenColor: [number, number, number] = [21, 128, 61] // #15803D
-  const redColor: [number, number, number] = [185, 28, 28] // #B91C1C
-
-  // 1. Top Decorative Brand Bar
-  doc.setFillColor(...primaryColor)
-  doc.rect(0, 0, 210, 10, 'F')
-
-  doc.setFillColor(...goldColor)
-  doc.rect(0, 10, 210, 2.5, 'F')
-
-  // 2. Logo & Company Details
-  let currentY = 24
-
-  const logoBase64 = await getBase64ImageFromUrl('/mandera-logo.png')
-  if (logoBase64) {
+export async function sendPreparedReceipt(
+  prepared: PreparedReceiptPdf,
+  phone?: string
+): Promise<'shared' | 'cancelled' | 'downloaded'> {
+  if (canSharePdfFile(prepared.file)) {
     try {
-      doc.addImage(logoBase64, 'PNG', 14, currentY, 24, 24)
-    } catch {
-      // Fallback
+      await navigator.share({
+        files: [prepared.file],
+        title: `Receipt ${prepared.data.invoiceNumber} - Mandera African Wear`,
+      })
+      return 'shared'
+    } catch (err) {
+      if ((err as DOMException)?.name === 'AbortError') return 'cancelled'
+      // Share failed for another reason: fall through to download
     }
   }
-
-  const textStartX = logoBase64 ? 42 : 14
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(18)
-  doc.setTextColor(...primaryColor)
-  doc.text('MANDERA AFRICAN WEAR', textStartX, currentY + 6)
-
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(11)
-  doc.setTextColor(...goldColor)
-  doc.text('DAILY REGISTER CLOSE (Z-REPORT)', textStartX, currentY + 12)
-
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8.5)
-  doc.setTextColor(100, 116, 139)
-  doc.text('Mandera Town, Kenya  •  Official Cash Drawer & P&L Reconciliation', textStartX, currentY + 17)
-
-  // Top Right Report Metadata Box
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(14)
-  doc.setTextColor(...primaryColor)
-  doc.text('Z-REPORT', 196, currentY + 6, { align: 'right' })
-
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8.5)
-  doc.setTextColor(71, 85, 105)
-  doc.text(`Ref: ${data.reportNumber}`, 196, currentY + 12, { align: 'right' })
-  doc.text(`Date: ${data.dateStr}`, 196, currentY + 17, { align: 'right' })
-  doc.text(`Period: ${data.periodLabel}`, 196, currentY + 22, { align: 'right' })
-
-  // 3. Divider
-  currentY += 28
-  doc.setDrawColor(226, 232, 240)
-  doc.setLineWidth(0.5)
-  doc.line(14, currentY, 196, currentY)
-
-  // 4. Section 1: Cash Drawer Reconciliation Table
-  currentY += 6
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
-  doc.setTextColor(...primaryColor)
-  doc.text('1. CASH DRAWER & REGISTER RECONCILIATION', 14, currentY)
-
-  currentY += 4
-  const drawerRows = [
-    ['Physical Cash in Drawer', 'Cash balance counted in register drawer', `KES ${data.drawer.cash.toLocaleString()}`],
-    ['M-Pesa on Till', 'Safaricom Buy Goods Till account collections', `KES ${data.drawer.mpesa.toLocaleString()}`],
-    ['Customer Credit (Deyn)', 'Outstanding customer debt balance (uncollected)', `KES ${data.drawer.credit.toLocaleString()}`],
-    ['TOTAL VERIFIED COLLECTIONS', 'Cash in Drawer + M-Pesa on Till Balance', `KES ${(data.drawer.cash + data.drawer.mpesa).toLocaleString()}`],
-  ]
-
-  autoTable(doc, {
-    startY: currentY,
-    head: [['Register Channel', 'Reconciliation Description', 'Verified Balance']],
-    body: drawerRows,
-    theme: 'striped',
-    headStyles: {
-      fillColor: primaryColor,
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 8.5,
-    },
-    columnStyles: {
-      0: { cellWidth: 55, fontStyle: 'bold' },
-      1: { cellWidth: 'auto', textColor: [71, 85, 105] },
-      2: { cellWidth: 45, halign: 'right', fontStyle: 'bold' },
-    },
-    styles: {
-      fontSize: 8.5,
-      cellPadding: 3,
-      textColor: darkTextColor,
-    },
-    alternateRowStyles: {
-      fillColor: [248, 250, 252],
-    },
-    margin: { left: 14, right: 14 },
-  })
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  currentY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 8 : currentY + 35
-
-  // 5. Section 2: Store Profitability & Financial Summary
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
-  doc.setTextColor(...primaryColor)
-  doc.text('2. STORE REVENUE, EXPENSES & NET PROFIT', 14, currentY)
-
-  currentY += 4
-  const wholesaleCost = data.summary.wholesaleCost || 0
-  const grossProfit = data.summary.estimatedGrossProfit !== undefined ? data.summary.estimatedGrossProfit : (data.summary.totalRevenue - wholesaleCost)
-
-  const summaryRows = [
-    ['Total Sales Revenue', 'Total revenue generated from customer purchases', `KES ${data.summary.totalRevenue.toLocaleString()}`],
-    ['Cost of Goods Sold (COGS)', 'Wholesale fabric purchase cost from suppliers', `KES ${wholesaleCost.toLocaleString()}`],
-    ['Estimated Gross Profit', 'Revenue minus wholesale cost of fabrics sold', `KES ${grossProfit.toLocaleString()}`],
-    ['Shop Operating Expenses', 'Rent, electricity, logistics, and store overheads', `- KES ${data.summary.totalExpenses.toLocaleString()}`],
-    ['ESTIMATED NET STORE PROFIT', 'Net shop earnings after all inventory & operating costs', `KES ${data.summary.netProfit.toLocaleString()}`],
-    ['Total Fabrics Sold', 'Physical fabric rolls deducted from store inventory', `${data.summary.totalPiecesSold} pieces`],
-    ['Receipts & Invoices Issued', 'Total transactions recorded through system', `${data.summary.invoicesCount} invoices`],
-  ]
-
-  autoTable(doc, {
-    startY: currentY,
-    head: [['Financial Metric', 'Description', 'Amount']],
-    body: summaryRows,
-    theme: 'striped',
-    headStyles: {
-      fillColor: [15, 23, 42], // Dark slate
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 8.5,
-    },
-    columnStyles: {
-      0: { cellWidth: 55, fontStyle: 'bold' },
-      1: { cellWidth: 'auto', textColor: [71, 85, 105] },
-      2: { cellWidth: 45, halign: 'right', fontStyle: 'bold' },
-    },
-    styles: {
-      fontSize: 8.5,
-      cellPadding: 3,
-      textColor: darkTextColor,
-    },
-    alternateRowStyles: {
-      fillColor: [248, 250, 252],
-    },
-    margin: { left: 14, right: 14 },
-  })
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  currentY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 8 : currentY + 50
-
-  // 6. Section 3: Highlight Cards (Net Profit Box & Drawer Total Box)
-  if (currentY < 235) {
-    const isNetPositive = data.summary.netProfit >= 0
-    doc.setFillColor(...(isNetPositive ? greenColor : redColor))
-    doc.roundedRect(14, currentY, 86, 22, 2, 2, 'F')
-
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(8)
-    doc.setTextColor(255, 255, 255)
-    doc.text('ESTIMATED NET TAKE-HOME:', 18, currentY + 7)
-
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(13)
-    doc.text(`KES ${data.summary.netProfit.toLocaleString()}`, 18, currentY + 16)
-
-    doc.setFillColor(...primaryColor)
-    doc.roundedRect(108, currentY, 88, 22, 2, 2, 'F')
-
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(8)
-    doc.setTextColor(255, 255, 255)
-    doc.text('CASH & M-PESA AVAILABLE TODAY:', 112, currentY + 7)
-
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(13)
-    doc.text(`KES ${(data.drawer.cash + data.drawer.mpesa).toLocaleString()}`, 112, currentY + 16)
-
-    currentY += 28
-  }
-
-  // 7. Store Verification & Signatures
-  doc.setDrawColor(203, 213, 225)
-  doc.setLineWidth(0.5)
-
-  const signY = 265
-  doc.line(14, signY, 85, signY)
-  doc.line(125, signY, 196, signY)
-
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(8)
-  doc.setTextColor(71, 85, 105)
-  doc.text('Store Manager / Cashier Verification', 14, signY + 4)
-  doc.text('Shop Owner Sign-Off & Approval', 125, signY + 4)
-
-  doc.setFont('helvetica', 'italic')
-  doc.setFontSize(7.5)
-  doc.setTextColor(148, 163, 184)
-  doc.text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} • Mandera African Wear`, 14, 285)
-
-  // Save PDF
-  doc.save(`${data.reportNumber}_ManderaWear_ZReport.pdf`)
+  prepared.doc.save(prepared.file.name)
+  window.open(getWhatsAppInvoiceUrl(phone || '', prepared.data), '_blank')
+  return 'downloaded'
 }
 
-/**
- * Opens WhatsApp directly in the customer's chat DM and returns the URL
- */
-export function openWhatsAppInvoice(phone: string, data: InvoicePdfData): string {
-  const waUrl = getWhatsAppInvoiceUrl(phone, data)
-  window.open(waUrl, '_blank')
-  return waUrl
+/** One-step version used by the sale basket. */
+export async function shareInvoicePdfViaWhatsApp(phone: string, data: InvoicePdfData): Promise<{ sharedViaNative: boolean; waUrl: string }> {
+  const prepared = await prepareReceiptPdf(data)
+  const result = await sendPreparedReceipt(prepared, phone)
+  return { sharedViaNative: result !== 'downloaded', waUrl: getWhatsAppInvoiceUrl(phone, data) }
 }

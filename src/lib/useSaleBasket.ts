@@ -9,8 +9,6 @@ export interface BasketItem {
   subVariantId?: string
   subVariantLabel?: string
   quantity: number
-  unitPrice: number
-  costPrice?: number
   available: number
 }
 
@@ -76,14 +74,11 @@ export function useSaleBasket() {
     }
   }
 
-  const updateItem = (index: number, quantity: number, unitPrice?: number) => {
+  const updateItem = (index: number, quantity: number) => {
     const current = getStoredBasket()
     if (!current[index]) return
     const updated = [...current]
     updated[index].quantity = Math.max(1, Math.min(quantity, updated[index].available))
-    if (unitPrice !== undefined) {
-      updated[index].unitPrice = Math.max(0, unitPrice)
-    }
     saveStoredBasket(updated)
   }
 
@@ -99,7 +94,6 @@ export function useSaleBasket() {
   }
 
   const totalPieces = items.reduce((acc, i) => acc + i.quantity, 0)
-  const totalAmount = items.reduce((acc, i) => acc + i.unitPrice * i.quantity, 0)
 
   return {
     items,
@@ -108,6 +102,5 @@ export function useSaleBasket() {
     removeItem,
     clearBasket,
     totalPieces,
-    totalAmount,
   }
 }
