@@ -68,38 +68,38 @@ export async function DELETE(
       return NextResponse.json({ error: 'Entry not found' }, { status: 404 })
     }
 
-    // 1. Revert inventory on the colorway if it exists
-    if (activity.colorwayId && ObjectId.isValid(activity.colorwayId)) {
-      const cw = await colorwaysColl.findOne({ _id: new ObjectId(activity.colorwayId) })
+    // 1. Revert inventory on the colorway if it exists (atomic, never below zero,
+    //    and the colour and the total always move together)
+    if (activity.colorwayId && ObjectId.isValid(activity.colorwayId) && (activity.type === 'OUT' || activity.type === 'IN')) {
+      const cwId = new ObjectId(activity.colorwayId)
+      const cw = await colorwaysColl.findOne({ _id: cwId })
       if (cw) {
-        let stockDelta = 0
-        if (activity.type === 'OUT') {
-          // Re-add to inventory
-          stockDelta = activity.quantityChange || 1
-        } else if (activity.type === 'IN') {
-          // Subtract from inventory
-          stockDelta = -(activity.quantityChange || 1)
+        const qty = activity.quantityChange || 1
+        const stockDelta = activity.type === 'OUT' ? qty : -qty
+        const needed = stockDelta < 0 ? -stockDelta : 0
+        const breakdown: { label: string; quantity: number }[] = Array.isArray(cw.breakdown) ? cw.breakdown : []
+        const hasBale = !!activity.subVariantLabel && breakdown.some(b => b.label === activity.subVariantLabel)
+
+        if (breakdown.length > 0 && !hasBale) {
+          return NextResponse.json(
+            { error: `Can't undo: ${cw.fullCode} no longer has the colour "${activity.subVariantLabel || '(none)'}". Use a stock count instead.` },
+            { status: 409 }
+          )
         }
 
-        const newQty = Math.max(0, (cw.quantityAvailable || 0) + stockDelta)
-        const updateDoc: Record<string, unknown> = {
-          quantityAvailable: newQty,
-          updatedAt: new Date(),
+        const filter: Record<string, unknown> = { _id: cwId, quantityAvailable: { $gte: needed } }
+        const inc: Record<string, number> = { quantityAvailable: stockDelta }
+        if (hasBale) {
+          filter.breakdown = { $elemMatch: { label: activity.subVariantLabel, quantity: { $gte: needed } } }
+          inc['breakdown.$.quantity'] = stockDelta
         }
-
-        if (activity.subVariantLabel && Array.isArray(cw.breakdown)) {
-          updateDoc.breakdown = cw.breakdown.map((b: { id: string; label: string; quantity: number }) => {
-            if (b.label === activity.subVariantLabel) {
-              return { ...b, quantity: Math.max(0, b.quantity + stockDelta) }
-            }
-            return b
-          })
+        const result = await colorwaysColl.updateOne(filter, { $inc: inc, $set: { updatedAt: new Date() } })
+        if (result.matchedCount === 0) {
+          return NextResponse.json(
+            { error: `Can't undo: there are fewer than ${needed} of ${cw.fullCode} in stock now.` },
+            { status: 409 }
+          )
         }
-
-        await colorwaysColl.updateOne(
-          { _id: cw._id },
-          { $set: updateDoc }
-        )
       }
     }
 

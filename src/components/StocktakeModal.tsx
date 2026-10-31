@@ -109,20 +109,34 @@ export default function StocktakeModal({ isOpen, onClose }: StocktakeModalProps)
   const handleApply = async () => {
     if (discrepancies.length === 0) return
     setIsApplying(true)
+    const failed: string[] = []
     try {
       for (const e of discrepancies) {
-        const counted = parseInt(auditMap.get(getKey(e)) || '0')
-        const delta = counted - e.systemQty
-        await fetch('/api/stock', {
+        const counted = parseInt(auditMap.get(getKey(e)) || '', 10)
+        if (!Number.isInteger(counted) || counted < 0) {
+          failed.push(`${e.label}: not a valid number`)
+          continue
+        }
+        // Save the number actually counted (not a difference), so a sale made while
+        // counting is not applied twice. Logged as a stock-count difference.
+        const res = await fetch('/api/stock/count', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ colorwayId: e.colorwayId, change: delta, subVariantId: e.subVariantId, note: 'stocktake_adjustment' }),
+          body: JSON.stringify({ colorwayId: e.colorwayId, counted, subVariantId: e.subVariantId }),
         })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          failed.push(`${e.label}: ${data.error || 'not saved'}`)
+        }
       }
-      setApplied(true)
+      if (failed.length > 0) {
+        alert(`These counts were NOT saved:\n${failed.join('\n')}\n\nPlease check them and try again.`)
+      } else {
+        setApplied(true)
+      }
     } catch (err) {
       console.error(err)
-      alert('Some adjustments failed. Please retry.')
+      alert('Network error: some counts may not have been saved. Close and reopen the stock check to see the current numbers.')
     } finally {
       setIsApplying(false)
     }

@@ -111,8 +111,18 @@ export async function POST(request: Request) {
       const filter: Record<string, unknown> = { _id: cw._id, quantityAvailable: { $gte: line.quantity } }
       const inc: Record<string, number> = { quantityAvailable: -line.quantity }
 
+      const cwBreakdown: BreakdownEntry[] = Array.isArray(cw.breakdown) ? cw.breakdown : []
+      if (!line.subVariantLabel && cwBreakdown.length > 0) {
+        // Selling without naming the colour would lower the total but not the colour, so the two disagree
+        await rollback()
+        return NextResponse.json(
+          { error: `Choose which colour of ${cw.fullCode} was sold. Remove it from the sale and add it again.` },
+          { status: 400 }
+        )
+      }
+
       if (line.subVariantLabel) {
-        const breakdown: BreakdownEntry[] = Array.isArray(cw.breakdown) ? cw.breakdown : []
+        const breakdown = cwBreakdown
         if (!breakdown.some(b => b.label === line.subVariantLabel)) {
           await rollback()
           return NextResponse.json(
@@ -141,7 +151,10 @@ export async function POST(request: Request) {
 
       deducted.push({
         cw,
-        newQty: updated.quantityAvailable ?? 0,
+        // Same as the +/− taps: a colour's history row shows that colour's count
+        newQty: line.subVariantLabel
+          ? (updated.breakdown as BreakdownEntry[]).find(b => b.label === line.subVariantLabel)?.quantity ?? 0
+          : updated.quantityAvailable ?? 0,
         item: {
           activityId: new ObjectId().toString(),
           colorwayId: cw._id.toString(),

@@ -29,6 +29,7 @@ export default function DesignCodeDetailPage({
   const [showModal, setShowModal] = useState(false)
   const [editingColorway, setEditingColorway] = useState<Colorway | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Colorway | null>(null)
+  const [pickColourFor, setPickColourFor] = useState<Colorway | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [expandedPhoto, setExpandedPhoto] = useState<string | null>(null)
   
@@ -170,7 +171,11 @@ export default function DesignCodeDetailPage({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...data, designCodeId }),
     })
-    if (res.ok) {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || 'Could not save. Please try again.')
+    }
+    {
       bustCache(CacheKeys.colorways(designCodeId))
       bustAllDesignCodesCache()
       fetchColorways()
@@ -188,9 +193,23 @@ export default function DesignCodeDetailPage({
     const res = await fetch(`/api/colorways/${editingColorway._id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      // stockBase = the numbers this form opened with, so the server can refuse to
+      // overwrite stock that changed on another phone in the meantime
+      body: JSON.stringify({
+        ...data,
+        stockBase: {
+          quantityAvailable: editingColorway.quantityAvailable,
+          breakdown: editingColorway.breakdown || [],
+        },
+      }),
     })
-    if (res.ok) {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      bustCache(CacheKeys.colorways(designCodeId))
+      fetchColorways()
+      throw new Error(err.error || 'Could not save. Please try again.')
+    }
+    {
       setEditingColorway(null)
       bustCache(CacheKeys.colorways(designCodeId))
       bustAllDesignCodesCache()
@@ -217,6 +236,37 @@ export default function DesignCodeDetailPage({
   }
 
   const [activeToast, setActiveToast] = useState<ToastData | null>(null)
+
+  // Add to the sale basket. Items with colours must be sold from a named colour,
+  // otherwise the item total and its colours would stop agreeing.
+  const addToSale = (cw: Colorway, colour?: { id: string; label: string; quantity: number }) => {
+    if (colour) {
+      addItem({
+        colorwayId: cw._id,
+        designCodeId,
+        fullCode: cw.fullCode,
+        subVariantId: colour.id,
+        subVariantLabel: colour.label,
+        available: colour.quantity,
+      })
+      setPickColourFor(null)
+      return
+    }
+    const inStock = (cw.breakdown || []).filter(b => b.quantity > 0)
+    if ((cw.breakdown || []).length === 0) {
+      if (cw.quantityAvailable > 0) {
+        addItem({ colorwayId: cw._id, designCodeId, fullCode: cw.fullCode, available: cw.quantityAvailable })
+      } else {
+        alert(`${cw.fullCode} is out of stock.`)
+      }
+    } else if (inStock.length === 0) {
+      alert(`${cw.fullCode} is out of stock.`)
+    } else if (inStock.length === 1) {
+      addToSale(cw, inStock[0])
+    } else {
+      setPickColourFor(cw)
+    }
+  }
   const pendingUpdatesRef = useRef<Map<string, { delta: number; timer: ReturnType<typeof setTimeout> }>>(new Map())
   const [directCountTarget, setDirectCountTarget] = useState<{
     cw: Colorway
@@ -688,14 +738,7 @@ export default function DesignCodeDetailPage({
                   <div className="colorway-card__footer">
                     <button
                       className="btn btn--secondary btn--sm"
-                      onClick={() => {
-                        addItem({
-                          colorwayId: cw._id,
-                          designCodeId,
-                          fullCode: cw.fullCode,
-                          available: cw.quantityAvailable,
-                        })
-                      }}
+                      onClick={() => addToSale(cw)}
                       style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
                       type="button"
                       title="Add to combined customer sale receipt"
@@ -833,6 +876,32 @@ export default function DesignCodeDetailPage({
 
       {/* 1-tap categorization & Undo Toast */}
       <Toast toast={activeToast} onDismiss={() => setActiveToast(null)} />
+
+      {/* Which colour is being sold? */}
+      {pickColourFor && (
+        <div className="modal-overlay" onClick={() => setPickColourFor(null)} style={{ zIndex: 10000 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px', width: '92%' }}>
+            <div className="modal__header">
+              <h3 className="modal__title">Which colour of {pickColourFor.fullCode}?</h3>
+              <button className="modal__close-btn" onClick={() => setPickColourFor(null)} type="button" aria-label="Close">✕</button>
+            </div>
+            <div className="modal__body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {(pickColourFor.breakdown || []).filter(b => b.quantity > 0).map(b => (
+                <button
+                  key={b.id}
+                  type="button"
+                  className="btn btn--secondary"
+                  onClick={() => addToSale(pickColourFor, b)}
+                  style={{ minHeight: '52px', fontSize: '16px', fontWeight: 700, justifyContent: 'space-between', display: 'flex', alignItems: 'center', padding: '0 16px' }}
+                >
+                  <span>{b.label}</span>
+                  <span style={{ fontWeight: 500, color: '#6b7280' }}>{b.quantity} in stock</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Direct Count / Bulk Arrival Modal */}
       {directCountTarget && (

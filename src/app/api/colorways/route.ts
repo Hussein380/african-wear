@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/mongodb'
+import { validateStock } from '@/lib/breakdown'
 import { ObjectId } from 'mongodb'
 
 // GET /api/colorways?designCodeId=xxx
@@ -44,6 +45,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'designCodeId and fullCode are required' }, { status: 400 })
     }
 
+    // Total is always the sum of the colours; no negative or fractional stock
+    const checked = validateStock(breakdown, quantityAvailable)
+    if ('error' in checked) {
+      return NextResponse.json({ error: checked.error }, { status: 400 })
+    }
+    const stock = checked.total
+    const bales = checked.breakdown
+
     const trimmedCode = fullCode.trim()
     const db = await getDb()
 
@@ -59,8 +68,8 @@ export async function POST(request: Request) {
       designCodeId,
       fullCode: trimmedCode,
       photos: photos || [],
-      quantityAvailable: quantityAvailable || 0,
-      breakdown: breakdown || [],
+      quantityAvailable: stock,
+      breakdown: bales,
       createdAt: now,
       updatedAt: now,
     }
@@ -71,16 +80,17 @@ export async function POST(request: Request) {
 
     const result = await db.collection('colorways').insertOne(newDoc)
 
-    if (quantityAvailable > 0) {
-      if (breakdown && breakdown.length > 0) {
-        for (const item of breakdown) {
+    if (stock > 0) {
+      if (bales.length > 0) {
+        for (const item of bales) {
           if (item.quantity > 0) {
             await db.collection('activities').insertOne({
               type: 'NEW',
+              kind: 'new',
               quantityChange: item.quantity,
               colorwayId: result.insertedId.toString(),
               designCodeId,
-              fullCode,
+              fullCode: trimmedCode,
               previousQuantity: 0,
               newQuantity: item.quantity,
               subVariantLabel: item.label,
@@ -91,12 +101,13 @@ export async function POST(request: Request) {
       } else {
         await db.collection('activities').insertOne({
           type: 'NEW',
-          quantityChange: quantityAvailable,
+          kind: 'new',
+          quantityChange: stock,
           colorwayId: result.insertedId.toString(),
           designCodeId,
-          fullCode,
+          fullCode: trimmedCode,
           previousQuantity: 0,
-          newQuantity: quantityAvailable,
+          newQuantity: stock,
           timestamp: now.toISOString()
         })
       }
@@ -105,10 +116,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       _id: result.insertedId.toString(),
       designCodeId,
-      fullCode,
+      fullCode: trimmedCode,
       photos: photos || [],
-      quantityAvailable: quantityAvailable || 0,
-      breakdown: breakdown || [],
+      quantityAvailable: stock,
+      breakdown: bales,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     }, { status: 201 })

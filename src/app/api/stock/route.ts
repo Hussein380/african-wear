@@ -53,8 +53,10 @@ export async function POST(request: Request) {
 
     // ---- 1. Atomic stock change (never below zero) ----
     const needed = change < 0 ? -change : 0
+    // The item total must cover the change too, so it can never go negative even if
+    // the total and its bales ever disagree.
     const filter = subVariantId
-      ? { _id: objectId, breakdown: { $elemMatch: { id: subVariantId, quantity: { $gte: needed } } } }
+      ? { _id: objectId, quantityAvailable: { $gte: needed }, breakdown: { $elemMatch: { id: subVariantId, quantity: { $gte: needed } } } }
       : { _id: objectId, quantityAvailable: { $gte: needed } }
     const update = subVariantId
       ? { $inc: { 'breakdown.$[v].quantity': change, quantityAvailable: change }, $set: { updatedAt: new Date() } }
@@ -67,9 +69,10 @@ export async function POST(request: Request) {
 
     if (!after) {
       const fresh = await colorways.findOne({ _id: objectId })
+      const total = fresh?.quantityAvailable ?? 0
       const available = subVariantId
-        ? fresh?.breakdown?.find((b: { id: string }) => b.id === subVariantId)?.quantity ?? 0
-        : fresh?.quantityAvailable ?? 0
+        ? Math.min(total, fresh?.breakdown?.find((b: { id: string }) => b.id === subVariantId)?.quantity ?? 0)
+        : total
       return NextResponse.json(
         { error: `Only ${available} in stock`, available },
         { status: 409 }
@@ -106,9 +109,11 @@ export async function POST(request: Request) {
         }
       }
 
+      // Only a plain tap can be netted; stock counts, new items and deletions are never rewritten
       const canNet =
         prev &&
         !prev.invoiceId &&
+        !['count_diff', 'new', 'deleted'].includes(prev.kind) &&
         (prev.type === 'IN' || prev.type === 'OUT') &&
         prev.type !== type &&
         (prev.subVariantLabel || undefined) === variantLabel

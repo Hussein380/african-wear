@@ -33,8 +33,9 @@ export default function ColorwayModal({
     initialData?.photos || []
   )
   const [quantity, setQuantity] = useState(initialData?.quantityAvailable?.toString() || '0')
+  // Copy the colours so typing never changes the item shown on the page behind the form
   const [breakdown, setBreakdown] = useState<{ id: string; label: string; quantity: number }[]>(
-    initialData?.breakdown || []
+    () => (initialData?.breakdown || []).map(b => ({ ...b }))
   )
   const [location, setLocation] = useState(initialData?.location || '')
   const [error, setError] = useState('')
@@ -61,13 +62,13 @@ export default function ColorwayModal({
       await onSave({
         fullCode: fullCode.trim().toUpperCase(),
         photos,
-        quantityAvailable: parseInt(quantity) || 0,
+        quantityAvailable: Math.max(0, parseInt(quantity) || 0),
         breakdown,
         location: location.trim() || undefined,
       })
       onClose()
-    } catch {
-      setError('Failed to save')
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : 'Failed to save')
     } finally {
       setIsSaving(false)
     }
@@ -137,8 +138,7 @@ export default function ColorwayModal({
                       style={{ flex: 2 }}
                       value={item.label}
                       onChange={e => {
-                        const newBreakdown = [...breakdown]
-                        newBreakdown[index].label = e.target.value
+                        const newBreakdown = breakdown.map((b, i) => (i === index ? { ...b, label: e.target.value } : b))
                         setBreakdown(newBreakdown)
                       }}
                     />
@@ -149,8 +149,8 @@ export default function ColorwayModal({
                       style={{ flex: 1 }}
                       value={item.quantity}
                       onChange={e => {
-                        const newBreakdown = [...breakdown]
-                        newBreakdown[index].quantity = parseInt(e.target.value) || 0
+                        const qty = Math.max(0, parseInt(e.target.value) || 0)
+                        const newBreakdown = breakdown.map((b, i) => (i === index ? { ...b, quantity: qty } : b))
                         setBreakdown(newBreakdown)
                       }}
                     />
