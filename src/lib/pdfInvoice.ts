@@ -6,7 +6,6 @@ export const SHOP_DETAILS = {
   name: 'MANDERA AFRICAN WEAR',
   tagline: 'Specialists in Quality African Fabrics & Authentic Prints',
   address: 'Mandera Town, Kenya',
-  phone: '+254 700 000 000',
 }
 
 export interface InvoicePdfData {
@@ -135,7 +134,7 @@ export async function buildInvoicePdfDoc(data: InvoicePdfData): Promise<jsPDF> {
   doc.setFontSize(9)
   doc.setTextColor(100, 116, 139)
   doc.text(SHOP_DETAILS.tagline, textStartX, currentY + 13)
-  doc.text(`${SHOP_DETAILS.address}  •  Phone/WhatsApp: ${SHOP_DETAILS.phone}`, textStartX, currentY + 18)
+  doc.text(SHOP_DETAILS.address, textStartX, currentY + 18)
 
   // 3. Invoice Badge & Metadata (Top Right)
   doc.setFont('helvetica', 'bold')
@@ -254,7 +253,7 @@ export async function buildInvoicePdfDoc(data: InvoicePdfData): Promise<jsPDF> {
   doc.setFontSize(8)
   doc.setTextColor(148, 163, 184)
   doc.text('Goods once sold in good condition cannot be returned or exchanged.', 14, 280)
-  doc.text(`Thank you for choosing Mandera African Wear!  •  ${SHOP_DETAILS.phone}`, 14, 284)
+  doc.text('Thank you for choosing Mandera African Wear!', 14, 284)
 
   return doc
 }

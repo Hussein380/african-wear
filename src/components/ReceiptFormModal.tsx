@@ -162,7 +162,7 @@ export default function ReceiptFormModal({ sales, invoiceId, onClose, onSaved }:
           <img src="/mandera-logo.png" alt="" className="receipt-form__logo" />
           <div className="receipt-form__shop">
             <div className="receipt-form__shop-name">{SHOP_DETAILS.name}</div>
-            <div className="receipt-form__shop-meta">{SHOP_DETAILS.address} • {SHOP_DETAILS.phone}</div>
+            <div className="receipt-form__shop-meta">{SHOP_DETAILS.address}</div>
           </div>
           <div className="receipt-form__doc">
             <div className="receipt-form__doc-title">RECEIPT</div>
