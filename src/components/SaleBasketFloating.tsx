@@ -11,7 +11,7 @@ import {
 } from '@/lib/pdfInvoice'
 
 export default function SaleBasketFloating() {
-  const { items, updateItem, removeItem, clearBasket, totalPieces } = useSaleBasket()
+  const { items, updateItem, removeItem, clearBasket, totalPieces, totalAmount } = useSaleBasket()
   const [isOpen, setIsOpen] = useState(false)
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
@@ -59,6 +59,7 @@ export default function SaleBasketFloating() {
             colorwayId: i.colorwayId,
             fullCode: i.fullCode,
             quantity: i.quantity,
+            unitPrice: i.unitPrice || 0,
             subVariantLabel: i.subVariantLabel,
           })),
         }),
@@ -84,6 +85,7 @@ export default function SaleBasketFloating() {
       customerName: data.customerName,
       customerPhone: data.customerPhone,
       items: data.items,
+      totalAmount: data.totalAmount,
     }
     setCompletedSale({
       invoiceNumber: data.invoiceNumber,
@@ -345,10 +347,12 @@ export default function SaleBasketFloating() {
                         <div
                           key={`${item.colorwayId}_${item.subVariantId || ''}`}
                           style={{
+                            // Two rows so it fits a phone: name + remove, then quantity + price
                             display: 'grid',
-                            gridTemplateColumns: '2fr 1fr auto',
+                            gridTemplateColumns: '84px minmax(0, 1fr) auto',
+                            gridTemplateAreas: '"code code remove" "qty price price"',
                             gap: '8px',
-                            alignItems: 'center',
+                            alignItems: 'end',
                             fontSize: '12px',
                             background: '#ffffff',
                             padding: '10px 12px',
@@ -357,8 +361,8 @@ export default function SaleBasketFloating() {
                             boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                           }}
                         >
-                          <div>
-                            <strong style={{ color: '#1c1917', fontSize: '13px' }}>{item.fullCode}</strong>
+                          <div style={{ gridArea: 'code', minWidth: 0, overflowWrap: 'anywhere' }}>
+                            <strong style={{ color: '#1c1917', fontSize: '14px' }}>{item.fullCode}</strong>
                             {item.subVariantLabel && (
                               <span style={{ color: '#78716c', fontSize: '11px', display: 'block' }}>
                                 {item.subVariantLabel}
@@ -366,8 +370,8 @@ export default function SaleBasketFloating() {
                             )}
                           </div>
 
-                          <div>
-                            <span style={{ fontSize: '10px', color: '#78716c', display: 'block' }}>Qty (max {item.available})</span>
+                          <div style={{ gridArea: 'qty', minWidth: 0 }}>
+                            <span style={{ fontSize: '11px', color: '#78716c', display: 'block', marginBottom: '2px' }}>Bales (max {item.available})</span>
                             <input
                               type="number"
                               className="form-group__input"
@@ -375,14 +379,29 @@ export default function SaleBasketFloating() {
                               max={item.available}
                               value={item.quantity}
                               onChange={e => updateItem(idx, parseInt(e.target.value) || 1)}
-                              style={{ padding: '6px 8px', fontSize: '12px', borderRadius: '6px' }}
+                              style={{ width: '100%', minHeight: '44px', padding: '8px', fontSize: '16px', borderRadius: '6px' }}
+                            />
+                          </div>
+
+                          <div style={{ gridArea: 'price', minWidth: 0 }}>
+                            <span style={{ fontSize: '11px', color: '#78716c', display: 'block', marginBottom: '2px' }}>Price / bale (KES)</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="form-group__input"
+                              placeholder="0"
+                              value={item.unitPrice ? String(item.unitPrice) : ''}
+                              onChange={e => updateItem(idx, item.quantity, Number(e.target.value.replace(/[^0-9.]/g, '')) || 0)}
+                              aria-label={`Selling price per bale for ${item.fullCode}`}
+                              style={{ width: '100%', minHeight: '44px', padding: '8px', fontSize: '16px', fontWeight: 700, borderRadius: '6px', border: '1.5px solid #D4AF37', background: '#fffdf5', textAlign: 'right' }}
                             />
                           </div>
 
                           <button
                             type="button"
                             onClick={() => removeItem(idx)}
-                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px', padding: '4px 6px' }}
+                            style={{ gridArea: 'remove', alignSelf: 'start', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '18px', minWidth: '40px', minHeight: '40px' }}
+                            aria-label={`Remove ${item.fullCode} from receipt`}
                             title="Remove from receipt"
                           >
                             ✕
@@ -408,11 +427,15 @@ export default function SaleBasketFloating() {
                       <span style={{ fontSize: '11px', color: '#7c2d12', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Total Bales</span>
                       <div style={{ fontSize: '16px', fontWeight: 800, color: '#431407' }}>{totalPieces} {totalPieces === 1 ? 'bale' : 'bales'}</div>
                     </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '11px', color: '#7c2d12', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Total</span>
+                      <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--color-primary, #4A1032)' }}>KES {totalAmount.toLocaleString()}</div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="modal__footer" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px', width: '100%' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', width: '100%' }}>
                     <button
                       type="button"
                       className="btn"

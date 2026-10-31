@@ -178,36 +178,7 @@ export default function ReceiptFormModal({ sales, invoiceId, onClose, onSaved }:
             <>
               {error && <div className="receipt-form__error">{error}</div>}
 
-              {/* Customer */}
-              <div className="receipt-form__fields">
-                <label className="receipt-form__field">
-                  <span>Customer name</span>
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={e => { setCustomerName(e.target.value); setPrepared(null) }}
-                    placeholder="e.g. Halima Ahmed"
-                    autoComplete="off"
-                  />
-                </label>
-                <label className="receipt-form__field">
-                  <span>
-                    WhatsApp number
-                    {customerPhone.trim() && (
-                      <em className={phoneOk ? 'ok' : 'bad'}>{phoneOk ? formatKenyanPhoneDisplay(customerPhone) : '07XX / 01XX'}</em>
-                    )}
-                  </span>
-                  <input
-                    type="tel"
-                    inputMode="tel"
-                    value={customerPhone}
-                    onChange={e => { setCustomerPhone(e.target.value); setPrepared(null) }}
-                    placeholder="0712 345 678"
-                  />
-                </label>
-              </div>
-
-              {/* Spreadsheet-style item grid */}
+              {/* Spreadsheet-style item grid: first, so the price box is the first thing staff see */}
               <div className="receipt-sheet" role="table">
                 <div className="receipt-sheet__row receipt-sheet__row--head" role="row">
                   <span role="columnheader" className="code">Fabric</span>
@@ -242,6 +213,35 @@ export default function ReceiptFormModal({ sales, invoiceId, onClose, onSaved }:
                   <span role="cell" className="price" />
                   <span role="cell" className="num amount">{kes(total)}</span>
                 </div>
+              </div>
+
+              {/* Customer */}
+              <div className="receipt-form__fields">
+                <label className="receipt-form__field">
+                  <span>Customer name</span>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={e => { setCustomerName(e.target.value); setPrepared(null) }}
+                    placeholder="e.g. Halima Ahmed"
+                    autoComplete="off"
+                  />
+                </label>
+                <label className="receipt-form__field">
+                  <span>
+                    WhatsApp number
+                    {customerPhone.trim() && (
+                      <em className={phoneOk ? 'ok' : 'bad'}>{phoneOk ? formatKenyanPhoneDisplay(customerPhone) : '07XX / 01XX'}</em>
+                    )}
+                  </span>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    value={customerPhone}
+                    onChange={e => { setCustomerPhone(e.target.value); setPrepared(null) }}
+                    placeholder="0712 345 678"
+                  />
+                </label>
               </div>
 
               {missingPrice && !prepared && (

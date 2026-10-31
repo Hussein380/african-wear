@@ -9,6 +9,8 @@ export interface BasketItem {
   subVariantId?: string
   subVariantLabel?: string
   quantity: number
+  /** Selling price per bale typed at checkout (receipt only, never stored on stock). */
+  unitPrice?: number
   available: number
 }
 
@@ -74,11 +76,14 @@ export function useSaleBasket() {
     }
   }
 
-  const updateItem = (index: number, quantity: number) => {
+  const updateItem = (index: number, quantity: number, unitPrice?: number) => {
     const current = getStoredBasket()
     if (!current[index]) return
     const updated = [...current]
     updated[index].quantity = Math.max(1, Math.min(quantity, updated[index].available))
+    if (unitPrice !== undefined) {
+      updated[index].unitPrice = Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : 0
+    }
     saveStoredBasket(updated)
   }
 
@@ -94,6 +99,7 @@ export function useSaleBasket() {
   }
 
   const totalPieces = items.reduce((acc, i) => acc + i.quantity, 0)
+  const totalAmount = items.reduce((acc, i) => acc + (i.unitPrice || 0) * i.quantity, 0)
 
   return {
     items,
@@ -102,5 +108,6 @@ export function useSaleBasket() {
     removeItem,
     clearBasket,
     totalPieces,
+    totalAmount,
   }
 }

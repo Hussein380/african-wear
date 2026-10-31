@@ -59,22 +59,27 @@ export async function POST(request: Request) {
     const invoicesColl = db.collection('invoices')
 
     // 1. Merge repeated lines (same colour + same bale) so stock is checked against the combined quantity
-    const merged = new Map<string, { colorwayId: string; fullCode?: string; subVariantLabel?: string; quantity: number }>()
+    const merged = new Map<string, { colorwayId: string; fullCode?: string; subVariantLabel?: string; quantity: number; subtotal: number }>()
     for (const item of items) {
       const quantity = Number(item.quantity)
       if (!item.colorwayId || !Number.isInteger(quantity) || quantity <= 0) {
         return NextResponse.json({ error: 'Invalid item quantity or colour' }, { status: 400 })
       }
+      // Selling price per bale typed at checkout (receipt only)
+      const price = Number(item.unitPrice)
+      const subtotal = (Number.isFinite(price) && price > 0 ? price : 0) * quantity
       const key = `${item.colorwayId}::${item.subVariantLabel || ''}`
       const existing = merged.get(key)
       if (existing) {
         existing.quantity += quantity
+        existing.subtotal += subtotal
       } else {
         merged.set(key, {
           colorwayId: String(item.colorwayId),
           fullCode: item.fullCode,
           subVariantLabel: item.subVariantLabel || undefined,
           quantity,
+          subtotal,
         })
       }
     }
@@ -162,6 +167,8 @@ export async function POST(request: Request) {
           fullCode: cw.fullCode || line.fullCode || '',
           subVariantLabel: line.subVariantLabel,
           quantity: line.quantity,
+          unitPrice: line.subtotal / line.quantity,
+          subtotal: line.subtotal,
         },
       })
     }
@@ -174,6 +181,7 @@ export async function POST(request: Request) {
       customerName: customerName?.trim() || undefined,
       customerPhone: customerPhone?.trim() || undefined,
       items: processedItems,
+      totalAmount: processedItems.reduce((sum, i) => sum + (i.subtotal || 0), 0),
       notes: notes?.trim() || undefined,
       source: 'basket' as const,
       status: 'completed' as const,
