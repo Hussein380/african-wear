@@ -261,51 +261,6 @@ ul, ol {
   background: rgba(255, 255, 255, 0.15);
 }
 
-.appbar__search-trigger {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: var(--color-text-on-primary);
-  border-radius: var(--radius-full);
-  padding: 6px 14px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.appbar__search-trigger:hover {
-  background: rgba(255, 255, 255, 0.28);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-1px);
-}
-
-.appbar__search-trigger-text {
-  display: inline;
-}
-
-.appbar__search-shortcut {
-  font-size: 11px;
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 4px;
-  padding: 2px 6px;
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 600;
-}
-
-@media (max-width: 600px) {
-  .appbar__search-trigger-text,
-  .appbar__search-shortcut {
-    display: none;
-  }
-  .appbar__search-trigger {
-    padding: 8px;
-    border-radius: 50%;
-  }
-}
-
 
 /* ---------- Sidebar ---------- */
 .sidebar {
@@ -1946,56 +1901,6 @@ ul, ol {
   background: var(--color-primary);
   border-radius: var(--radius-full);
   transition: width var(--transition-base);
-}
-
-/* ---------- Toast / Notification ---------- */
-.toast {
-  position: fixed;
-  bottom: var(--space-xl);
-  left: 50%;
-  transform: translateX(-50%) translateY(100px);
-  padding: var(--space-sm) var(--space-lg);
-  background: var(--color-text-primary);
-  color: white;
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  box-shadow: var(--shadow-lg);
-  z-index: 300;
-  transition: transform var(--transition-base);
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  white-space: nowrap;
-}
-
-.toast--visible {
-  transform: translateX(-50%) translateY(0);
-}
-
-.toast--success {
-  background: var(--color-success);
-}
-
-.toast--error {
-  background: var(--color-danger);
-}
-
-.toast__undo-btn {
-  background: rgba(255, 255, 255, 0.25);
-  border: 1.5px solid rgba(255, 255, 255, 0.5);
-  color: white;
-  font-weight: 700;
-  font-size: var(--font-size-sm);
-  padding: 4px 14px;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: background var(--transition-fast);
-  flex-shrink: 0;
-}
-
-.toast__undo-btn:hover {
-  background: rgba(255, 255, 255, 0.4);
 }
 
 /* ---------- Animations ---------- */

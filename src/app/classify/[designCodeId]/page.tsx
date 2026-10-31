@@ -15,6 +15,7 @@ import SaleBasketFloating from '@/components/SaleBasketFloating'
 import { useSaleBasket } from '@/lib/useSaleBasket'
 import StaffGuideModal from '@/components/StaffGuideModal'
 import { useGoBack } from '@/lib/useGoBack'
+import { useAutoRefresh } from '@/lib/useAutoRefresh'
 
 export default function DesignCodeDetailPage({
   params,
@@ -42,17 +43,8 @@ export default function DesignCodeDetailPage({
   const goBack = useGoBack()
   const searchParams = useSearchParams()
   
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [globalSearchTerm, setGlobalSearchTerm] = useState(searchParams.get('search') || '')
   const [showGuideModal, setShowGuideModal] = useState(false)
-
-  // Undo toast state
-  const [undoToast, setUndoToast] = useState<{
-    visible: boolean
-    message: string
-    onUndo: () => void
-  }>({ visible: false, message: '', onUndo: () => {} })
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const term = searchParams.get('search')
@@ -60,18 +52,6 @@ export default function DesignCodeDetailPage({
       setGlobalSearchTerm(term)
     }
   }, [searchParams])
-
-  // Global '/' keyboard shortcut to open search
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
-        e.preventDefault()
-        setIsSearchOpen(true)
-      }
-    }
-    window.addEventListener('keydown', handleGlobalKeyDown)
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [])
 
   const fetchColorways = useCallback(async (isBackgroundRefresh = false) => {
     if (!isBackgroundRefresh) setIsLoading(true)
@@ -127,6 +107,8 @@ export default function DesignCodeDetailPage({
     fetchDesignCode()
     fetchColorways()
   }, [designCodeId, fetchColorways])
+
+  useAutoRefresh(() => fetchColorways(true))
 
   // --- Design Code Actions ---
   const handleEditDesignCode = async (data: { code: string, category: string, thumbnailUrl: string, thumbnailPublicId: string }) => {

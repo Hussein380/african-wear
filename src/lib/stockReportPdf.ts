@@ -4,7 +4,6 @@ import { shopDateString } from './stockRules'
 // Colour palette matching the app brand
 const PLUM = '#5B1A3E'
 const GOLD = '#D4AF37'
-const LIGHT_GRAY = '#F8F6F4'
 
 interface BreakdownItem {
   id: string
@@ -52,7 +51,6 @@ export async function generateStockSnapshotPdf({ items, storeName = 'MANDERA AFR
   })
 
   const totalBales = items.reduce((s, i) => s + i.quantityAvailable, 0)
-  const totalDesigns = new Set(items.map(i => i.designCodeName)).size
 
   // ── Header ─────────────────────────────────────────────────────────────────
   const [pr, pg, pb] = hexToRgb(PLUM)
@@ -137,7 +135,6 @@ export async function generateStockSnapshotPdf({ items, storeName = 'MANDERA AFR
 
       // Bale count on right
       doc.setFont('helvetica', 'bold')
-      const balesColor = item.quantityAvailable <= 5 ? [185, 28, 28] : [pr, pg, pb] as [number, number, number]
       doc.setTextColor(...(item.quantityAvailable <= 5 ? [185, 28, 28] as [number, number, number] : [pr, pg, pb] as [number, number, number]))
       doc.text(`${item.quantityAvailable} bales`, pageW - margin - 3, y + 5, { align: 'right' })
 

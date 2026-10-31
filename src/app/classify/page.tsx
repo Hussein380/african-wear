@@ -7,11 +7,12 @@ import Dashboard from '@/components/Dashboard'
 import DesignCodeModal from '@/components/DesignCodeModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadcnui'
-import { Category, DesignCode } from '@/types'
+import { DesignCode } from '@/types'
 import { CacheKeys, getCached, getCacheAge, setCached, bustCache, prefetchColorways } from '@/lib/cache'
 import { getOptimizedImageUrl } from '@/lib/cloudinary'
 import SaleBasketFloating from '@/components/SaleBasketFloating'
 import StaffGuideModal from '@/components/StaffGuideModal'
+import { useAutoRefresh } from '@/lib/useAutoRefresh'
 
 function ClassifyPageInner() {
   const searchParams = useSearchParams()
@@ -24,7 +25,6 @@ function ClassifyPageInner() {
   const [deleteTarget, setDeleteTarget] = useState<DesignCode | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [globalSearchTerm, setGlobalSearchTerm] = useState('')
   const [isGuideOpen, setIsGuideOpen] = useState(false)
 
@@ -47,18 +47,6 @@ function ClassifyPageInner() {
       }
     }
   }, [urlCat, router])
-
-  // Global '/' keyboard shortcut to open search
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
-        e.preventDefault()
-        setIsSearchOpen(true)
-      }
-    }
-    window.addEventListener('keydown', handleGlobalKeyDown)
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [])
 
   const handleCategoryChange = (cat: ViewState) => {
     router.push(`/classify?category=${cat}`)
@@ -95,6 +83,8 @@ function ClassifyPageInner() {
       if (!isBackgroundRefresh) setIsLoading(false)
     }
   }, [activeCategory])
+
+  useAutoRefresh(() => fetchDesignCodes(true))
 
   useEffect(() => {
     fetchDesignCodes()
@@ -223,17 +213,14 @@ function ClassifyPageInner() {
       {/* Sidebar */}
       <Sidebar
         activeCategory={activeCategory}
-        onCategoryChange={handleCategoryChange}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        onOpenSearch={() => setIsSearchOpen(true)}
       />
 
       <main className="main-content">
         {activeCategory === 'Dashboard' ? (
           <Dashboard
             onCategoryChange={handleCategoryChange}
-            onOpenSearch={() => setIsSearchOpen(true)}
           />
         ) : (
           <>

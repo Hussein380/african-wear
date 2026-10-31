@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import SaleBasketFloating from '@/components/SaleBasketFloating'
 import ReceiptFormModal, { SaleLine } from '@/components/ReceiptFormModal'
 import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadcnui'
 import { useGoBack } from '@/lib/useGoBack'
 import { historyPresetRange, shopDateString } from '@/lib/stockRules'
+import { useAutoRefresh } from '@/lib/useAutoRefresh'
 
 interface SaleRow {
   _id: string
@@ -28,7 +28,6 @@ type Period = 'today' | '7days' | 'all'
 const PAGE_SIZE = 50
 
 export default function SalesReceiptsPage() {
-  const router = useRouter()
   const goBack = useGoBack()
   const [sales, setSales] = useState<SaleRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -78,8 +77,11 @@ export default function SalesReceiptsPage() {
   const refreshLoaded = useCallback(async () => {
     try {
       const pages = await Promise.all(Array.from({ length: page }, (_, i) => fetchPage(i + 1)))
-      setSales(pages.flat())
-      setSelected(new Set())
+      const rows = pages.flat()
+      setSales(rows)
+      // Keep ticks on sales that still have no receipt
+      const open = new Set(rows.filter(r => !r.receipt).map(r => r._id))
+      setSelected(prev => new Set([...prev].filter(id => open.has(id))))
     } catch (err) {
       console.error('Failed to refresh sales:', err)
     }
@@ -88,6 +90,8 @@ export default function SalesReceiptsPage() {
   useEffect(() => {
     loadSales()
   }, [loadSales])
+
+  useAutoRefresh(refreshLoaded)
 
   const handleLoadMore = async () => {
     setIsLoadingMore(true)
@@ -191,7 +195,6 @@ export default function SalesReceiptsPage() {
       {/* Navigation Sidebar */}
       <Sidebar
         activeCategory="Receipts"
-        onCategoryChange={(cat) => router.push(cat === 'Receipts' ? '/receipts' : cat === 'Inventory' ? '/inventory' : `/classify?category=${cat}`)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />

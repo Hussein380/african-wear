@@ -10,10 +10,8 @@ export type ViewState = Category | 'Dashboard' | 'Inventory' | 'History' | 'Rece
 
 interface SidebarProps {
   activeCategory: ViewState
-  onCategoryChange: (category: ViewState) => void
   isOpen?: boolean
   onClose?: () => void
-  onOpenSearch?: () => void
 }
 
 interface NavItem {
@@ -114,7 +112,7 @@ const categories: NavItem[] = [
   },
 ]
 
-export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ activeCategory, isOpen, onClose }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [isGuideOpen, setIsGuideOpen] = useState(false)
@@ -132,19 +130,15 @@ export default function Sidebar({ activeCategory, onCategoryChange, isOpen, onCl
       } catch { /* ignore */ }
     }
 
-    let url = ''
+    let url: string
     if (cat.key === 'History') {
       // Same range as the History page's default "This week" preset, so the prefetch is reused
       const { start, end } = historyPresetRange('this_week')
       url = `/api/activities?page=1&limit=20&startDate=${start}&endDate=${end}`
     } else if (cat.key === 'Dashboard') {
       url = '/api/dashboard'
-    } else if (cat.key === 'Inventory') {
-      url = '/api/inventory'
-    } else if (cat.key === 'Receipts') {
-      url = '/api/activities?sold=1&page=1&limit=50'
     } else {
-      url = `/api/design-codes?category=${cat.key}`
+      return
     }
 
     fetch(url, { cache: 'no-store' })

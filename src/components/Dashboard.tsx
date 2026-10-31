@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { ViewState } from './Sidebar'
 
 import { ActivityLog } from '@/types'
+import { useAutoRefresh } from '@/lib/useAutoRefresh'
 
 interface LowStockItem {
   _id: string
@@ -45,10 +46,9 @@ interface DashboardMetrics {
 
 interface DashboardProps {
   onCategoryChange: (category: ViewState) => void
-  onOpenSearch?: () => void
 }
 
-export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardProps) {
+export default function Dashboard({ onCategoryChange }: DashboardProps) {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -60,8 +60,7 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
   const [copiedOrder, setCopiedOrder] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    async function fetchMetrics(isBackgroundRefresh = false) {
+  const fetchMetrics = useCallback(async (isBackgroundRefresh = false) => {
       try {
         const res = await fetch('/api/dashboard?t=' + new Date().getTime(), {
           cache: 'no-store',
@@ -82,8 +81,9 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
       } finally {
         if (!isBackgroundRefresh) setIsLoading(false)
       }
-    }
+  }, [])
 
+  useEffect(() => {
     // Stale-while-revalidate: show cached data instantly
     const cached = sessionStorage.getItem('prefetch_Dashboard')
     if (cached) {
@@ -100,7 +100,10 @@ export default function Dashboard({ onCategoryChange, onOpenSearch }: DashboardP
     }
 
     fetchMetrics()
-  }, [])
+  }, [fetchMetrics])
+
+  // Live numbers; paused once older activity has been loaded so the list doesn't jump back
+  useAutoRefresh(() => fetchMetrics(true), page === 1)
 
   const handleLoadMore = async () => {
     setIsLoadingMore(true)
@@ -225,7 +228,7 @@ Kindly confirm availability, current bale wholesale prices, and dispatch schedul
         navigator.clipboard.writeText(message)
         setCopiedOrder(true)
         setTimeout(() => setCopiedOrder(false), 3000)
-      } catch (e) {
+      } catch {
         // clipboard might be blocked in some insecure contexts
       }
       window.open(waUrl, '_blank')

@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import InventoryTable from '@/components/InventoryTable'
 import Sidebar from '@/components/Sidebar'
 import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadcnui'
@@ -9,9 +8,9 @@ import SaleBasketFloating from '@/components/SaleBasketFloating'
 import StocktakeModal from '@/components/StocktakeModal'
 import { generateStockSnapshotPdf, buildWhatsAppStockSummary } from '@/lib/stockReportPdf'
 import { useGoBack } from '@/lib/useGoBack'
+import { useAutoRefresh } from '@/lib/useAutoRefresh'
 
 export default function InventoryPage() {
-  const router = useRouter()
   const goBack = useGoBack()
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -20,8 +19,7 @@ export default function InventoryPage() {
   const [showStocktake, setShowStocktake] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
 
-  useEffect(() => {
-    async function fetchInventory() {
+  const fetchInventory = useCallback(async () => {
       try {
         const res = await fetch('/api/inventory?t=' + new Date().getTime(), {
           cache: 'no-store',
@@ -40,9 +38,13 @@ export default function InventoryPage() {
       } finally {
         setIsLoading(false)
       }
-    }
-    fetchInventory()
   }, [])
+
+  useEffect(() => {
+    fetchInventory()
+  }, [fetchInventory])
+
+  useAutoRefresh(fetchInventory)
 
   const handleExportPdf = async () => {
     if (data.length === 0) return
@@ -137,7 +139,6 @@ export default function InventoryPage() {
 
       <Sidebar
         activeCategory="Inventory"
-        onCategoryChange={(cat) => router.push(cat === 'Inventory' ? '/inventory' : `/classify?category=${cat}`)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />

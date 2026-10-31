@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 import { ActivityLog } from '@/types'
@@ -8,6 +8,7 @@ import Sidebar from '@/components/Sidebar'
 import { ExpandingSearchDock } from '@/components/ui/expanding-search-dock-shadcnui'
 import { useGoBack } from '@/lib/useGoBack'
 import { historyPresetRange } from '@/lib/stockRules'
+import { useAutoRefresh } from '@/lib/useAutoRefresh'
 
 export default function HistoryPage() {
   const router = useRouter()
@@ -15,7 +16,6 @@ export default function HistoryPage() {
   const [activities, setActivities] = useState<ActivityLog[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [globalSearchTerm, setGlobalSearchTerm] = useState('')
   
   // Date Filters
@@ -29,12 +29,6 @@ export default function HistoryPage() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-
-  // Delete history
-  const [showClearModal, setShowClearModal] = useState(false)
-  const [clearMode, setClearMode] = useState<'all' | 'older30' | null>(null)
-  const [isClearing, setIsClearing] = useState(false)
-  const [clearResult, setClearResult] = useState<string | null>(null)
 
   // Helper to set dates based on calendar periods
   const applyPreset = (preset: 'this_week' | '7days' | 'this_month' | 'last_month' | 'this_year' | 'all') => {
@@ -54,23 +48,7 @@ export default function HistoryPage() {
     applyPreset('this_week')
   }, [])
 
-  // Global '/' keyboard shortcut to open search
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
-        e.preventDefault()
-        setIsSearchOpen(true)
-      }
-    }
-    window.addEventListener('keydown', handleGlobalKeyDown)
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [])
-
-  // Fetch data when dates or page 1 changes
-  useEffect(() => {
-    if (datePreset === 'custom' && (!startDate || !endDate)) return;
-    
-    async function fetchHistory(isBackgroundRefresh = false) {
+  const fetchHistory = useCallback(async (isBackgroundRefresh = false) => {
       if (!isBackgroundRefresh) setIsLoading(true)
       try {
         let url = `/api/activities?page=1&limit=20&t=${new Date().getTime()}`
@@ -93,7 +71,11 @@ export default function HistoryPage() {
       } finally {
         if (!isBackgroundRefresh) setIsLoading(false)
       }
-    }
+  }, [datePreset, startDate, endDate])
+
+  // Fetch data when dates or page 1 changes
+  useEffect(() => {
+    if (datePreset === 'custom' && (!startDate || !endDate)) return;
 
     // Stale-while-revalidate: show cached data instantly, refresh in background
     if (datePreset === 'this_week') {
@@ -116,7 +98,13 @@ export default function HistoryPage() {
     }
 
     fetchHistory()
-  }, [datePreset, startDate, endDate])
+  }, [datePreset, startDate, endDate, fetchHistory])
+
+  // Live history; paused once older entries have been loaded so the list doesn't jump back
+  useAutoRefresh(
+    () => fetchHistory(true),
+    page === 1 && !(datePreset === 'custom' && (!startDate || !endDate))
+  )
 
   const handleLoadMore = async () => {
     setIsLoadingMore(true)
@@ -268,35 +256,6 @@ export default function HistoryPage() {
     }
   }
 
-  const handleClearHistory = async () => {
-    if (!clearMode) return
-    setIsClearing(true)
-    try {
-      const url = clearMode === 'all'
-        ? '/api/activities?mode=all'
-        : '/api/activities?mode=older&days=30'
-      const res = await fetch(url, { method: 'DELETE' })
-      const data = await res.json()
-      if (res.ok) {
-        setClearResult(`✅ ${data.message}`)
-        setActivities([])
-        setHasMore(false)
-        // Reload fresh data
-        setTimeout(() => {
-          setShowClearModal(false)
-          setClearResult(null)
-          setClearMode(null)
-          applyPreset('7days')
-        }, 1500)
-      } else {
-        setClearResult(`❌ Error: ${data.error}`)
-      }
-    } catch {
-      setClearResult('❌ Failed to clear history. Try again.')
-    } finally {
-      setIsClearing(false)
-    }
-  }
 
   return (
     <>
@@ -325,25 +284,13 @@ export default function HistoryPage() {
         </div>
         <div className="appbar__right">
           <ExpandingSearchDock onSearch={(val) => setGlobalSearchTerm(val)} />
-          <button 
-            className="appbar__action-btn" 
-            onClick={() => { setShowClearModal(true); setClearResult(null) }} 
-            type="button"
-            style={{ color: '#fca5a5' }}
-            title="Clear History"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="m19 6-.867 12.142A2 2 0 0 1 16.138 20H7.862a2 2 0 0 1-1.995-1.858L5 6"/><path d="m10 11 0 6"/><path d="m14 11 0 6"/><path d="m9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            <span className="desktop-only">Clear History</span>
-          </button>
         </div>
       </header>
 
       <Sidebar
         activeCategory="History"
-        onCategoryChange={(category) => router.push(`/classify?category=${category}`)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        onOpenSearch={() => setIsSearchOpen(true)}
       />
 
       <main className="main-content">
@@ -602,96 +549,6 @@ export default function HistoryPage() {
       </div>
       </main>
 
-      {/* Clear History Modal */}
-      {showClearModal && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
-        }}>
-          <div style={{
-            background: 'var(--color-bg-card)', borderRadius: 'var(--radius-xl)',
-            padding: 'var(--space-xl)', maxWidth: '420px', width: '100%',
-            boxShadow: 'var(--shadow-xl)', border: '1px solid var(--color-border)'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
-              <div style={{ fontSize: '48px', marginBottom: '12px' }}>🗑️</div>
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>Clear Transaction History</h2>
-              <p style={{ margin: '8px 0 0', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-                Clear counter movements. Official tax invoices and financial reports are protected and preserved.
-              </p>
-            </div>
-
-            {clearResult ? (
-              <div style={{
-                padding: '16px', borderRadius: 'var(--radius-md)',
-                background: clearResult.startsWith('✅') ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                textAlign: 'center', fontWeight: 600
-              }}>
-                {clearResult}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {/* Option 1: Older than 30 days */}
-                <button
-                  onClick={() => setClearMode(clearMode === 'older30' ? null : 'older30')}
-                  style={{
-                    padding: '14px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-                    border: `2px solid ${clearMode === 'older30' ? 'var(--color-warning)' : 'var(--color-border)'}`,
-                    background: clearMode === 'older30' ? 'rgba(251,191,36,0.1)' : 'var(--color-bg)',
-                    textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.15s'
-                  }}
-                >
-                  <span style={{ fontSize: '24px' }}>📅</span>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '14px' }}>Clear records older than 30 days</div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Keeps recent history intact</div>
-                  </div>
-                </button>
-
-                {/* Option 2: Clear All */}
-                <button
-                  onClick={() => setClearMode(clearMode === 'all' ? null : 'all')}
-                  style={{
-                    padding: '14px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-                    border: `2px solid ${clearMode === 'all' ? '#ef4444' : 'var(--color-border)'}`,
-                    background: clearMode === 'all' ? 'rgba(239,68,68,0.1)' : 'var(--color-bg)',
-                    textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.15s'
-                  }}
-                >
-                  <span style={{ fontSize: '24px' }}>⚠️</span>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '14px', color: '#ef4444' }}>Clear ALL history</div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Permanently deletes every transaction record</div>
-                  </div>
-                </button>
-
-                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                  <button
-                    onClick={() => { setShowClearModal(false); setClearMode(null) }}
-                    className="btn btn--secondary"
-                    style={{ flex: 1 }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleClearHistory}
-                    disabled={!clearMode || isClearing}
-                    className="btn"
-                    style={{
-                      flex: 1,
-                      background: clearMode === 'all' ? '#ef4444' : 'var(--color-warning)',
-                      color: 'white', opacity: !clearMode ? 0.4 : 1
-                    }}
-                  >
-                    {isClearing ? 'Clearing...' : 'Confirm Delete'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </>
   )
 }
